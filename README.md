@@ -30,6 +30,8 @@ No API keys, paid services, database, account or environment variables are requi
 
 ## Use it
 
+Gather is a **web app**: it runs in a desktop or phone browser. The phone layout uses stacked cards, 16px form inputs and controls sized for touch. The current local `127.0.0.1` address belongs to the computer running it; opening Gather on another device needs an accessible hosted URL. Hosting has not been configured.
+
 1. Upload up to three JPEG, PNG or still WebP images, take a photo on a supported phone, paste receipt text, or enter items manually. Use **Crop** to trim background while preserving the original for review. Choose **Try the Costco demo** for a clearly labelled manual transcription, not a simulated scan.
 2. Check the original photo and every extracted field. Correct missing quantities, discounts, tax codes and totals. Confirm only after the arithmetic matches the printed receipt.
 3. Add names. Duplicate names work because people have separate internal identifiers.

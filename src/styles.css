@@ -1896,11 +1896,11 @@ dialog::backdrop {
     padding: 0 20px;
   }
   .scan-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .welcome-aside {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
     gap: 20px;
     padding-top: 20px;
@@ -2333,6 +2333,194 @@ dialog::backdrop {
   }
   dialog {
     padding: 30px 20px;
+  }
+}
+/* Phone controls stay readable and usable by touch throughout the workflow. */
+@media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
+  .panel,
+  .notice,
+  .review-notes,
+  .issue-box,
+  .side-panel {
+    overflow-wrap: anywhere;
+  }
+  body {
+    font-size: 16px;
+  }
+  .field input,
+  .field select,
+  .field textarea,
+  .item-name-input > input,
+  .item-editor-top .field input {
+    font-size: 16px;
+  }
+  .field > label,
+  .field > span,
+  .field > small,
+  .item-editor-top > .field > label,
+  .item-editor-top > .field > span,
+  .hint,
+  .item-note,
+  .mode-hint,
+  .allocation-error,
+  .check-row small,
+  .assignment-heading p,
+  .person-heading small,
+  .person-toggle small,
+  .live-person small,
+  .live-totals .hint,
+  .breakdown-line small,
+  .breakdown-lines .hint,
+  .small-note p,
+  .paper-summary > .muted,
+  .rounding-explainer p,
+  .tax-code-box p,
+  .summary-rows,
+  .assignment-progress,
+  .cost-explainer p,
+  .cost-explainer summary,
+  .original-thumb span,
+  .demo-tag,
+  .balance-label,
+  .site-footer,
+  .site-footer .text-button {
+    font-size: 12px;
+  }
+  .button,
+  .text-button,
+  .upload-actions .button,
+  .alternate-actions .text-button,
+  .add-person .button,
+  .review-image-links .button,
+  .item-detail-fields .text-button,
+  .segmented button,
+  .check-row,
+  .private-line,
+  .text-import summary,
+  .share-panel > p {
+    font-size: 14px;
+  }
+  button,
+  .icon-button,
+  .item-editor-top > .icon-button,
+  .selected-image .icon-button,
+  .notice button,
+  .site-header nav > .text-button,
+  .step,
+  summary {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .stepper {
+    gap: 4px;
+  }
+  .step {
+    font-size: 12px;
+  }
+  .step:not(:last-child)::after {
+    width: 12px;
+    left: calc(100% + 2px);
+  }
+  .selected-image {
+    width: 128px;
+  }
+  .selected-image .crop-trigger {
+    font-size: 14px;
+  }
+  .grand-total,
+  .assignment-heading {
+    flex-wrap: wrap;
+  }
+  .grand-total strong,
+  .assignment-heading > strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .summary-rows > div {
+    flex-wrap: wrap;
+    gap: 4px 14px;
+  }
+  .summary-rows dd {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .person-breakdown > summary {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 20px;
+    gap: 5px 12px;
+  }
+  .person-breakdown > summary > .avatar {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .person-heading {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .person-amount {
+    grid-column: 2;
+    grid-row: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .person-breakdown > summary > svg {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+}
+@media (max-width: 460px) {
+  .site-header nav > .text-button {
+    font-size: 0;
+  }
+  .item-editor-top {
+    grid-template-columns: minmax(0, 1fr) 82px 44px;
+  }
+  .item-cost {
+    grid-column: 2 / 4;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+  .item-editor-top > .item-cost {
+    grid-column: 2 / 4;
+  }
+  .item-editor-top .field input {
+    width: 100%;
+  }
+  .upload-actions {
+    flex-direction: column;
+  }
+  .upload-actions > .button {
+    width: 100%;
+  }
+  .alternate-actions {
+    flex-wrap: wrap;
+    column-gap: 16px;
+  }
+  .assignment-status {
+    font-size: 12px;
+  }
+  .person-toggle > span:last-child {
+    font-size: 14px;
+  }
+}
+@media (max-width: 360px) {
+  .welcome-aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .upload-card,
+  .welcome-aside,
+  .receipt-illustration,
+  .welcome-note {
+    min-width: 0;
+  }
+  .new-receipt-label {
+    display: none;
+  }
+  .new-receipt {
+    padding: 10px;
+    gap: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

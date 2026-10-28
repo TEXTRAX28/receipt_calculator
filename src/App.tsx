@@ -560,11 +560,12 @@ export default function App() {
           </button>
           <button
             className="button button-quiet new-receipt"
+            aria-label="New receipt"
             disabled={busy}
             onClick={reset}
           >
             <Plus size={17} />
-            New receipt
+            <span className="new-receipt-label">New receipt</span>
           </button>
         </nav>
       </header>

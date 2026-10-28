@@ -19,7 +19,7 @@ The exact financial rules are documented in the README and shown in the app. In 
 | `npm ci` from the lockfile | Passed; OCR assets regenerated; zero known dependency vulnerabilities |
 | `npm run build` (includes TypeScript validation) | Passed; production bundle generated |
 | `npm test` | 91 tests passed across six files, including 2,000 signed remainder properties and 500 generated multi-item receipt properties |
-| `npm run test:e2e` | 45 passed; one duplicate mobile breakpoint-only test intentionally skipped because 360/768/1024 widths are exercised in the desktop project |
+| `npm run test:e2e` | 55 passed after the phone-layout follow-up; one duplicate mobile breakpoint-only test intentionally skipped because 360/768/1024 widths are exercised in the desktop project |
 | Real OCR in desktop and phone-sized Chromium | Passed on synthetic receipts, with and without cropping; no receipt uploads or external OCR requests observed |
 | Opt-in real-photo test on the supplied Costco JPEG | Passed on desktop: real OCR produced nine purchase rows; explicit corrections through the visible UI restored all 18 purchases, then £58.93 + £58.93 + £58.92 finalized exactly £176.78 |
 | axe WCAG A/AA scans | Passed on home, item sharing and completed breakdown screens in desktop/mobile contexts |
@@ -83,6 +83,14 @@ The OCR model is about 3 MB compressed; the app additionally fetches the selecte
 - A clean dependency audit and passing tests describe this tested version; they do not prove the app perfectly secure or bug-free.
 
 ## Requirement completion audit
+
+### Phone layout follow-up
+
+The phone review found small form text, compact controls, a minimum-content grid overflow at 320px, and an unbroken participant name spilling from a quantity label. The updates use 16px form text, at least 44px button targets, stacked participant amounts, constrained grid tracks and wrapping for long names/notes. They retain normal desktop styling and support touch-device landscape layouts.
+
+The added phone regression tests cover the complete receipt review → people → physical quantity assignment → finalized breakdown flow at 320, 360, 390 and 430 CSS pixels, plus the editor at 844×390 landscape. They compare the rendered content with the requested viewport width, including where mobile browsers might otherwise zoom out to accommodate overflow. Font sizes, button targets, long names, and controls staying within the screen are checked. Generated phone screenshots are stored in ignored `qa-artifacts/`.
+
+Verification: production build and TypeScript checks passed; all ten new phone layout checks passed across desktop and touch-browser contexts; the full browser suite passed 55 tests with the one duplicate breakpoint check skipped. Existing OCR, accessibility, sharing, persistence and desktop workflows were included in that run.
 
 The delivery audit maps each part of the objective to concrete evidence:
 
