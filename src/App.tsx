@@ -1,0 +1,2360 @@
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  Camera,
+  Copy,
+  Download,
+  FileText,
+  Heart,
+  ImagePlus,
+  Leaf,
+  LoaderCircle,
+  Plus,
+  ReceiptText,
+  ScanLine,
+  ShieldCheck,
+  ShoppingBasket,
+  Sparkles,
+  Trash2,
+  Users,
+  X,
+  CircleHelp,
+  RotateCcw,
+  AlertCircle,
+} from "lucide-react";
+import {
+  currencies,
+  emptyAssignment,
+  finalStamp,
+  newItem,
+  newState,
+  receiptStamp,
+  uid,
+  type AppState,
+  type Assignment,
+  type Item,
+  type Receipt,
+} from "./lib/model";
+import {
+  assignmentWeights,
+  calculateReceipt,
+  calculateSplit,
+  removePerson,
+  type ReceiptResult,
+} from "./lib/engine";
+import { formatMoney } from "./lib/money";
+import { costcoDemo } from "./lib/demo";
+import { parseReceiptText } from "./lib/parser";
+import { prepareImage, type ReceiptImage } from "./lib/images";
+import { localOcrProvider } from "./lib/ocr";
+import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
+import { readableSummary } from "./lib/summary";
+import ImageCropper from "./ImageCropper";
+
+type Step = AppState["step"];
+const steps: { id: Step; title: string }[] = [
+  { id: "scan", title: "Receipt" },
+  { id: "review", title: "Review" },
+  { id: "people", title: "People" },
+  { id: "assign", title: "Share" },
+  { id: "summary", title: "Summary" },
+];
+const colorNames = ["sage", "peach", "blue", "lilac", "sand", "rose"];
+const displayName = (name: string, index: number) =>
+  `${name} (person ${index + 1})`;
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+}) {
+  const controlId = useId();
+  const control = isValidElement(children)
+    ? cloneElement(
+        children as ReactElement<{ id?: string; "aria-describedby"?: string }>,
+        {
+          id: controlId,
+          "aria-describedby": hint ? `${controlId}-hint` : undefined,
+        },
+      )
+    : children;
+  return (
+    <div className="field">
+      <label htmlFor={controlId}>{label}</label>
+      {control}
+      {hint && <small id={`${controlId}-hint`}>{hint}</small>}
+    </div>
+  );
+}
+function MoneyInput({
+  label,
+  value,
+  onChange,
+  hint,
+  ...rest
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  required?: boolean;
+}) {
+  return (
+    <Field label={label} hint={hint}>
+      <input
+        {...rest}
+        aria-label={label}
+        inputMode="decimal"
+        maxLength={40}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0.00"
+      />
+    </Field>
+  );
+}
+function Avatar({
+  name,
+  index,
+  small = false,
+}: {
+  name: string;
+  index: number;
+  small?: boolean;
+}) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <span
+      aria-hidden="true"
+      className={`avatar ${colorNames[index % colorNames.length]} ${small ? "small" : ""}`}
+    >
+      {initials || "?"}
+    </span>
+  );
+}
+function SectionIntro({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="section-intro">
+      <span className="eyebrow">{eyebrow}</span>
+      <h1 tabIndex={-1} id="screen-title">
+        {title}
+      </h1>
+      <p>{children}</p>
+    </div>
+  );
+}
+
+export default function App() {
+  const initial = useMemo(() => {
+    try {
+      return loadDraft(localStorage);
+    } catch {
+      return {
+        state: newState(),
+        warning:
+          "Local storage is unavailable. Keep this tab open to preserve your draft.",
+      };
+    }
+  }, []);
+  const [state, setState] = useState<AppState>(initial.state);
+  const [notice, setNotice] = useState(initial.warning);
+  const [saveError, setSaveError] = useState("");
+  const storageConflict = useRef(false);
+  const [images, setImages] = useState<ReceiptImage[]>([]);
+  const imageRef = useRef<ReceiptImage[]>([]);
+  const [imageError, setImageError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [scanStatus, setScanStatus] = useState("");
+  const controller = useRef<AbortController | null>(null);
+  const [rawText, setRawText] = useState("");
+  const [privacy, setPrivacy] = useState(false);
+  const [zoomImage, setZoomImage] = useState<ReceiptImage | null>(null);
+  const [cropTarget, setCropTarget] = useState<ReceiptImage | null>(null);
+  const [personName, setPersonName] = useState("");
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const result = useMemo(() => calculateSplit(state), [state]);
+  const receiptResult = result.receipt;
+  const f = (amount: bigint) => formatMoney(amount, state.receipt.currency);
+  const finalized =
+    state.finalizedStamp !== "" &&
+    state.finalizedStamp === finalStamp(state) &&
+    result.canFinalize;
+  useEffect(() => {
+    imageRef.current = images;
+  }, [images]);
+  useEffect(
+    () => () => {
+      controller.current?.abort();
+      imageRef.current.forEach((i) => URL.revokeObjectURL(i.url));
+    },
+    [],
+  );
+  useEffect(() => {
+    const changedElsewhere = (event: StorageEvent) => {
+      if (
+        (event.key === STORAGE_KEY || event.key === null) &&
+        event.newValue !== event.oldValue
+      ) {
+        storageConflict.current = true;
+        setSaveError(
+          "Another Gather tab changed this draft. This tab has stopped saving to protect both versions. Export your summary before reloading to use the other tab's version.",
+        );
+      }
+    };
+    window.addEventListener("storage", changedElsewhere);
+    return () => window.removeEventListener("storage", changedElsewhere);
+  }, []);
+  useEffect(() => {
+    if (storageConflict.current) return;
+    try {
+      saveDraft(localStorage, state);
+      setSaveError("");
+    } catch {
+      setSaveError(
+        "Draft could not be saved on this device. Keep this tab open and export your summary before leaving.",
+      );
+    }
+  }, [state]);
+  useEffect(() => {
+    if (privacy || zoomImage || cropTarget) dialogRef.current?.showModal();
+    else dialogRef.current?.close();
+  }, [privacy, zoomImage, cropTarget]);
+  useEffect(() => {
+    document.getElementById("screen-title")?.focus({ preventScroll: true });
+  }, [state.step]);
+  const navigate = (step: Step) => {
+    setState((s) => ({ ...s, step }));
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+  const editReceipt = (change: Partial<Receipt>) =>
+    setState((s) => ({
+      ...s,
+      receipt: { ...s.receipt, ...change },
+      finalizedStamp: "",
+    }));
+  const editItem = (id: string, change: Partial<Item>) =>
+    setState((s) => ({
+      ...s,
+      receipt: {
+        ...s.receipt,
+        items: s.receipt.items.map((i) =>
+          i.id === id ? { ...i, ...change } : i,
+        ),
+      },
+      finalizedStamp: "",
+    }));
+  const replaceReceipt = (receipt: Receipt) => {
+    setState((s) => ({
+      ...newState(),
+      people: s.people,
+      receipt,
+      step: "review",
+    }));
+    setNotice("");
+    window.scrollTo(0, 0);
+  };
+  const canReplace = () =>
+    !state.receipt.items.length ||
+    window.confirm(
+      "Replace this receipt? Your current receipt and assignments will be removed.",
+    );
+  const loadDemo = () => {
+    if (canReplace()) replaceReceipt(costcoDemo());
+  };
+  const startManual = () => {
+    if (canReplace()) {
+      const fresh = newState().receipt;
+      fresh.items = [newItem()];
+      replaceReceipt(fresh);
+    }
+  };
+  const reset = () => {
+    if (
+      !window.confirm(
+        "Delete this receipt, its people and assignments from this device?",
+      )
+    )
+      return;
+    controller.current?.abort();
+    storageConflict.current = false;
+    images.forEach((i) => URL.revokeObjectURL(i.url));
+    setImages([]);
+    setRawText("");
+    setImageError("");
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* Storage unavailable: memory is still cleared. */
+    }
+    setState(newState());
+    setNotice("Receipt deleted. A fresh start.");
+  };
+  async function addFiles(files: FileList | File[] | null) {
+    if (!files || busyRef.current) return;
+    if (files.length + images.length > 3) {
+      setImageError(
+        "Choose at most three images. For overlapping photos, review repeated rows after scanning.",
+      );
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setImageError("");
+    const prepared: ReceiptImage[] = [];
+    try {
+      for (const file of Array.from(files))
+        prepared.push(await prepareImage(file));
+      setImages((previous) => [...previous, ...prepared]);
+    } catch (e) {
+      prepared.forEach((i) => URL.revokeObjectURL(i.url));
+      setImageError((e as Error).message);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+      if (uploadRef.current) uploadRef.current.value = "";
+      if (cameraRef.current) cameraRef.current.value = "";
+    }
+  }
+  async function scan() {
+    if (busyRef.current || !images.length || !canReplace()) return;
+    busyRef.current = true;
+    setBusy(true);
+    setImageError("");
+    controller.current = new AbortController();
+    try {
+      const output = await localOcrProvider.extract(
+        images,
+        controller.current.signal,
+        setScanStatus,
+      );
+      setRawText(output.text);
+      const parsed = parseReceiptText(output);
+      parsed.source = "ocr";
+      replaceReceipt(parsed);
+      setNotice(
+        "OCR finished. Check the extracted details against your images before confirming.",
+      );
+    } catch (e) {
+      setImageError(
+        e instanceof Error
+          ? e.message
+          : "OCR could not start or finish. Try another image or use manual entry.",
+      );
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+      setScanStatus("");
+      controller.current = null;
+    }
+  }
+  function parseText() {
+    if (!canReplace()) return;
+    try {
+      replaceReceipt(parseReceiptText(rawText));
+      setImageError("");
+    } catch {
+      setImageError(
+        "Could not interpret this text. Use 1–60,000 characters, check the receipt lines, or enter the items manually.",
+      );
+    }
+  }
+  function finalize() {
+    const checked = calculateSplit(state);
+    if (!checked.canFinalize) {
+      setNotice(
+        "Some details still need attention. Check the highlighted assignments and receipt total.",
+      );
+      return;
+    }
+    setState((s) => ({ ...s, finalizedStamp: finalStamp(s), step: "summary" }));
+    window.scrollTo(0, 0);
+  }
+  function addPerson(e: React.FormEvent) {
+    e.preventDefault();
+    const name = personName.trim();
+    if (!name || state.people.length >= 30) return;
+    setState((s) => ({
+      ...s,
+      people: [...s.people, { id: uid(), name }],
+      finalizedStamp: "",
+    }));
+    setPersonName("");
+  }
+  async function copySummary() {
+    try {
+      await navigator.clipboard.writeText(readableSummary(state));
+      setNotice("Summary copied. Ready for the group chat.");
+    } catch {
+      setNotice(
+        "Clipboard access is unavailable. Use Download summary to save the same text.",
+      );
+    }
+  }
+  function downloadSummary() {
+    const url = URL.createObjectURL(
+      new Blob([readableSummary(state)], { type: "text/plain;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "gather-summary.txt";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  const assigned = [...result.statuses.values()].filter(
+    (s) => s.status === "complete",
+  ).length;
+  const assignmentCount =
+    state.splitMode === "whole" ? 1 : state.receipt.items.length;
+  const sidePanel = (
+    <aside className="side-panel">
+      <div className="paper-summary">
+        <div className="paper-top">
+          <ReceiptText size={24} />
+          <span>YOUR SHARED SHOP</span>
+        </div>
+        <h2>{state.receipt.merchant || "A new adventure"}</h2>
+        <span className="muted">
+          {state.receipt.date || "Receipt draft"} · {state.receipt.currency}
+        </span>
+        <div className="receipt-dashes" />
+        <SummaryRows receipt={state.receipt} result={receiptResult} />
+        <div className="receipt-dashes" />
+        <div className="grand-total">
+          <span>Receipt total</span>
+          <strong>{f(receiptResult.printed ?? receiptResult.total)}</strong>
+        </div>
+        <div
+          className={`balance-label ${receiptResult.issues.length ? "needs-check" : ""}`}
+        >
+          {receiptResult.issues.length ? (
+            <AlertCircle size={16} />
+          ) : (
+            <CheckCheck size={17} />
+          )}
+          {receiptResult.issues.length
+            ? "Details need a check"
+            : "Receipt balances to the penny"}
+        </div>
+        {state.receipt.source === "demo" && (
+          <span className="demo-tag">DEMO · MANUAL TRANSCRIPTION</span>
+        )}
+      </div>
+      {state.people.length > 0 && (
+        <div className="live-totals">
+          <div className="mini-heading">
+            <h3>Everyone’s share</h3>
+            <span>LIVE</span>
+          </div>
+          {result.totals.map((person, i) => (
+            <div className="live-person" key={person.person.id}>
+              <Avatar name={person.person.name} index={i} small />
+              <span>
+                {person.person.name}
+                <small>Person {i + 1}</small>
+              </span>
+              <strong data-testid={`live-total-${i}`}>{f(person.total)}</strong>
+            </div>
+          ))}
+          <p className="hint">
+            {assigned}/{assignmentCount} fully assigned · draft amounts update
+            as you go.
+          </p>
+        </div>
+      )}
+      <div className="small-note">
+        <ShieldCheck size={18} />
+        <p>
+          Your photos stay on this device. Only the editable draft is saved in
+          this browser.
+        </p>
+      </div>
+      {images.length > 0 ? (
+        <div className="original-images">
+          <h3>Original receipt</h3>
+          <div>
+            {images.map((image, i) => (
+              <button
+                key={image.id}
+                className="original-thumb"
+                onClick={() => setZoomImage(image)}
+                aria-label={`View original receipt image ${i + 1}`}
+              >
+                <img src={image.url} alt={`Original receipt image ${i + 1}`} />
+                <span>View {i + 1}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        state.receipt.source === "ocr" && (
+          <p className="hint">
+            Photos are kept only in memory. Upload them again after a refresh to
+            compare the original.
+          </p>
+        )
+      )}
+    </aside>
+  );
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <header className="site-header">
+        <a
+          className="brand"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            navigate("scan");
+          }}
+          aria-label="Gather home"
+        >
+          <span className="brand-mark">
+            <ShoppingBasket size={24} strokeWidth={1.8} />
+          </span>
+          gather<span className="brand-dot">.</span>
+        </a>
+        <nav aria-label="Help">
+          <button
+            className="text-button"
+            onClick={() => {
+              setPrivacy(true);
+            }}
+          >
+            Privacy first <ShieldCheck size={15} />
+          </button>
+          <button
+            className="button button-quiet new-receipt"
+            disabled={busy}
+            onClick={reset}
+          >
+            <Plus size={17} />
+            New receipt
+          </button>
+        </nav>
+      </header>
+      <main
+        id="main"
+        className={`app-main ${state.step === "scan" ? "scan-page" : ""}`}
+      >
+        <nav className="stepper" aria-label="Receipt workflow">
+          {steps.map((step, i) => (
+            <button
+              key={step.id}
+              className={`step ${state.step === step.id ? "active" : ""} ${steps.findIndex((s) => s.id === state.step) > i ? "past" : ""}`}
+              aria-current={state.step === step.id ? "step" : undefined}
+              disabled={busy || (i > 0 && state.receipt.items.length === 0)}
+              onClick={() => navigate(step.id)}
+            >
+              <span className="step-number">
+                {steps.findIndex((s) => s.id === state.step) > i ? (
+                  <Check size={13} />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <span>{step.title}</span>
+            </button>
+          ))}
+        </nav>
+        {(notice || saveError) && (
+          <div role="status" className={`notice ${saveError ? "warning" : ""}`}>
+            <span>{saveError || notice}</span>
+            {notice && !saveError && (
+              <button onClick={() => setNotice("")} aria-label="Dismiss notice">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
+        {state.step === "scan" ? (
+          <>
+            <SectionIntro
+              eyebrow="GOOD COMPANY. FAIR SHARES."
+              title="Big shop. Little maths."
+            >
+              From the trolley to the group chat. Turn one receipt into
+              everyone’s fair share.
+            </SectionIntro>
+            <div className="scan-layout">
+              <section className="upload-card" aria-label="Start a receipt">
+                <div className="card-kicker">
+                  <span className="icon-disc">
+                    <ScanLine size={20} />
+                  </span>
+                  <span>Let’s start with your receipt</span>
+                  <span className="pill">NO ACCOUNT NEEDED</span>
+                </div>
+                <div
+                  className="drop-zone"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    void addFiles(e.dataTransfer.files);
+                  }}
+                >
+                  <div className="upload-orbit">
+                    <ReceiptText size={37} strokeWidth={1.4} />
+                    <span className="orbit-plus">
+                      <Plus size={15} />
+                    </span>
+                  </div>
+                  <h2>A photo, and you’re off.</h2>
+                  <p>
+                    Drop your receipt here, or pick a photo.
+                    <br />
+                    Long receipt? Add up to 3 images.
+                  </p>
+                  <div className="upload-actions">
+                    <button
+                      className="button button-primary"
+                      disabled={busy}
+                      onClick={() => uploadRef.current?.click()}
+                    >
+                      <ImagePlus size={18} />
+                      Upload receipt
+                    </button>
+                    <button
+                      className="button button-outline"
+                      disabled={busy}
+                      onClick={() => cameraRef.current?.click()}
+                    >
+                      <Camera size={18} />
+                      Take a photo
+                    </button>
+                  </div>
+                  <span className="file-help">
+                    JPEG, PNG or WebP · up to 12 MB each
+                  </span>
+                  <input
+                    ref={uploadRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="visually-hidden"
+                    aria-label="Upload receipt images"
+                    onChange={(e) => void addFiles(e.target.files)}
+                  />
+                  <input
+                    ref={cameraRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    className="visually-hidden"
+                    aria-label="Take receipt photo"
+                    onChange={(e) => void addFiles(e.target.files)}
+                  />
+                </div>
+                {images.length > 0 && (
+                  <div className="selected-images">
+                    {images.map((image, i) => (
+                      <div key={image.id} className="selected-image">
+                        <button
+                          disabled={busy}
+                          onClick={() => setZoomImage(image)}
+                          aria-label={`Preview image ${i + 1}`}
+                        >
+                          <img
+                            src={image.url}
+                            alt={`Receipt preview ${i + 1}`}
+                          />
+                        </button>
+                        <span>
+                          Image {i + 1}
+                          {image.crop ? " · cropped" : ""}
+                        </span>
+                        <button
+                          className="text-button crop-trigger"
+                          disabled={busy}
+                          aria-label={`Crop image ${i + 1}`}
+                          onClick={() => setCropTarget(image)}
+                        >
+                          Crop
+                        </button>
+                        <button
+                          disabled={busy}
+                          className="icon-button"
+                          aria-label={`Remove image ${i + 1}`}
+                          onClick={() => {
+                            URL.revokeObjectURL(image.url);
+                            setImages(images.filter((p) => p.id !== image.id));
+                          }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {images.length > 0 && (
+                  <p className="hint">
+                    Crop away the background before scanning for a clearer
+                    result.
+                  </p>
+                )}
+                {imageError && (
+                  <p className="inline-error" role="alert">
+                    <AlertCircle size={17} />
+                    {imageError}
+                  </p>
+                )}
+                {images.length > 0 && (
+                  <div className="scan-controls">
+                    <button
+                      className="button button-primary full-width"
+                      disabled={busy}
+                      onClick={() => void scan()}
+                    >
+                      {busy ? (
+                        <LoaderCircle className="spin" size={18} />
+                      ) : (
+                        <ScanLine size={18} />
+                      )}
+                      {busy
+                        ? scanStatus || "Preparing images…"
+                        : "Read receipt on this device"}
+                      {!busy && <ArrowRight size={17} />}
+                    </button>
+                    {busy && controller.current && (
+                      <button
+                        className="text-button"
+                        onClick={() => controller.current?.abort()}
+                      >
+                        Cancel scan
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className="private-line">
+                  <ShieldCheck size={16} />
+                  <span>
+                    Real OCR, right on your device. Your photos stay yours.
+                  </span>
+                </div>
+                <div className="or-divider">
+                  <span>or take the scenic route</span>
+                </div>
+                <div className="alternate-actions">
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={startManual}
+                  >
+                    <FileText size={17} />
+                    Enter manually
+                    <ArrowRight size={15} />
+                  </button>
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={loadDemo}
+                  >
+                    <Sparkles size={17} />
+                    Try the Costco demo
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+                <details className="text-import">
+                  <summary>Already have receipt text?</summary>
+                  <label className="field">
+                    <span>Paste receipt text (up to 60,000 characters)</span>
+                    <textarea
+                      aria-label="Receipt text"
+                      rows={6}
+                      maxLength={60000}
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    className="button button-outline"
+                    disabled={busy || !rawText.trim()}
+                    onClick={parseText}
+                  >
+                    Review this text
+                    <ArrowRight size={16} />
+                  </button>
+                  <p className="hint">
+                    Text parsing is separate from OCR. Every extracted detail
+                    can be corrected.
+                  </p>
+                </details>
+              </section>
+              <aside className="welcome-aside">
+                <div className="receipt-illustration" aria-hidden="true">
+                  <span className="floating-label peach">
+                    <Heart size={13} /> sharing looks good on you
+                  </span>
+                  <div className="illustration-paper">
+                    <ShoppingBasket size={25} />
+                    <strong>THE GOOD COMPANY SHOP</strong>
+                    <small>one lovely shared adventure</small>
+                    <div className="receipt-dashes" />
+                    <div>
+                      <span>Something for you</span>
+                      <span>✓</span>
+                    </div>
+                    <div>
+                      <span>Something for them</span>
+                      <span>✓</span>
+                    </div>
+                    <div>
+                      <span>A little for everyone</span>
+                      <span>✓</span>
+                    </div>
+                    <div className="receipt-dashes" />
+                    <div className="illustration-total">
+                      <span>Good times</span>
+                      <strong>100%</strong>
+                    </div>
+                    <div className="barcode" />
+                  </div>
+                  <span className="floating-label sage">
+                    <CheckCheck size={15} /> every penny, accounted for
+                  </span>
+                  <Leaf className="leaf-decor" size={52} strokeWidth={1.1} />
+                </div>
+                <div className="welcome-note">
+                  <span className="eyebrow">LESS “WHO HAD WHAT?”</span>
+                  <h2>
+                    More sharing.
+                    <br />
+                    Less spreadsheet.
+                  </h2>
+                  <p>
+                    Groceries with housemates, a weekend away, or one very full
+                    Costco trolley. We’ll help you untangle the receipt.
+                  </p>
+                </div>
+                <div className="feature-pills">
+                  <span>
+                    <Users size={15} />
+                    Split your way
+                  </span>
+                  <span>
+                    <CheckCheck size={15} />
+                    Penny-perfect totals
+                  </span>
+                </div>
+              </aside>
+            </div>
+            <div className="how-it-works">
+              <div>
+                <span>01</span>
+                <h3>Bring the receipt</h3>
+                <p>Snap, upload, or type it in.</p>
+              </div>
+              <ArrowRight size={20} />
+              <div>
+                <span>02</span>
+                <h3>Give it a quick check</h3>
+                <p>Catch discounts, tax, and little details.</p>
+              </div>
+              <ArrowRight size={20} />
+              <div>
+                <span>03</span>
+                <h3>Share the good stuff</h3>
+                <p>Pick people. See exactly what they owe.</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <SectionIntro
+              eyebrow={
+                state.receipt.source === "demo"
+                  ? "COSTCO DEMO · NOT AN OCR RESULT"
+                  : "ONE SHOP, SHARED YOUR WAY"
+              }
+              title={
+                state.step === "review"
+                  ? "A quick check, then we share."
+                  : state.step === "people"
+                    ? "Who’s in on the shop?"
+                    : state.step === "assign"
+                      ? "A little for you. A little for them."
+                      : finalized
+                        ? "Every penny has a home."
+                        : "Here’s where things stand."
+              }
+            >
+              {state.step === "review"
+                ? "Check the details against your receipt. Discounts and tax deserve a second look."
+                : state.step === "people"
+                  ? "Housemates, friends, family. Add a name for everyone sharing this receipt."
+                  : state.step === "assign"
+                    ? "Tick who shares each item. Use quantities or custom shares when you need them."
+                    : finalized
+                      ? "Your receipt balances, and everyone has a clear share. Ready for the group chat."
+                      : "These are draft amounts. Resolve the remaining details before finalizing."}
+            </SectionIntro>
+            <div className="workspace">
+              <div className="workspace-main">
+                {state.step === "review" && (
+                  <>
+                    {state.receipt.warnings.length > 0 && (
+                      <details className="review-notes" open>
+                        <summary>
+                          <CircleHelp size={18} />A few things to check
+                        </summary>
+                        <ul>
+                          {state.receipt.warnings.map((warning, i) => (
+                            <li key={i}>{warning}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                    <section className="panel">
+                      {images.length > 0 && (
+                        <div className="review-image-links">
+                          {images.map((image, index) => (
+                            <button
+                              className="button button-outline"
+                              key={image.id}
+                              onClick={() => setZoomImage(image)}
+                            >
+                              <ReceiptText size={16} />
+                              View receipt image {index + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="panel-heading">
+                        <h2>The receipt details</h2>
+                        <span className="pill">{state.receipt.currency}</span>
+                      </div>
+                      <div className="form-grid metadata">
+                        <Field label="Merchant">
+                          <input
+                            maxLength={100}
+                            value={state.receipt.merchant}
+                            onChange={(e) =>
+                              editReceipt({ merchant: e.target.value })
+                            }
+                          />
+                        </Field>
+                        <Field label="Receipt date (optional)">
+                          <input
+                            type="date"
+                            value={state.receipt.date}
+                            onChange={(e) =>
+                              editReceipt({ date: e.target.value })
+                            }
+                          />
+                        </Field>
+                        <Field label="Currency">
+                          <select
+                            value={state.receipt.currency}
+                            onChange={(e) =>
+                              editReceipt({
+                                currency: e.target.value as Receipt["currency"],
+                              })
+                            }
+                          >
+                            {Object.keys(currencies).map((code) => (
+                              <option key={code}>{code}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <MoneyInput
+                          label="Printed total"
+                          value={state.receipt.printedTotal}
+                          onChange={(printedTotal) =>
+                            editReceipt({ printedTotal })
+                          }
+                        />
+                        <MoneyInput
+                          label="Subtotal after item discounts (optional)"
+                          value={state.receipt.subtotal}
+                          onChange={(subtotal) => editReceipt({ subtotal })}
+                        />
+                        <MoneyInput
+                          label="Printed tax (optional check)"
+                          value={state.receipt.printedTax}
+                          onChange={(printedTax) => editReceipt({ printedTax })}
+                          hint="A check against the receipt. When prices exclude tax, add tax using codes or a tax adjustment below."
+                        />
+                      </div>
+                      <p className="hint">
+                        Changing currency changes precision; it does not convert
+                        prices.
+                      </p>
+                      <div className="tax-options">
+                        <label className="check-row">
+                          <input
+                            type="checkbox"
+                            checked={state.receipt.pricesIncludeTax}
+                            onChange={(e) =>
+                              editReceipt({
+                                pricesIncludeTax: e.target.checked,
+                              })
+                            }
+                          />
+                          <span>
+                            Item prices already include tax
+                            <small>
+                              Included tax is recorded for information. Extra
+                              tax stays at zero.
+                            </small>
+                          </span>
+                        </label>
+                        {!state.receipt.pricesIncludeTax && (
+                          <Field label="How should added tax be calculated?">
+                            <select
+                              value={state.receipt.taxMode}
+                              onChange={(e) =>
+                                editReceipt({
+                                  taxMode: e.target.value as Receipt["taxMode"],
+                                })
+                              }
+                            >
+                              <option value="printed">
+                                Use the printed tax amount below
+                              </option>
+                              <option value="codes">
+                                Use each item’s tax code
+                              </option>
+                            </select>
+                          </Field>
+                        )}
+                        {!state.receipt.pricesIncludeTax &&
+                          state.receipt.taxMode === "codes" && (
+                            <div className="tax-code-box">
+                              <p>
+                                <strong>Use the legend on your receipt.</strong>{" "}
+                                On this UK Costco receipt, A = 20%, Z = 0%. A
+                                minus before the code is a deduction.
+                              </p>
+                              {state.receipt.taxCodes.map((code, index) => (
+                                <div className="tax-code-row" key={index}>
+                                  <Field label={`Tax code ${index + 1}`}>
+                                    <input
+                                      value={code.code}
+                                      maxLength={12}
+                                      onChange={(e) =>
+                                        editReceipt({
+                                          taxCodes: state.receipt.taxCodes.map(
+                                            (c, j) =>
+                                              j === index
+                                                ? {
+                                                    ...c,
+                                                    code: e.target.value.toUpperCase(),
+                                                  }
+                                                : c,
+                                          ),
+                                        })
+                                      }
+                                    />
+                                  </Field>
+                                  <MoneyInput
+                                    label={`Rate % for code ${index + 1}`}
+                                    value={code.rate}
+                                    onChange={(rate) =>
+                                      editReceipt({
+                                        taxCodes: state.receipt.taxCodes.map(
+                                          (c, j) =>
+                                            j === index ? { ...c, rate } : c,
+                                        ),
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    className="icon-button danger"
+                                    aria-label={`Remove tax code ${index + 1}`}
+                                    onClick={() =>
+                                      editReceipt({
+                                        taxCodes: state.receipt.taxCodes.filter(
+                                          (_, j) => j !== index,
+                                        ),
+                                      })
+                                    }
+                                  >
+                                    <Trash2 size={17} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                className="text-button"
+                                disabled={state.receipt.taxCodes.length >= 20}
+                                onClick={() =>
+                                  editReceipt({
+                                    taxCodes: [
+                                      ...state.receipt.taxCodes,
+                                      { code: "", rate: "" },
+                                    ],
+                                  })
+                                }
+                              >
+                                <Plus size={16} />
+                                Add tax code
+                              </button>
+                            </div>
+                          )}
+                      </div>
+                    </section>
+                    <section className="panel items-panel">
+                      <div className="panel-heading">
+                        <h2>What’s in the trolley?</h2>
+                        <span className="muted">
+                          {state.receipt.items.length} purchase lines
+                        </span>
+                      </div>
+                      <p className="hint">
+                        Purchased packs and units inside each pack are
+                        different. Pack sizes are confirmed later when sharing
+                        by quantity.
+                      </p>
+                      {state.receipt.items.some((i) => !i.quantity) && (
+                        <button
+                          className="button button-outline"
+                          onClick={() =>
+                            editReceipt({
+                              items: state.receipt.items.map((i) =>
+                                i.quantity
+                                  ? i
+                                  : {
+                                      ...i,
+                                      quantity: "1",
+                                      note: "Purchased quantity set to one by you. Confirm against receipt.",
+                                    },
+                              ),
+                            })
+                          }
+                        >
+                          Confirm all missing purchased quantities as 1
+                        </button>
+                      )}
+                      <div className="item-table-heading">
+                        <span>ITEM</span>
+                        <span>LINE PRICE</span>
+                        <span>AFTER TAX & DISCOUNTS</span>
+                      </div>
+                      {state.receipt.items.map((item, index) => (
+                        <ItemEditor
+                          key={item.id}
+                          item={item}
+                          index={index}
+                          receipt={state.receipt}
+                          cost={receiptResult.items[index]?.total ?? 0n}
+                          onChange={(change) => editItem(item.id, change)}
+                          onDelete={() =>
+                            editReceipt({
+                              items: state.receipt.items.filter(
+                                (i) => i.id !== item.id,
+                              ),
+                            })
+                          }
+                        />
+                      ))}
+                      <button
+                        className="text-button add-line"
+                        disabled={state.receipt.items.length >= 300}
+                        onClick={() =>
+                          editReceipt({
+                            items: [...state.receipt.items, newItem()],
+                          })
+                        }
+                      >
+                        <Plus size={18} />
+                        Add an item
+                      </button>
+                    </section>
+                    <section className="panel">
+                      <div className="panel-heading">
+                        <h2>Discounts & little extras</h2>
+                      </div>
+                      <p className="hint">
+                        Receipt discounts reduce item costs proportionally
+                        before added tax. Other proportional charges follow item
+                        ownership; equal-per-person charges are shared by
+                        everyone. An item discount belongs in that item’s
+                        details.
+                      </p>
+                      {state.receipt.adjustments.map((a, index) => (
+                        <div className="adjustment-row" key={a.id}>
+                          <Field label={`Adjustment ${index + 1} label`}>
+                            <input
+                              value={a.label}
+                              maxLength={100}
+                              onChange={(e) =>
+                                editReceipt({
+                                  adjustments: state.receipt.adjustments.map(
+                                    (x) =>
+                                      x.id === a.id
+                                        ? { ...x, label: e.target.value }
+                                        : x,
+                                  ),
+                                })
+                              }
+                            />
+                          </Field>
+                          <Field label={`Adjustment ${index + 1} type`}>
+                            <select
+                              value={a.kind}
+                              onChange={(e) =>
+                                editReceipt({
+                                  adjustments: state.receipt.adjustments.map(
+                                    (x) =>
+                                      x.id === a.id
+                                        ? {
+                                            ...x,
+                                            kind: e.target
+                                              .value as typeof a.kind,
+                                          }
+                                        : x,
+                                  ),
+                                })
+                              }
+                            >
+                              <option value="discount">Receipt discount</option>
+                              <option value="tax">Tax</option>
+                              <option value="fee">Fee</option>
+                              <option value="tip">Tip</option>
+                              <option value="deposit">Deposit</option>
+                              <option value="rounding">
+                                Rounding (signed)
+                              </option>
+                            </select>
+                          </Field>
+                          <MoneyInput
+                            label={`Adjustment ${index + 1} amount`}
+                            value={a.amount}
+                            onChange={(amount) =>
+                              editReceipt({
+                                adjustments: state.receipt.adjustments.map(
+                                  (x) => (x.id === a.id ? { ...x, amount } : x),
+                                ),
+                              })
+                            }
+                          />
+                          <Field label={`Adjustment ${index + 1} allocation`}>
+                            <select
+                              disabled={a.kind === "discount"}
+                              value={
+                                a.kind === "discount"
+                                  ? "proportional"
+                                  : a.allocation
+                              }
+                              onChange={(e) =>
+                                editReceipt({
+                                  adjustments: state.receipt.adjustments.map(
+                                    (x) =>
+                                      x.id === a.id
+                                        ? {
+                                            ...x,
+                                            allocation: e.target
+                                              .value as typeof a.allocation,
+                                          }
+                                        : x,
+                                  ),
+                                })
+                              }
+                            >
+                              <option value="proportional">By item cost</option>
+                              <option value="equal-people">
+                                Equally per person
+                              </option>
+                            </select>
+                          </Field>
+                          <button
+                            className="icon-button danger"
+                            aria-label={`Remove adjustment ${index + 1}`}
+                            onClick={() =>
+                              editReceipt({
+                                adjustments: state.receipt.adjustments.filter(
+                                  (x) => x.id !== a.id,
+                                ),
+                              })
+                            }
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                          {a.kind === "tax" &&
+                            state.receipt.pricesIncludeTax && (
+                              <small className="included-tax">
+                                Already included in item prices. This row adds
+                                no extra tax.
+                              </small>
+                            )}
+                        </div>
+                      ))}
+                      <button
+                        className="text-button"
+                        disabled={state.receipt.adjustments.length >= 30}
+                        onClick={() =>
+                          editReceipt({
+                            adjustments: [
+                              ...state.receipt.adjustments,
+                              {
+                                id: uid(),
+                                label: "",
+                                kind: "fee",
+                                amount: "",
+                                allocation: "proportional",
+                              },
+                            ],
+                          })
+                        }
+                      >
+                        <Plus size={17} />
+                        Add discount, tax or charge
+                      </button>
+                    </section>
+                    {(state.receipt.rawText || rawText) && (
+                      <details className="panel raw-text">
+                        <summary>
+                          Check or correct recognized receipt text
+                        </summary>
+                        <Field label="Recognized text">
+                          <textarea
+                            rows={10}
+                            maxLength={60000}
+                            value={rawText || state.receipt.rawText}
+                            onChange={(e) => {
+                              setRawText(e.target.value);
+                              editReceipt({ rawText: e.target.value });
+                            }}
+                          />
+                        </Field>
+                        <button
+                          className="button button-outline"
+                          onClick={parseText}
+                        >
+                          Reparse text (replaces current items)
+                        </button>
+                        <p className="hint">
+                          Raw OCR text is not saved after a refresh. All
+                          extracted fields above remain editable.
+                        </p>
+                      </details>
+                    )}
+                    <IssueBox
+                      issues={receiptResult.issues.map((i) => i.message)}
+                      title="Let’s get the receipt to balance"
+                    />
+                    <div className="screen-actions">
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("scan")}
+                      >
+                        <ArrowLeft size={16} />
+                        Back to receipt
+                      </button>
+                      <button
+                        className="button button-primary"
+                        disabled={!!receiptResult.issues.length}
+                        onClick={() => {
+                          setState((s) => ({
+                            ...s,
+                            reviewedStamp: receiptStamp(s.receipt),
+                            step: "people",
+                          }));
+                          window.scrollTo(0, 0);
+                        }}
+                      >
+                        Confirm receipt & add people
+                        <ArrowRight size={17} />
+                      </button>
+                    </div>
+                  </>
+                )}
+                {state.step === "people" && (
+                  <section className="panel people-panel">
+                    <div className="people-icon">
+                      <Users size={30} strokeWidth={1.5} />
+                    </div>
+                    <h2>Good things are better shared.</h2>
+                    <p className="muted">
+                      Names stay on this device. No invites or accounts needed.
+                    </p>
+                    <form onSubmit={addPerson} className="add-person">
+                      <Field label="Person’s name">
+                        <input
+                          maxLength={50}
+                          autoComplete="off"
+                          placeholder="e.g. Alice"
+                          value={personName}
+                          onChange={(e) => setPersonName(e.target.value)}
+                        />
+                      </Field>
+                      <button
+                        type="submit"
+                        className="button button-primary"
+                        disabled={
+                          !personName.trim() || state.people.length >= 30
+                        }
+                      >
+                        <Plus size={18} />
+                        Add person
+                      </button>
+                    </form>
+                    {!state.people.length && (
+                      <div className="empty-people">
+                        <span className="avatar sage">A</span>
+                        <span className="avatar peach">B</span>
+                        <span className="avatar blue">C</span>
+                        <p>Room for everyone. Start with a name.</p>
+                      </div>
+                    )}
+                    <div className="people-list">
+                      {state.people.map((person, i) => (
+                        <div className="person-row" key={person.id}>
+                          <Avatar name={person.name} index={i} />
+                          <Field label={`Person ${i + 1} name`}>
+                            <input
+                              maxLength={50}
+                              value={person.name}
+                              onChange={(e) =>
+                                setState((s) => ({
+                                  ...s,
+                                  people: s.people.map((p) =>
+                                    p.id === person.id
+                                      ? { ...p, name: e.target.value }
+                                      : p,
+                                  ),
+                                  finalizedStamp: "",
+                                }))
+                              }
+                            />
+                          </Field>
+                          <button
+                            className="icon-button danger"
+                            aria-label={`Remove person ${i + 1}`}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Remove ${person.name}? Their assignments will be cleared and the remaining shares recalculated.`,
+                                )
+                              )
+                                setState((s) => removePerson(s, person.id));
+                            }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="hint">
+                      Same name? No problem. Person numbers keep everyone’s
+                      shares separate.
+                    </p>
+                    <div className="screen-actions">
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("review")}
+                      >
+                        <ArrowLeft size={16} />
+                        Review receipt
+                      </button>
+                      <button
+                        className="button button-primary"
+                        disabled={
+                          !state.people.length ||
+                          state.people.some((p) => !p.name.trim())
+                        }
+                        onClick={() => navigate("assign")}
+                      >
+                        Let’s share it
+                        <ArrowRight size={17} />
+                      </button>
+                    </div>
+                  </section>
+                )}
+                {state.step === "assign" && (
+                  <>
+                    <div className="sharing-toolbar">
+                      <div className="segmented" aria-label="Split scope">
+                        <button
+                          aria-pressed={state.splitMode === "items"}
+                          onClick={() =>
+                            setState((s) => ({
+                              ...s,
+                              splitMode: "items",
+                              finalizedStamp: "",
+                            }))
+                          }
+                        >
+                          By item
+                        </button>
+                        <button
+                          aria-pressed={state.splitMode === "whole"}
+                          onClick={() =>
+                            setState((s) => ({
+                              ...s,
+                              splitMode: "whole",
+                              finalizedStamp: "",
+                            }))
+                          }
+                        >
+                          Whole receipt
+                        </button>
+                      </div>
+                      {state.splitMode === "items" && (
+                        <button
+                          className="text-button"
+                          disabled={!state.people.length}
+                          onClick={() =>
+                            setState((s) => ({
+                              ...s,
+                              receipt: {
+                                ...s.receipt,
+                                items: s.receipt.items.map((item) => ({
+                                  ...item,
+                                  assignment: {
+                                    mode: "equal",
+                                    participants: s.people.map((p) => p.id),
+                                    values: {},
+                                  },
+                                })),
+                              },
+                              finalizedStamp: "",
+                            }))
+                          }
+                        >
+                          <Users size={16} />
+                          Share all equally
+                        </button>
+                      )}
+                    </div>
+                    <div className="assignment-progress">
+                      <span>
+                        {assigned} of {assignmentCount} fully assigned
+                      </span>
+                      <progress
+                        aria-label="Assignment progress"
+                        value={assigned}
+                        max={assignmentCount || 1}
+                      />
+                      <span>
+                        {assignmentCount && assigned === assignmentCount
+                          ? "Lovely. Everything has a share."
+                          : "Every item needs a home."}
+                      </span>
+                    </div>
+                    {!state.people.length && (
+                      <div className="review-notes">
+                        <p>Add people before assigning the shop.</p>
+                        <button
+                          className="button button-outline"
+                          onClick={() => navigate("people")}
+                        >
+                          Add people
+                        </button>
+                      </div>
+                    )}
+                    {state.splitMode === "whole" ? (
+                      <section
+                        className="panel assignment-card"
+                        data-testid="whole-assignment"
+                      >
+                        <div className="assignment-heading">
+                          <span className="icon-disc">
+                            <ReceiptText size={20} />
+                          </span>
+                          <div>
+                            <h2>The whole shop</h2>
+                            <p>
+                              One share per person, including all discounts, tax
+                              and extras.
+                            </p>
+                          </div>
+                          <strong>{f(receiptResult.total)}</strong>
+                        </div>
+                        <AssignmentControls
+                          assignment={state.wholeAssignment}
+                          state={state}
+                          onChange={(wholeAssignment) =>
+                            setState((s) => ({
+                              ...s,
+                              wholeAssignment,
+                              finalizedStamp: "",
+                            }))
+                          }
+                        />
+                      </section>
+                    ) : (
+                      state.receipt.items.map((item, i) => (
+                        <section
+                          className={`panel assignment-card ${result.statuses.get(item.id)?.status === "complete" ? "complete" : ""}`}
+                          key={item.id}
+                          data-testid={`assignment-item-${i}`}
+                        >
+                          <div className="assignment-heading">
+                            <span className="item-number">
+                              {String(i + 1).padStart(2, "0")}
+                            </span>
+                            <div>
+                              <h2>{item.description || "Unnamed item"}</h2>
+                              <p>
+                                {item.quantity || "?"} purchased{" "}
+                                {item.quantity === "1"
+                                  ? "pack / unit"
+                                  : "packs / units"}
+                                {item.discount && item.discount !== "0"
+                                  ? " · item discount applied"
+                                  : ""}
+                                {!state.receipt.pricesIncludeTax
+                                  ? ` · tax code ${item.taxCode || "not set"}`
+                                  : " · tax included"}
+                              </p>
+                            </div>
+                            <strong>
+                              {f(receiptResult.items[i]?.total || 0n)}
+                            </strong>
+                          </div>
+                          <AssignmentControls
+                            assignment={item.assignment}
+                            item={item}
+                            state={state}
+                            onChange={(assignment) =>
+                              editItem(item.id, { assignment })
+                            }
+                            onItemChange={(change) => editItem(item.id, change)}
+                          />
+                          <details className="cost-explainer">
+                            <summary>
+                              How this item’s cost is calculated
+                            </summary>
+                            <SummaryItemCost
+                              receipt={state.receipt}
+                              cost={receiptResult.items[i]}
+                            />
+                            <p>
+                              Receipt-wide discounts reduce the base before
+                              added tax. Remainder pennies follow receipt order.
+                              Proportional extras travel with the item.
+                            </p>
+                          </details>
+                        </section>
+                      ))
+                    )}
+                    <IssueBox
+                      issues={result.issues
+                        .filter((i) => !i.path.startsWith("assignment."))
+                        .map((i) => i.message)}
+                      title="A few details still need attention"
+                    />
+                    <div className="screen-actions">
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("people")}
+                      >
+                        <ArrowLeft size={16} />
+                        Edit people
+                      </button>
+                      <button
+                        className="button button-primary"
+                        disabled={!result.canFinalize}
+                        onClick={finalize}
+                      >
+                        Finalize split
+                        <CheckCheck size={18} />
+                      </button>
+                    </div>
+                    <button
+                      className="text-button"
+                      onClick={() => navigate("summary")}
+                    >
+                      View draft breakdown
+                      <ArrowRight size={16} />
+                    </button>
+                  </>
+                )}
+                {state.step === "summary" && (
+                  <>
+                    <div
+                      className={`completion-banner ${finalized ? "" : "draft"}`}
+                    >
+                      <span className="completion-icon">
+                        {finalized ? (
+                          <CheckCheck size={25} />
+                        ) : (
+                          <FileText size={25} />
+                        )}
+                      </span>
+                      <div>
+                        <h2>
+                          {finalized
+                            ? "All balanced. All accounted for."
+                            : "A work in progress."}
+                        </h2>
+                        <p>
+                          {finalized
+                            ? `${f(result.assignedTotal)} shared across ${state.people.length} ${state.people.length === 1 ? "person" : "people"}.`
+                            : "These amounts are a draft. Check unresolved details before sharing as final."}
+                        </p>
+                      </div>
+                    </div>
+                    {!finalized && (
+                      <>
+                        <IssueBox
+                          issues={result.issues.map((i) => i.message)}
+                          title="Before you finalize"
+                        />
+                        {result.canFinalize && (
+                          <button
+                            className="button button-primary"
+                            onClick={finalize}
+                          >
+                            Finalize checked split
+                            <CheckCheck size={17} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <div className="person-breakdowns">
+                      {result.totals.map((entry, i) => (
+                        <details
+                          className="panel person-breakdown"
+                          key={entry.person.id}
+                          open={state.people.length === 1}
+                        >
+                          <summary>
+                            <Avatar name={entry.person.name} index={i} />
+                            <span className="person-heading">
+                              <strong>{entry.person.name}</strong>
+                              <small>
+                                Person {i + 1} · {entry.lines.length} allocated{" "}
+                                {entry.lines.length === 1 ? "line" : "lines"}
+                              </small>
+                            </span>
+                            <strong
+                              className="person-amount"
+                              data-testid={`person-total-${i}`}
+                            >
+                              {f(entry.total)}
+                            </strong>
+                            <ChevronDown size={19} />
+                          </summary>
+                          <div className="breakdown-lines">
+                            {entry.lines.map((line, j) => (
+                              <div key={j}>
+                                <div className="breakdown-line">
+                                  <span>
+                                    <strong>{line.label}</strong>
+                                    <small>{line.detail}</small>
+                                  </span>
+                                  <strong>{f(line.amount)}</strong>
+                                </div>
+                                <p className="hint">
+                                  Base after discounts {f(line.net)} · added tax{" "}
+                                  {f(line.tax)} · other adjustments{" "}
+                                  {f(line.charges)}
+                                  {line.rounding !== 0n && (
+                                    <>
+                                      {" "}
+                                      · allocation rounding {f(line.rounding)}
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                            ))}
+                            {!entry.lines.length && (
+                              <p className="hint">
+                                No costs assigned to this person yet.
+                              </p>
+                            )}
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                    <section className="panel share-panel">
+                      <span className="icon-disc">
+                        <Heart size={21} />
+                      </span>
+                      <h2>Good to go. Good to share.</h2>
+                      <p>
+                        Send the breakdown to your group chat, or save a copy
+                        for later.
+                      </p>
+                      <div className="share-actions">
+                        <button
+                          className="button button-primary"
+                          onClick={() => void copySummary()}
+                        >
+                          <Copy size={17} />
+                          Copy {finalized ? "summary" : "draft"}
+                        </button>
+                        <button
+                          className="button button-outline"
+                          onClick={downloadSummary}
+                        >
+                          <Download size={17} />
+                          Download summary
+                        </button>
+                      </div>
+                      <details className="rounding-explainer">
+                        <summary>How we handle shares and rounding</summary>
+                        <p>
+                          Amounts use exact currency minor units. Each item's
+                          final cost (or the whole receipt) is divided by its
+                          shares; leftover pennies go to the largest fractional
+                          remainders. Component rounding differences are shown
+                          as allocation rounding and net to zero across people.
+                          Ties follow receipt item order, then the order people
+                          were added. Tax-code totals are rounded once per code
+                          and allocated back to items.
+                        </p>
+                        <p>
+                          Receipt discounts are proportional to item costs
+                          before added tax. Proportional charges follow item
+                          assignments. Equal-per-person charges are shared by
+                          everyone. Whole-receipt mode ignores item assignments
+                          and applies the whole-receipt shares to every
+                          component.
+                        </p>
+                        <p>
+                          Physical quantities must match purchased packs ×
+                          confirmed units per pack. Ratios describe cost shares.
+                          Percentages must total 100%.
+                        </p>
+                        <p>
+                          This is an amount-owed breakdown. No original payer or
+                          reimbursement direction has been assumed.
+                        </p>
+                      </details>
+                    </section>
+                    <div className="screen-actions">
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("assign")}
+                      >
+                        <ArrowLeft size={16} />
+                        Adjust shares
+                      </button>
+                      <button
+                        className="text-button"
+                        onClick={() => navigate("review")}
+                      >
+                        Edit receipt
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              {sidePanel}
+            </div>
+          </>
+        )}
+        <footer className="site-footer">
+          <span>
+            <Leaf size={15} />
+            Made for the things we share.
+          </span>
+          <span>
+            Private by design ·{" "}
+            {saveError ? "Draft not saved" : "Draft saved on this device"}
+          </span>
+          <button className="text-button" disabled={busy} onClick={reset}>
+            <RotateCcw size={14} />
+            Delete / reset receipt
+          </button>
+        </footer>
+      </main>
+      <dialog
+        ref={dialogRef}
+        onCancel={() => {
+          setCropTarget(null);
+          setPrivacy(false);
+          setZoomImage(null);
+        }}
+        onClick={(e) => {
+          if (e.target === dialogRef.current) {
+            setCropTarget(null);
+            setPrivacy(false);
+            setZoomImage(null);
+          }
+        }}
+        aria-label={
+          cropTarget
+            ? "Crop receipt image"
+            : zoomImage
+              ? "Original receipt image"
+              : "Your privacy at Gather"
+        }
+      >
+        <button
+          className="icon-button dialog-close"
+          aria-label="Close dialog"
+          onClick={() => {
+            setCropTarget(null);
+            setPrivacy(false);
+            setZoomImage(null);
+          }}
+        >
+          <X size={20} />
+        </button>
+        {cropTarget ? (
+          <ImageCropper
+            key={cropTarget.id}
+            image={cropTarget}
+            onCancel={() => setCropTarget(null)}
+            onApply={(cropped) => {
+              setImages((current) =>
+                current.map((image) =>
+                  image.id === cropped.id ? cropped : image,
+                ),
+              );
+              setCropTarget(null);
+            }}
+          />
+        ) : zoomImage ? (
+          <div className="image-dialog">
+            <h2>Original receipt</h2>
+            <p>
+              Zoom with your browser or device gestures. Compare it with the
+              editable details.
+            </p>
+            <img
+              src={zoomImage.url}
+              alt="Original receipt, enlarged for review"
+            />
+          </div>
+        ) : (
+          <div className="privacy-dialog">
+            <ShieldCheck size={32} />
+            <h2>Your shop stays yours.</h2>
+            <p>
+              OCR runs on this device. Images are resized and read in your
+              browser, using English language assets served by this app. No
+              receipt image is sent to an OCR company, an AI model, or our
+              server.
+            </p>
+            <p>
+              Your extracted draft and names are saved in this browser’s local
+              storage so you can continue after a refresh. People with access to
+              this browser profile can read them. Photos and raw OCR text are
+              only kept in memory and disappear on refresh or when the tab
+              closes.
+            </p>
+            <p>
+              Delete / reset receipt removes this app’s saved draft and current
+              image previews. Exported or copied summaries remain wherever you
+              save or send them. There are no accounts, analytics, remote
+              receipt databases or API keys.
+            </p>
+            <p>
+              Camera availability depends on your browser. A phone accessing the
+              app over a network normally needs HTTPS for camera and clipboard
+              features.
+            </p>
+            <button
+              className="button button-primary"
+              onClick={() => setPrivacy(false)}
+            >
+              Sounds good
+              <Check size={17} />
+            </button>
+          </div>
+        )}
+      </dialog>
+    </>
+  );
+}
+
+function SummaryRows({
+  receipt,
+  result,
+}: {
+  receipt: Receipt;
+  result: ReceiptResult;
+}) {
+  const f = (n: bigint) => formatMoney(n, receipt.currency);
+  return (
+    <dl className="summary-rows">
+      <div>
+        <dt>Items after item discounts</dt>
+        <dd>{f(result.subtotal)}</dd>
+      </div>
+      {result.receiptDiscount !== 0n && (
+        <div>
+          <dt>Receipt discounts</dt>
+          <dd>{f(-result.receiptDiscount)}</dd>
+        </div>
+      )}
+      <div>
+        <dt>
+          {receipt.pricesIncludeTax
+            ? "Extra tax (already included)"
+            : "Added tax"}
+        </dt>
+        <dd>{f(result.tax)}</dd>
+      </div>
+      {result.otherCharges !== 0n && (
+        <div>
+          <dt>Fees, tips & adjustments</dt>
+          <dd>{f(result.otherCharges)}</dd>
+        </div>
+      )}
+      <div>
+        <dt>Calculated total</dt>
+        <dd>{f(result.total)}</dd>
+      </div>
+      {result.discrepancy !== null && result.discrepancy !== 0n && (
+        <div className="error-text">
+          <dt>Difference from printed total</dt>
+          <dd>{f(result.discrepancy)}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+function SummaryItemCost({
+  receipt,
+  cost,
+}: {
+  receipt: Receipt;
+  cost?: ReceiptResult["items"][number];
+}) {
+  if (!cost) return null;
+  const f = (n: bigint) => formatMoney(n, receipt.currency);
+  return (
+    <dl className="summary-rows">
+      <div>
+        <dt>Item after its own discount</dt>
+        <dd>{f(cost.net)}</dd>
+      </div>
+      <div>
+        <dt>Allocated receipt discount</dt>
+        <dd>{f(-cost.receiptDiscount)}</dd>
+      </div>
+      <div>
+        <dt>Allocated added tax</dt>
+        <dd>{f(cost.tax)}</dd>
+      </div>
+      <div>
+        <dt>Allocated other charges</dt>
+        <dd>{f(cost.charges)}</dd>
+      </div>
+      <div>
+        <dt>Item total</dt>
+        <dd>{f(cost.total)}</dd>
+      </div>
+    </dl>
+  );
+}
+function ItemEditor({
+  item,
+  index,
+  receipt,
+  cost,
+  onChange,
+  onDelete,
+}: {
+  item: Item;
+  index: number;
+  receipt: Receipt;
+  cost: bigint;
+  onChange: (change: Partial<Item>) => void;
+  onDelete: () => void;
+}) {
+  const [expanded, setExpanded] = useState(
+    !item.description || !item.quantity || !item.lineTotal,
+  );
+  return (
+    <div className="item-editor" data-testid={`review-item-${index}`}>
+      <div className="item-editor-top">
+        <div className="item-name-input">
+          <span className="item-number">{index + 1}</span>
+          <label className="visually-hidden" htmlFor={`description-${item.id}`}>
+            Item {index + 1} description
+          </label>
+          <input
+            id={`description-${item.id}`}
+            value={item.description}
+            maxLength={180}
+            placeholder="Item description"
+            onChange={(e) => onChange({ description: e.target.value })}
+          />
+        </div>
+        <MoneyInput
+          label={`Item ${index + 1} line price`}
+          value={item.lineTotal}
+          onChange={(lineTotal) => onChange({ lineTotal })}
+        />
+        <strong className="item-cost">
+          {formatMoney(cost, receipt.currency)}
+        </strong>
+        <button
+          className="icon-button"
+          aria-label={`${expanded ? "Hide" : "Edit"} details for item ${index + 1}`}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <ChevronDown className={expanded ? "rotated" : ""} size={18} />
+        </button>
+      </div>
+      {item.note && (
+        <p className="item-note">
+          <CircleHelp size={14} />
+          {item.note}
+        </p>
+      )}
+      {expanded && (
+        <div className="item-detail-fields">
+          <div className="form-grid">
+            <MoneyInput
+              label={`Item ${index + 1} purchased quantity`}
+              value={item.quantity}
+              onChange={(quantity) => onChange({ quantity })}
+            />
+            <MoneyInput
+              label={`Item ${index + 1} unit price (optional)`}
+              value={item.unitPrice}
+              onChange={(unitPrice) => onChange({ unitPrice })}
+            />
+            <MoneyInput
+              label={`Item ${index + 1} discount`}
+              value={item.discount}
+              onChange={(discount) => onChange({ discount })}
+            />
+            {!receipt.pricesIncludeTax && receipt.taxMode === "codes" && (
+              <Field label={`Item ${index + 1} tax code`}>
+                <select
+                  value={item.taxCode}
+                  onChange={(e) => onChange({ taxCode: e.target.value })}
+                >
+                  <option value="">Choose code</option>
+                  {!receipt.taxCodes.some((c) => c.code === item.taxCode) &&
+                    item.taxCode && (
+                      <option value={item.taxCode}>
+                        {item.taxCode} (define rate above)
+                      </option>
+                    )}
+                  {receipt.taxCodes.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} · {c.rate || "?"}%
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </div>
+          <p className="hint">
+            Line price is the full purchased quantity before its separate
+            discount. For example, two packs at £3.99 have a £7.98 line price.
+          </p>
+          <button className="text-button danger" onClick={onDelete}>
+            <Trash2 size={15} />
+            Remove this purchase line
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+function AssignmentControls({
+  assignment,
+  item,
+  state,
+  onChange,
+  onItemChange,
+}: {
+  assignment: Assignment;
+  item?: Item;
+  state: AppState;
+  onChange: (assignment: Assignment) => void;
+  onItemChange?: (change: Partial<Item>) => void;
+}) {
+  const status = assignmentWeights(assignment, state.people, item);
+  function toggle(id: string) {
+    const selected = assignment.participants.includes(id);
+    onChange({
+      ...assignment,
+      participants: selected
+        ? assignment.participants.filter((p) => p !== id)
+        : [...assignment.participants, id],
+      values: selected
+        ? assignment.values
+        : {
+            ...assignment.values,
+            [id]:
+              assignment.values[id] || (assignment.mode === "ratio" ? "1" : ""),
+          },
+    });
+  }
+  return (
+    <div className="assignment-controls">
+      <div className="assignment-method">
+        <Field label="Split method">
+          <select
+            value={assignment.mode}
+            onChange={(e) =>
+              onChange({
+                ...assignment,
+                mode: e.target.value as Assignment["mode"],
+                values: {},
+              })
+            }
+          >
+            <option value="equal">Equal shares</option>
+            {item && <option value="quantity">Physical quantities</option>}
+            <option value="ratio">Custom ratio</option>
+            <option value="percent">Percentages</option>
+          </select>
+        </Field>
+        <span className={`assignment-status ${status.status}`}>
+          <span>
+            {status.status === "complete" ? (
+              <Check size={14} />
+            ) : (
+              <CircleHelp size={14} />
+            )}
+          </span>
+          {status.status === "complete"
+            ? "Fully assigned"
+            : status.status === "unassigned"
+              ? "Unassigned"
+              : "Partially assigned"}
+        </span>
+      </div>
+      {assignment.mode === "quantity" && item && (
+        <div className="quantity-setup">
+          <MoneyInput
+            label="Units per purchased pack"
+            value={item.packSize}
+            onChange={(packSize) => onItemChange?.({ packSize })}
+            hint={`${item.quantity || "?"} purchased packs × units per pack = available units. Confirm the pack size yourself.`}
+          />
+          <Field label="Kind of units">
+            <select
+              value={item.unitKind}
+              onChange={(e) =>
+                onItemChange?.({ unitKind: e.target.value as Item["unitKind"] })
+              }
+            >
+              <option value="whole">Whole units (cans, eggs…)</option>
+              <option value="measured">Measured goods (kg, litres…)</option>
+            </select>
+          </Field>
+        </div>
+      )}
+      {assignment.mode === "ratio" && (
+        <p className="mode-hint">
+          Ratios divide cost. A ratio of 1:3:5 gives nine cost shares; it does
+          not mean nine physical units.
+        </p>
+      )}
+      {assignment.mode === "percent" && (
+        <p className="mode-hint">
+          Enter each person’s percentage. Together they must add up to exactly
+          100%.
+        </p>
+      )}
+      {assignment.mode === "equal" && (
+        <p className="mode-hint">
+          Tick everyone sharing this cost. One person selected? They pay the
+          full amount.
+        </p>
+      )}
+      <div className="person-toggles">
+        {state.people.map((person, i) => (
+          <label
+            key={person.id}
+            className={`person-toggle ${assignment.participants.includes(person.id) ? "selected" : ""}`}
+          >
+            <input
+              type="checkbox"
+              checked={assignment.participants.includes(person.id)}
+              onChange={() => toggle(person.id)}
+              aria-label={displayName(person.name, i)}
+            />
+            <Avatar name={person.name} index={i} small />
+            <span>
+              {person.name}
+              <small>Person {i + 1}</small>
+            </span>
+          </label>
+        ))}
+      </div>
+      {assignment.mode !== "equal" && (
+        <div className="share-values">
+          {state.people.map(
+            (person, i) =>
+              assignment.participants.includes(person.id) && (
+                <MoneyInput
+                  key={person.id}
+                  label={`${assignment.mode === "quantity" ? "Units" : assignment.mode === "percent" ? "Percent" : "Weight"} for ${displayName(person.name, i)}`}
+                  value={assignment.values[person.id] || ""}
+                  onChange={(value) =>
+                    onChange({
+                      ...assignment,
+                      values: { ...assignment.values, [person.id]: value },
+                    })
+                  }
+                />
+              ),
+          )}
+        </div>
+      )}
+      {status.issue && (
+        <p className="allocation-error" role="status">
+          {status.issue}
+        </p>
+      )}
+    </div>
+  );
+}
+function IssueBox({ issues, title }: { issues: string[]; title: string }) {
+  if (!issues.length) return null;
+  const unique = [...new Set(issues)];
+  return (
+    <div className="issue-box" role="status">
+      <h3>
+        <AlertCircle size={18} />
+        {title}
+      </h3>
+      <ul>
+        {unique.slice(0, 5).map((issue, i) => (
+          <li key={i}>{issue}</li>
+        ))}
+      </ul>
+      {unique.length > 5 && (
+        <details>
+          <summary>{unique.length - 5} more checks</summary>
+          <ul>
+            {unique.slice(5).map((issue, i) => (
+              <li key={i}>{issue}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}

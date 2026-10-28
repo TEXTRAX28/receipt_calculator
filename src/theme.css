@@ -1,0 +1,17 @@
+:root {
+  color-scheme: light;
+  --canvas: #f7f5ee;
+  --surface: #fffefa;
+  --ink: #292f28;
+  --muted: #66685e;
+  --green: #354d3b;
+  --focus: #5c7753;
+  --sage: #e1e8d5;
+  --sage-light: #eff3e7;
+  --beige: #eeebe2;
+  --border: #e3e1d6;
+  --border-strong: #c6c8bb;
+  --warning-bg: #fcf5e8;
+  --warning-text: #75522b;
+  --danger: #a1372a;
+}
