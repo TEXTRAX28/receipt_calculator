@@ -1,0 +1,15 @@
+# Dependencies, generated files and local receipt data do not describe the codebase.
+node_modules/
+dist/
+graphify-out/
+coverage/
+playwright-report/
+test-results/
+qa-artifacts/
+public/
+receipt_training/
+uploads/
+private-receipts/
+# Agent instructions and this index's maintenance script are not app source.
+AGENTS.md
+scripts/update-graph.py

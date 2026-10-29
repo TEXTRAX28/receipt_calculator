@@ -25,3 +25,20 @@ Desktop.ini
 .vscode/
 *.swp
 *.tmp
+
+# Receipt pilot: keep originals, downloaded images, raw labels and OCR private.
+receipt_training/costco/**
+receipt_training/non_costco/**
+receipt_training/unclassified/**
+receipt_training/synthetic/**
+receipt_training/annotations/raw/**
+receipt_training/annotations/private/**
+receipt_training/evaluation/runs/**
+receipt_training/evaluation/contact-sheets/**
+receipt_training/.cache/**
+receipt_training/scripts/__pycache__/
+
+# Generated local Graphify graph, caches and scratch files
+/graphify-out/
+/.graphify/
+/.graphify_*

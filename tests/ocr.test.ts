@@ -83,7 +83,7 @@ describe("bounded, replaceable local extraction provider", () => {
     );
     await expect(
       localOcrProvider.extract([image], new AbortController().signal, vi.fn()),
-    ).rejects.toThrow(/assets are unavailable/);
+    ).rejects.toThrow(/files are unavailable/);
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it("rejects a fake JavaScript asset returning HTML", async () => {
@@ -96,7 +96,7 @@ describe("bounded, replaceable local extraction provider", () => {
     );
     await expect(
       localOcrProvider.extract([image], new AbortController().signal, vi.fn()),
-    ).rejects.toThrow(/assets are unavailable/);
+    ).rejects.toThrow(/files are unavailable/);
   });
   it("normalizes a provider rejecting with undefined into a useful error", async () => {
     mocks.create.mockRejectedValue(undefined);
@@ -134,7 +134,7 @@ describe("bounded, replaceable local extraction provider", () => {
     ).rejects.toThrow();
     await expect(
       localOcrProvider.extract(
-        [image, image, image, image],
+        Array.from({ length: 13 }, () => image),
         new AbortController().signal,
         vi.fn(),
       ),

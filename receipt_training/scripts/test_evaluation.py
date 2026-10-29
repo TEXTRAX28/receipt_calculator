@@ -1,0 +1,78 @@
+import json
+import unittest
+
+from collect import ROOT, cord_label, field, rupiah
+from score import match_items, minor, score_one
+
+CONFIG = json.loads((ROOT / "evaluation/config.json").read_text(encoding="utf-8"))
+
+
+class EvidenceTests(unittest.TestCase):
+    def test_thousands_are_not_decimal_rupiah(self):
+        self.assertEqual(rupiah("1,591,600"), "1591600")
+        self.assertEqual(rupiah("43.636"), "43636")
+        self.assertEqual(rupiah("Rp 0.000"), "0")
+
+    def test_ambiguous_and_missing_amounts_stay_null(self):
+        self.assertIsNone(rupiah("40,000."))
+        self.assertIsNone(rupiah("not legible"))
+        self.assertIsNone(rupiah(None))
+        self.assertTrue(field(None, None)["review_required"])
+
+    def test_currency_precision_and_exactness(self):
+        self.assertEqual(minor("74.57", "GBP", CONFIG), 7457)
+        self.assertEqual(minor("1000", "JPY", CONFIG), 1000)
+        self.assertEqual(minor("1.234", "KWD", CONFIG), 1234)
+        self.assertEqual(minor("36000", "IDR", CONFIG), 3600000)
+        self.assertIsNone(minor("1.001", "GBP", CONFIG))
+        self.assertIsNone(minor(None, "GBP", CONFIG))
+
+    def test_discount_sign_survives_normalisation(self):
+        self.assertEqual(rupiah("-7,800"), "-7800")
+        self.assertIsNone(minor("7.00-A", "GBP", CONFIG))
+
+    def test_repeated_purchases_are_not_collapsed(self):
+        expected = [{"description": field("CASHEWS", "CASHEWS")}] * 2
+        actual = [{"description": "CASHEWS", "lineTotal": "11.49"}]
+        self.assertEqual(len(match_items(expected, actual, 0.65)), 1)
+
+    def test_detection_does_not_match_using_price(self):
+        expected = [{"description": field("MILK", "MILK")}]
+        actual = [{"description": "UNRELATED PRODUCT", "lineTotal": "2.00"}]
+        self.assertEqual(match_items(expected, actual, 0.65), {})
+
+    def test_exact_description_wins_over_similar_other_product(self):
+        expected = [{"description": field(text, text)} for text in ["TEH PANAS", "ES TEH MANIS"]]
+        self.assertEqual(match_items(expected, [{"description": "1 ES TEH MANIS"}], 0.65), {1: 0})
+
+    def test_pack_contents_do_not_invent_purchase_quantity(self):
+        label = cord_label("test", {"gt_parse": {"menu": {"nm": "8-PACK CANS", "price": "25,000"}}, "meta": {}})
+        self.assertIsNone(label["items"][0]["quantity"]["value"])
+        self.assertIsNone(label["items"][0]["pack_size"]["value"])
+        self.assertIsNone(label["items"][0]["discount"]["value"])
+
+    def test_unchecked_model_labels_rejected(self):
+        label = {"verification": {"model_generated": True, "status": "provisional_model"}}
+        with self.assertRaises(ValueError):
+            score_one({}, label, {}, CONFIG)
+
+    def test_cash_is_not_grand_total(self):
+        label = cord_label("test", {"gt_parse": {"menu": {"nm": "TEA", "price": "40,000"}, "total": {"total_price": "40,000", "cashprice": "100,000", "changeprice": "60,000"}}, "meta": {}})
+        self.assertEqual(label["grand_total"]["value"], "40000")
+        self.assertEqual(label["payments"][0]["amount"]["value"], "100000")
+
+    def test_default_currency_and_invalid_zero_balance_do_not_establish_success(self):
+        label = cord_label("test", {"gt_parse": {"menu": {"nm": "TEA", "price": "2,00"}, "total": {"total_price": "2,00"}}, "meta": {}})
+        label["currency"] = field("GBP", "GBP")
+        record = {"receipt_id": "test", "category": "non_costco/physical", "country": "GB", "split": "development"}
+        prediction = {"elapsed_ms": 1, "receipt": {"currency": "GBP", "items": [], "printedTotal": "2.00", "warnings": ["Currency was not identified. Confirm the selected currency."]}, "calculation": {"discrepancy": "0", "issues": [{"path": "items", "message": "Invalid amounts"}]}}
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["currency_correct"], 0)
+        self.assertEqual(counts["selected_currency_correct"], 1)
+        self.assertEqual(counts["untrusted_zero_discrepancy"], 1)
+        self.assertEqual(counts["requires_review"], 1)
+        self.assertEqual(counts.get("item_discount_known", 0), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

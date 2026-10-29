@@ -1,0 +1,44 @@
+{
+  "verification": "Assistant source-image checks; no independent human verification. These are development arithmetic diagnostics, not extraction accuracy measurements.",
+  "cases": [
+    {
+      "receipt_id": "user-costco-bristol-001",
+      "currency": "GBP",
+      "status": "conditional_hypothesis_unresolved",
+      "basis": "Nine visible purchases and three layout-supported deductions. No VAT legend in the photo. A=20%, Z=0%, VAT-exclusive prices are hypotheses only.",
+      "item_amounts": ["9.99", "6.99", "14.99", "6.89", "5.99", "5.99", "3.99", "11.49", "11.49"],
+      "item_codes": ["A", "Z", "A", "A", "Z", "A", "Z", "A", "A"],
+      "deductions": [{"item_index": 0, "amount": "-7.00", "raw": "7.00-A"}, {"item_index": 2, "amount": "-5.00", "raw": "5.00-A"}, {"item_index": 6, "amount": "-1.00", "raw": "1.00-Z"}],
+      "assumed_tax_rates": {"A": "0.20", "Z": "0"},
+      "prices_include_tax": false,
+      "printed_total": "74.57"
+    },
+    {
+      "receipt_id": "cord-v2-train-000",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed Sub-Total, Service, PB1 and Rounding -45. Rounding is visually identified here; upstream sub_total.etc alone would not establish its meaning.",
+      "terms": [{"kind": "subtotal", "raw": "1,346,000", "amount": "1346000"}, {"kind": "service", "raw": "100,950", "amount": "100950"}, {"kind": "tax", "raw": "144,695", "amount": "144695"}, {"kind": "rounding", "raw": "-45", "amount": "-45"}],
+      "printed_total": "1591600"
+    },
+    {
+      "receipt_id": "cord-v2-train-003",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed subtotal, service, tax, discount and final total; discount subtracted exactly once.",
+      "terms": [{"kind": "subtotal", "raw": "259,000", "amount": "259000"}, {"kind": "service", "raw": "9,600", "amount": "9600"}, {"kind": "tax", "raw": "52,416", "amount": "52416"}, {"kind": "discount", "raw": "19,000", "amount": "-19000"}],
+      "printed_total": "302016"
+    },
+    {
+      "receipt_id": "cord-v2-validation-002",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed 10% Tax Included. The item price already includes tax; the tax table is informational. Cash 100,000 and change 80,000 are payment fields.",
+      "prices_include_tax": true,
+      "terms": [{"kind": "tax_inclusive_item", "raw": "20,000", "amount": "20000"}],
+      "informational_tax": "1818",
+      "payments_not_added": {"cash": "100000", "change": "80000"},
+      "printed_total": "20000"
+    }
+  ]
+}

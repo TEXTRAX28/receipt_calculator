@@ -61,6 +61,8 @@ import { costcoDemo } from "./lib/demo";
 import { parseReceiptText } from "./lib/parser";
 import { prepareImage, type ReceiptImage } from "./lib/images";
 import { localOcrProvider } from "./lib/ocr";
+import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
+import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
@@ -197,6 +199,13 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
+  const [reader, setReader] = useState<"local" | "gemini">("local");
+  const [aiConsented, setAiConsented] = useState(false);
+  const [aiConfig, setAiConfig] = useState<{
+    configured: boolean;
+    model: string;
+  } | null>(null);
+  const [checkingAi, setCheckingAi] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const [rawText, setRawText] = useState("");
   const [privacy, setPrivacy] = useState(false);
@@ -213,6 +222,22 @@ export default function App() {
     state.finalizedStamp !== "" &&
     state.finalizedStamp === finalStamp(state) &&
     result.canFinalize;
+  useEffect(() => {
+    if (reader !== "gemini") return;
+    const check = new AbortController();
+    setCheckingAi(true);
+    geminiConfiguration(
+      AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
+    )
+      .then(setAiConfig)
+      .catch(() => {
+        if (!check.signal.aborted) setAiConfig(null);
+      })
+      .finally(() => {
+        if (!check.signal.aborted) setCheckingAi(false);
+      });
+    return () => check.abort();
+  }, [reader]);
   useEffect(() => {
     imageRef.current = images;
   }, [images]);
@@ -315,6 +340,7 @@ export default function App() {
     setImages([]);
     setRawText("");
     setImageError("");
+    setAiConsented(false);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -325,9 +351,22 @@ export default function App() {
   };
   async function addFiles(files: FileList | File[] | null) {
     if (!files || busyRef.current) return;
-    if (files.length + images.length > 3) {
+    if (files.length + images.length > MAX_RECEIPT_IMAGES) {
       setImageError(
-        "Choose at most three images. For overlapping photos, review repeated rows after scanning.",
+        `Choose at most ${MAX_RECEIPT_IMAGES} photos for one receipt. Photograph it from top to bottom, overlapping a few rows between photos.`,
+      );
+      return;
+    }
+    if (
+      Array.from(files).reduce((sum, file) => sum + file.size, 0) +
+        images.reduce(
+          (sum, image) => sum + (image.sourceBytes || image.blob.size),
+          0,
+        ) >
+      MAX_BATCH_BYTES
+    ) {
+      setImageError(
+        "Choose up to 48 MB of photos for one receipt. Crop or resize larger photos first.",
       );
       return;
     }
@@ -339,6 +378,7 @@ export default function App() {
       for (const file of Array.from(files))
         prepared.push(await prepareImage(file));
       setImages((previous) => [...previous, ...prepared]);
+      setAiConsented(false);
     } catch (e) {
       prepared.forEach((i) => URL.revokeObjectURL(i.url));
       setImageError((e as Error).message);
@@ -349,13 +389,37 @@ export default function App() {
       if (cameraRef.current) cameraRef.current.value = "";
     }
   }
+  function moveImage(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (busyRef.current || target < 0 || target >= images.length) return;
+    setImages((current) => {
+      const ordered = [...current];
+      [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+      return ordered;
+    });
+    setAiConsented(false);
+  }
   async function scan() {
     if (busyRef.current || !images.length || !canReplace()) return;
+    if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
     busyRef.current = true;
     setBusy(true);
     setImageError("");
     controller.current = new AbortController();
     try {
+      if (reader === "gemini") {
+        const parsed = await extractWithGemini(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
+        replaceReceipt(parsed);
+        setAiConsented(false);
+        setNotice(
+          "Gemini finished. Check the combined receipt against every photo before confirming.",
+        );
+        return;
+      }
       const output = await localOcrProvider.extract(
         images,
         controller.current.signal,
@@ -363,6 +427,10 @@ export default function App() {
       );
       setRawText(output.text);
       const parsed = parseReceiptText(output);
+      parsed.warnings = [...parsed.warnings, ...(output.warnings || [])].slice(
+        0,
+        60,
+      );
       parsed.source = "ocr";
       replaceReceipt(parsed);
       setNotice(
@@ -498,8 +566,9 @@ export default function App() {
       <div className="small-note">
         <ShieldCheck size={18} />
         <p>
-          Your photos stay on this device. Only the editable draft is saved in
-          this browser.
+          Original photos are kept in memory. Gemini scans send the chosen
+          photos to Google only with your agreement; the editable draft is saved
+          in this browser.
         </p>
       </div>
       {images.length > 0 ? (
@@ -520,7 +589,7 @@ export default function App() {
           </div>
         </div>
       ) : (
-        state.receipt.source === "ocr" && (
+        ["ocr", "ai"].includes(state.receipt.source) && (
           <p className="hint">
             Photos are kept only in memory. Upload them again after a refresh to
             compare the original.
@@ -635,11 +704,12 @@ export default function App() {
                       <Plus size={15} />
                     </span>
                   </div>
-                  <h2>A photo, and you’re off.</h2>
+                  <h2>One shop. Every section.</h2>
                   <p>
                     Drop your receipt here, or pick a photo.
                     <br />
-                    Long receipt? Add up to 3 images.
+                    Long receipt? Add up to {MAX_RECEIPT_IMAGES} overlapping
+                    photos.
                   </p>
                   <div className="upload-actions">
                     <button
@@ -681,6 +751,26 @@ export default function App() {
                     onChange={(e) => void addFiles(e.target.files)}
                   />
                 </div>
+                <div className="capture-guide">
+                  <h3>A long Costco receipt is welcome.</h3>
+                  <ol>
+                    <li>
+                      Start at the top. Take close-up photos down the receipt.
+                    </li>
+                    <li>
+                      Repeat 3–5 complete item rows between neighboring photos.
+                    </li>
+                    <li>
+                      Include the final total and VAT table in the last photo.
+                    </li>
+                  </ol>
+                  <p>
+                    Keep the text sharp and the receipt flat. You can add photos
+                    one at a time, crop the background and change their order
+                    below. A tall image is read in detail sections
+                    automatically.
+                  </p>
+                </div>
                 {images.length > 0 && (
                   <div className="selected-images">
                     {images.map((image, i) => (
@@ -698,7 +788,28 @@ export default function App() {
                         <span>
                           Image {i + 1}
                           {image.crop ? " · cropped" : ""}
+                          {image.panels
+                            ? ` · ${image.panels.length} sections`
+                            : ""}
                         </span>
+                        <div className="image-order">
+                          <button
+                            className="photo-order-button"
+                            disabled={busy || i === 0}
+                            aria-label={`Move image ${i + 1} earlier`}
+                            onClick={() => moveImage(i, -1)}
+                          >
+                            <ArrowLeft size={17} />
+                          </button>
+                          <button
+                            className="photo-order-button"
+                            disabled={busy || i === images.length - 1}
+                            aria-label={`Move image ${i + 1} later`}
+                            onClick={() => moveImage(i, 1)}
+                          >
+                            <ArrowRight size={17} />
+                          </button>
+                        </div>
                         <button
                           className="text-button crop-trigger"
                           disabled={busy}
@@ -714,6 +825,7 @@ export default function App() {
                           onClick={() => {
                             URL.revokeObjectURL(image.url);
                             setImages(images.filter((p) => p.id !== image.id));
+                            setAiConsented(false);
                           }}
                         >
                           <X size={16} />
@@ -724,8 +836,9 @@ export default function App() {
                 )}
                 {images.length > 0 && (
                   <p className="hint">
-                    Crop away the background before scanning for a clearer
-                    result.
+                    {images.length} of {MAX_RECEIPT_IMAGES} photos · Keep them
+                    in top-to-bottom order. Crop away the background for a
+                    clearer result.
                   </p>
                 )}
                 {imageError && (
@@ -734,11 +847,120 @@ export default function App() {
                     {imageError}
                   </p>
                 )}
+                <fieldset className="reader-choice" disabled={busy}>
+                  <legend>How should we read it?</legend>
+                  <div className="reader-buttons">
+                    <button
+                      type="button"
+                      className={`button ${reader === "local" ? "button-primary" : "button-outline"}`}
+                      aria-pressed={reader === "local"}
+                      onClick={() => {
+                        setReader("local");
+                        setAiConsented(false);
+                      }}
+                    >
+                      <ShieldCheck size={17} />
+                      On-device
+                    </button>
+                    <button
+                      type="button"
+                      className={`button ${reader === "gemini" ? "button-primary" : "button-outline"}`}
+                      aria-pressed={reader === "gemini"}
+                      onClick={() => {
+                        setReader("gemini");
+                        setAiConsented(false);
+                      }}
+                    >
+                      <Sparkles size={17} />
+                      Gemini AI
+                    </button>
+                  </div>
+                  {reader === "local" ? (
+                    <p className="hint">
+                      Free, private English OCR. Photos stay on your device.
+                      Overlapping photos may need duplicate rows removed during
+                      review.
+                    </p>
+                  ) : (
+                    <div className="ai-reader-info">
+                      <p>
+                        Reads the sections together as one receipt, including
+                        overlapping rows, coupons and VAT codes. Your review and
+                        the printed-total check still come next.
+                      </p>
+                      <p className="hint" role="status">
+                        {checkingAi
+                          ? "Checking Gemini setup…"
+                          : aiConfig?.configured
+                            ? `Gemini key configured · ${aiConfig.model}`
+                            : "Gemini needs a server API key before scanning."}
+                      </p>
+                      {!checkingAi && !aiConfig?.configured && (
+                        <details className="ai-setup">
+                          <summary>Connect Gemini on this computer</summary>
+                          <ol>
+                            <li>
+                              Create an API key in{" "}
+                              <a
+                                  href="https://aistudio.google.com/apikey"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Google AI Studio
+                              </a>
+                              . The Gemini chat app does not supply an API key
+                              automatically.
+                            </li>
+                            <li>
+                              Copy <code>.env.example</code> to{" "}
+                              <code>.env.local</code> and put the key after{" "}
+                              <code>GEMINI_API_KEY=</code>.
+                            </li>
+                            <li>
+                              Restart Gather, reload this page and choose Gemini
+                              AI.
+                            </li>
+                          </ol>
+                          <p>
+                            The key stays on the local server. Never paste it in
+                            a group chat. Google's limits and data-use terms
+                            depend on your API project.
+                          </p>
+                        </details>
+                      )}
+                      <p className="hint">
+                        Gemini sends these photos to Google. Crop out membership
+                        and payment details before sending.{" "}
+                        <a
+                          href="https://ai.google.dev/gemini-api/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Google’s data-use terms
+                        </a>
+                      </p>
+                      <label className="check-line">
+                        <input
+                          type="checkbox"
+                          checked={aiConsented}
+                          onChange={(event) =>
+                            setAiConsented(event.target.checked)
+                          }
+                        />
+                        Send these receipt photos to Google Gemini for this scan
+                      </label>
+                    </div>
+                  )}
+                </fieldset>
                 {images.length > 0 && (
                   <div className="scan-controls">
                     <button
                       className="button button-primary full-width"
-                      disabled={busy}
+                      disabled={
+                        busy ||
+                        (reader === "gemini" &&
+                          (!aiConsented || !aiConfig?.configured || checkingAi))
+                      }
                       onClick={() => void scan()}
                     >
                       {busy ? (
@@ -748,7 +970,9 @@ export default function App() {
                       )}
                       {busy
                         ? scanStatus || "Preparing images…"
-                        : "Read receipt on this device"}
+                        : reader === "gemini"
+                          ? "Read receipt with Gemini"
+                          : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -764,7 +988,9 @@ export default function App() {
                 <div className="private-line">
                   <ShieldCheck size={16} />
                   <span>
-                    Real OCR, right on your device. Your photos stay yours.
+                    {reader === "local"
+                      ? "On-device OCR keeps your photos on this device."
+                      : "Gemini only receives photos when you agree and start a scan."}
                   </span>
                 </div>
                 <div className="or-divider">
@@ -1932,6 +2158,7 @@ export default function App() {
                   image.id === cropped.id ? cropped : image,
                 ),
               );
+              setAiConsented(false);
               setCropTarget(null);
             }}
           />
@@ -1952,10 +2179,16 @@ export default function App() {
             <ShieldCheck size={32} />
             <h2>Your shop stays yours.</h2>
             <p>
-              OCR runs on this device. Images are resized and read in your
-              browser, using English language assets served by this app. No
-              receipt image is sent to an OCR company, an AI model, or our
-              server.
+              The on-device reader uses English OCR in your browser. Its photos
+              stay on this device. Tall images are read in overlapping detail
+              sections so small text stays readable.
+            </p>
+            <p>
+              Gemini AI is optional. If you select it, agree to send the photos
+              and start a scan, the local server forwards those photos to Google
+              Gemini. It returns a receipt draft for you to check. The API key
+              stays on the server; Gather does not save the photos or model
+              requests. Google processes requests under its own data-use terms.
             </p>
             <p>
               Your extracted draft and names are saved in this browser’s local
@@ -1968,7 +2201,8 @@ export default function App() {
               Delete / reset receipt removes this app’s saved draft and current
               image previews. Exported or copied summaries remain wherever you
               save or send them. There are no accounts, analytics, remote
-              receipt databases or API keys.
+              receipt databases. A server API key is required only for the
+              optional Gemini reader.
             </p>
             <p>
               Camera availability depends on your browser. A phone accessing the

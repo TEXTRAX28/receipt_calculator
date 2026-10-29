@@ -271,13 +271,13 @@ test("rejects malformed, spoofed and excessive uploads without a scan", async ({
     page.getByRole("button", { name: "Read receipt on this device" }),
   ).toHaveCount(0);
   await page.getByLabel("Upload receipt images").setInputFiles(
-    Array.from({ length: 4 }, (_, i) => ({
+    Array.from({ length: 13 }, (_, i) => ({
       name: `${i}.jpg`,
       mimeType: "image/jpeg",
       buffer: Buffer.from("invalid"),
     })),
   );
-  await expect(page.getByRole("alert")).toContainText("at most three");
+  await expect(page.getByRole("alert")).toContainText("at most 12");
 });
 test("privacy dialog, keyboard escape, reset and responsive layout", async ({
   page,
@@ -287,7 +287,7 @@ test("privacy dialog, keyboard escape, reset and responsive layout", async ({
     .getByRole("button", { name: "Privacy first", exact: false })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
-    "No receipt image is sent",
+    "The on-device reader uses English OCR",
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();

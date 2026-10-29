@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "records": 51,
+  "eligible_financial_receipts": 50,
+  "supporting_controls": 1,
+  "category_counts": {
+    "non_costco/physical": 45,
+    "costco/physical": 5
+  },
+  "splits": {
+    "development": 38,
+    "evaluation": 12
+  },
+  "unique_transaction_groups": 51,
+  "unique_image_hashes": 51,
+  "known_monetary_fields": 352,
+  "null_monetary_fields": 323,
+  "near_duplicate_candidates": []
+}

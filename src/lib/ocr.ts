@@ -1,4 +1,5 @@
-import type { ReceiptImage } from "./images";
+import { readingBlobs, type ReceiptImage } from "./images";
+import { MAX_RECEIPT_IMAGES, MAX_READING_PANELS } from "./scan-limits.mjs";
 import { extractionOutputSchema, PHOTO_SEPARATOR } from "./parser";
 import type { Worker } from "tesseract.js";
 
@@ -8,15 +9,55 @@ export interface ExtractionProvider {
     images: ReceiptImage[],
     signal: AbortSignal,
     progress: (status: string) => void,
-  ): Promise<{ text: string }>;
+  ): Promise<{ text: string; warnings?: string[] }>;
+}
+
+/** Only remove an exact suffix/prefix match at a known overlapping window within one photo. */
+export function joinDetailText(parts: string[]): string {
+  const lines = (text: string) =>
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  const key = (line: string) => line.toUpperCase().replace(/\s+/g, "");
+  let joined = lines(parts[0] || "");
+  for (const part of parts.slice(1)) {
+    const next = lines(part);
+    let overlap = 0;
+    for (
+      let count = Math.min(200, joined.length, next.length);
+      count >= 3;
+      count--
+    ) {
+      const tail = joined.slice(-count).map(key);
+      if (
+        new Set(tail).size >= 3 &&
+        tail.every((line, index) => line === key(next[index]))
+      ) {
+        overlap = count;
+        break;
+      }
+    }
+    joined = [...joined, ...next.slice(overlap)];
+  }
+  return joined.join("\n");
 }
 
 /** Replace this provider at the boundary; all output must pass extractionOutputSchema. No receipt text is executable. */
 export const localOcrProvider: ExtractionProvider = {
   name: "On-device English OCR",
   async extract(images, signal, progress) {
-    if (!images.length || images.length > 3)
-      throw new Error("Choose between one and three receipt images.");
+    if (!images.length || images.length > MAX_RECEIPT_IMAGES)
+      throw new Error(
+        `Choose between one and ${MAX_RECEIPT_IMAGES} receipt images.`,
+      );
+    if (
+      images.reduce((sum, image) => sum + readingBlobs(image).length, 0) >
+      MAX_READING_PANELS
+    )
+      throw new Error(
+        "This receipt has too many detail panels. Choose fewer photos or crop away the background.",
+      );
     let worker: Worker | undefined;
     const fetchController = new AbortController();
     let finished = false;
@@ -63,12 +104,12 @@ export const localOcrProvider: ExtractionProvider = {
                 !/javascript/.test(response.headers.get("content-type") || ""))
             )
               throw new Error(
-                "OCR could not start: local OCR assets are missing. Run npm run prepare:ocr, or use manual entry.",
+                "The on-device scanner files are missing. Reload Gather and try again, or use Gemini or manual entry.",
               );
           }),
         ).catch(() => {
           throw new Error(
-            "OCR could not start: local OCR assets are unavailable. Try again or use manual entry.",
+            "OCR could not start: scanner files are unavailable. Keep Gather's local server running, reload and try again, or use manual entry.",
           );
         });
         const { createWorker, PSM } = await import("tesseract.js");
@@ -96,19 +137,31 @@ export const localOcrProvider: ExtractionProvider = {
         const texts: string[] = [];
         for (let i = 0; i < images.length; i++) {
           if (finished) throw new Error("Scan stopped.");
-          progress(
-            `Reading image ${i + 1} of ${images.length} on your device…`,
-          );
-          const result = await worker.recognize(
-            images[i].ocrBlob || images[i].blob,
-          );
-          texts.push(
-            extractionOutputSchema.parse({ text: result.data.text }).text,
-          );
+          const panels = readingBlobs(images[i]);
+          const parts: string[] = [];
+          for (const [part, blob] of panels.entries()) {
+            if (finished) throw new Error("Scan stopped.");
+            progress(
+              `Reading photo ${i + 1} of ${images.length}${panels.length > 1 ? ` · section ${part + 1} of ${panels.length}` : ""} on your device…`,
+            );
+            const result = await worker.recognize(blob);
+            parts.push(
+              extractionOutputSchema.parse({ text: result.data.text }).text,
+            );
+          }
+          texts.push(joinDetailText(parts));
         }
-        return extractionOutputSchema.parse({
+        const output = extractionOutputSchema.parse({
           text: texts.join(`\n${PHOTO_SEPARATOR}\n`),
         });
+        return {
+          ...output,
+          warnings: images.some((image) => readingBlobs(image).length > 1)
+            ? [
+                "A tall photo was read in overlapping detail sections. Exact joins were merged; check for missing or repeated lines where sections meet.",
+              ]
+            : [],
+        };
       })();
       return await Promise.race([work, failure]);
     } catch (error) {

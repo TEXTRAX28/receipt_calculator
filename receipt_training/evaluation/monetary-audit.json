@@ -1,0 +1,52 @@
+{
+  "verification": "Assistant source-image checks; no independent human verification. These are development arithmetic diagnostics, not extraction accuracy measurements.",
+  "results": [
+    {
+      "receipt_id": "user-costco-bristol-001",
+      "currency": "GBP",
+      "status": "conditional_hypothesis_unresolved",
+      "basis": "Nine visible purchases and three layout-supported deductions. No VAT legend in the photo. A=20%, Z=0%, VAT-exclusive prices are hypotheses only.",
+      "net_by_code": {
+        "A": "48.84",
+        "Z": "15.97"
+      },
+      "net": "64.81",
+      "hypothetical_tax": "9.77",
+      "calculated_total": "74.58",
+      "tax_rounding_rule": "once per code, half up to penny; unconfirmed scenario",
+      "printed_total": "74.57",
+      "difference_minor": 1,
+      "balances": false
+    },
+    {
+      "receipt_id": "cord-v2-train-000",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed Sub-Total, Service, PB1 and Rounding -45. Rounding is visually identified here; upstream sub_total.etc alone would not establish its meaning.",
+      "calculated_total": "1591600",
+      "printed_total": "1591600",
+      "difference_minor": 0,
+      "balances": true
+    },
+    {
+      "receipt_id": "cord-v2-train-003",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed subtotal, service, tax, discount and final total; discount subtracted exactly once.",
+      "calculated_total": "302016",
+      "printed_total": "302016",
+      "difference_minor": 0,
+      "balances": true
+    },
+    {
+      "receipt_id": "cord-v2-validation-002",
+      "currency": "IDR",
+      "status": "source_checked_arithmetic",
+      "basis": "Printed 10% Tax Included. The item price already includes tax; the tax table is informational. Cash 100,000 and change 80,000 are payment fields.",
+      "calculated_total": "20000",
+      "printed_total": "20000",
+      "difference_minor": 0,
+      "balances": true
+    }
+  ]
+}

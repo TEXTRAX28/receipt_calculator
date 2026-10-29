@@ -7,15 +7,18 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "predev": "npm run prepare:ocr",
     "dev": "vite --host 127.0.0.1",
+    "prebuild": "npm run prepare:ocr",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "prepreview": "npm run prepare:ocr",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "format": "prettier --write src tests scripts *.ts *.json *.html",
-    "format:check": "prettier --check src tests scripts *.ts *.json *.html",
+    "format": "prettier --write src server tests scripts *.ts *.json *.html",
+    "format:check": "prettier --check src server tests scripts *.ts *.json *.html",
     "prepare:ocr": "node scripts/prepare-ocr.mjs",
     "postinstall": "node scripts/prepare-ocr.mjs"
   },

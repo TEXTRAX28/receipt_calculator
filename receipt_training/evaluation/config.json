@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "collection_revision": "pilot-2026-10-29",
+  "purpose": "development and extraction evaluation, not model training",
+  "development": ["CORD train first 24", "CORD validation first 8", "user original", "reviewed Commons additions"],
+  "evaluation": ["CORD test first 12"],
+  "selection_bias": "Convenience pilot; CORD dominates and is not representative of UK Costco users",
+  "grouping": "Same SHA256 or canonical upstream gt_parse share a transaction group; cross-split duplicates excluded; dHash flags require visual adjudication",
+  "item_matching": { "method": "one-to-one maximum cardinality description matching", "normalization": "Unicode alphanumeric lowercase; quantity prefixes removed", "minimum_similarity": 0.65, "prices_used_for_matching": false },
+  "money": { "representation": "integer minor units via Python Decimal; no tolerance; no balancing edits", "fraction_digits": { "GBP": 2, "IDR": 2, "TWD": 2, "USD": 2, "EUR": 2, "JPY": 0, "KWD": 3, "BHD": 3 }, "IDR_note": "Printed integer rupiah are whole major units. Dot/comma three-digit grouping is not a decimal fraction." },
+  "unknown_values": "null and review flag; not zero; omitted from relevant metric denominator",
+  "metrics": ["item precision/recall", "matched and end-to-end item-price accuracy", "known quantities", "known item discounts", "known receipt discounts", "currency (dataset-context labels separately disclosed)", "grand total", "scanner reconciliation failures and unavailable checks", "manual review", "measured latency and API charges"],
+  "test_policy": "No scanner changes based on held-out results. Inspect test images only for origin, rights and quality; run frozen baseline once. Later tuning requires a fresh evaluation set.",
+  "external_processing": false
+}

@@ -64,7 +64,7 @@ export const receiptSchema = z.object({
     .max(20),
   items: z.array(itemSchema).max(300),
   adjustments: z.array(adjustmentSchema).max(30),
-  source: z.enum(["manual", "ocr", "text", "demo"]),
+  source: z.enum(["manual", "ocr", "ai", "text", "demo"]),
   rawText: z.string().max(60000),
   warnings: z.array(z.string().max(400)).max(60),
 });

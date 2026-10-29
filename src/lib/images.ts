@@ -110,8 +110,77 @@ export interface ReceiptImage {
   name: string;
   url: string;
   blob: Blob;
+  sourceBlob?: Blob;
+  sourceBytes?: number;
   ocrBlob?: Blob;
+  panels?: Blob[];
   crop?: CropBounds;
+}
+export const readingBlobs = (image: ReceiptImage): Blob[] =>
+  image.panels || [image.ocrBlob || image.blob];
+
+/** Read a tall image in overlapping windows instead of shrinking all its text to 3200px. */
+export function planReadingPanels(width: number, height: number) {
+  const scale = Math.min(2, 1400 / width, 20000 / height);
+  const scaledHeight = Math.round(height * scale);
+  if (height / width <= 2.4 || scaledHeight <= 2600) return [];
+  const panelHeight = Math.min(2200, scaledHeight);
+  const count =
+    Math.ceil((scaledHeight - panelHeight) / (panelHeight * 0.82)) + 1;
+  return Array.from({ length: count }, (_, index) => ({
+    top: Math.round((index * (height - panelHeight / scale)) / (count - 1)),
+    height: panelHeight / scale,
+    outputWidth: Math.max(1, Math.round(width * scale)),
+    outputHeight: panelHeight,
+  }));
+}
+async function detailPanels(
+  bitmap: ImageBitmap,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): Promise<Blob[] | undefined> {
+  const plan = planReadingPanels(width, height);
+  if (!plan.length) return;
+  const panels: Blob[] = [];
+  for (const section of plan) {
+    const canvas = document.createElement("canvas");
+    canvas.width = section.outputWidth;
+    canvas.height = section.outputHeight;
+    const context = canvas.getContext("2d");
+    if (!context)
+      throw new Error(
+        "Image processing is unavailable. Try separate receipt photos.",
+      );
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.filter = "grayscale(1) contrast(1.12)";
+    context.drawImage(
+      bitmap,
+      x,
+      y + section.top,
+      width,
+      section.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    panels.push(
+      await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (blob) =>
+            blob
+              ? resolve(blob)
+              : reject(new Error("Could not prepare this receipt section.")),
+          "image/jpeg",
+          0.94,
+        ),
+      ),
+    );
+  }
+  return panels;
 }
 export interface CropBounds {
   left: number;
@@ -130,7 +199,7 @@ export async function cropImage(
     bounds.top + bounds.bottom > 95
   )
     throw new Error("Keep a visible receipt area inside the crop frame.");
-  const bitmap = await createImageBitmap(image.blob);
+  const bitmap = await createImageBitmap(image.sourceBlob || image.blob);
   try {
     const x = Math.round((bitmap.width * bounds.left) / 100),
       y = Math.round((bitmap.height * bounds.top) / 100);
@@ -174,7 +243,8 @@ export async function cropImage(
         0.96,
       ),
     );
-    return { ...image, ocrBlob, crop: bounds };
+    const panels = await detailPanels(bitmap, x, y, width, height);
+    return { ...image, ocrBlob, panels, crop: bounds };
   } finally {
     bitmap.close();
   }
@@ -228,11 +298,21 @@ export async function prepareImage(file: File): Promise<ReceiptImage> {
         0.94,
       ),
     );
+    const panels = await detailPanels(
+      bitmap,
+      0,
+      0,
+      bitmap.width,
+      bitmap.height,
+    );
     return {
       id: crypto.randomUUID(),
       name: file.name.slice(0, 180),
       url: URL.createObjectURL(blob),
       blob,
+      sourceBlob: file,
+      sourceBytes: file.size,
+      panels,
     };
   } catch {
     throw new Error(

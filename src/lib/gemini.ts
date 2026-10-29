@@ -1,0 +1,160 @@
+import { aiReceiptSchema } from "./extraction-schema.mjs";
+import { newItem, newReceipt, receiptSchema, type Receipt } from "./model";
+import {
+  MAX_AI_BODY_BYTES,
+  MAX_READING_PANELS,
+  MAX_RECEIPT_IMAGES,
+} from "./scan-limits.mjs";
+import { readingBlobs, type ReceiptImage } from "./images";
+import { z } from "zod";
+
+export function receiptFromAi(output: unknown): Receipt {
+  const data = aiReceiptSchema.parse(output);
+  const receipt = newReceipt();
+  receipt.source = "ai";
+  receipt.merchant = data.merchant;
+  receipt.date = data.date;
+  receipt.currency = data.currency || "GBP";
+  receipt.subtotal = data.subtotal;
+  receipt.printedTotal = data.printedTotal;
+  receipt.printedTax = data.printedTax;
+  receipt.pricesIncludeTax = data.pricesIncludeTax ?? true;
+  receipt.taxCodes = data.taxCodes;
+  receipt.taxMode = data.taxCodes.length ? "codes" : "printed";
+  receipt.items = data.items.map(({ sourcePhotos, note, ...item }) => ({
+    ...newItem(),
+    ...item,
+    note: `Photo ${[...new Set(sourcePhotos)].join(", ")}. ${note}`.slice(
+      0,
+      300,
+    ),
+  }));
+  receipt.adjustments = data.adjustments.map((adjustment) => ({
+    id: crypto.randomUUID(),
+    ...adjustment,
+    allocation: "proportional" as const,
+  }));
+  if (receipt.taxMode === "printed" && data.printedTax)
+    receipt.adjustments.push({
+      id: crypto.randomUUID(),
+      label: "Printed tax",
+      kind: "tax",
+      amount: data.printedTax,
+      allocation: "proportional",
+    });
+  for (const taxCode of new Set(
+    receipt.items.map((item) => item.taxCode).filter(Boolean),
+  ))
+    if (!receipt.taxCodes.some((entry) => entry.code === taxCode))
+      receipt.taxCodes.push({ code: taxCode, rate: "" });
+  receipt.warnings = [
+    "Gemini prepared this draft from your photos. Check every purchase, discount, tax code and the printed total against the originals.",
+    ...data.warnings,
+  ];
+  if (!data.currency)
+    receipt.warnings.push(
+      "Currency was unclear. Confirm the selected currency.",
+    );
+  if (data.pricesIncludeTax === null) {
+    receipt.warnings.push(
+      "Gemini could not determine whether item prices include tax. Confirm the tax setting before continuing.",
+    );
+    // The review still requires human confirmation even if the provisional arithmetic balances.
+  }
+  if (
+    data.printedItemCount !== null &&
+    data.printedItemCount !== receipt.items.length
+  )
+    receipt.warnings.push(
+      `The receipt says ${data.printedItemCount} items, but Gemini found ${receipt.items.length} purchase lines. Check for missing rows or overlapping captures; printed counts can also include quantities.`,
+    );
+  return receiptSchema.parse(receipt);
+}
+
+const configSchema = z.object({
+  configured: z.boolean(),
+  provider: z.literal("Gemini"),
+  model: z.string().max(100),
+});
+export async function geminiConfiguration(signal: AbortSignal) {
+  const response = await fetch("./api/receipts/config", {
+    signal,
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("AI connection unavailable");
+  return configSchema.parse(await response.json());
+}
+
+export async function extractWithGemini(
+  images: ReceiptImage[],
+  signal: AbortSignal,
+  progress: (status: string) => void,
+): Promise<Receipt> {
+  if (!images.length || images.length > MAX_RECEIPT_IMAGES)
+    throw new Error(
+      `Choose between one and ${MAX_RECEIPT_IMAGES} receipt photos.`,
+    );
+  progress("Preparing receipt sections for Gemini…");
+  const panels: { photo: number; part: number; data: string }[] = [];
+  for (const [index, image] of images.entries()) {
+    for (const [part, blob] of readingBlobs(image).entries()) {
+      if (signal.aborted)
+        throw new Error("Scan cancelled. Your photos are still available.");
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = "";
+      for (let offset = 0; offset < bytes.length; offset += 16384)
+        binary += String.fromCharCode(
+          ...bytes.subarray(offset, offset + 16384),
+        );
+      panels.push({ photo: index + 1, part: part + 1, data: btoa(binary) });
+    }
+  }
+  if (panels.length > MAX_READING_PANELS)
+    throw new Error(
+      "This receipt has too many detail panels. Choose fewer photos or crop away the background.",
+    );
+  const body = JSON.stringify({ consent: true, panels });
+  if (body.length > MAX_AI_BODY_BYTES)
+    throw new Error(
+      "These photos are too large together for Gemini. Crop them or choose fewer sections.",
+    );
+  progress(
+    `Gemini is reading ${images.length} ${images.length === 1 ? "photo" : "photos"} as one receipt…`,
+  );
+  const deadline = AbortSignal.timeout(125000);
+  try {
+    const response = await fetch("./api/receipts/extract", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-gather-request": "receipt-scan",
+      },
+      body,
+      signal: AbortSignal.any([signal, deadline]),
+    });
+    const result = await response.json();
+    if (!response.ok)
+      throw new Error(
+        typeof result.error === "string"
+          ? result.error.slice(0, 500)
+          : "Gemini could not read the receipt. Try the on-device reader.",
+      );
+    return receiptFromAi(result.receipt);
+  } catch (error) {
+    if (signal.aborted)
+      throw new Error("Scan cancelled. Your photos are still available.");
+    if (deadline.aborted)
+      throw new Error(
+        "Gemini took too long. Your photos are still available; try fewer sections or use the on-device reader.",
+      );
+    if (error instanceof z.ZodError)
+      throw new Error(
+        "Gemini returned an incomplete or invalid draft. Try clearer photos or use the on-device reader. Your original photos are still available.",
+      );
+    if (error instanceof TypeError || error instanceof SyntaxError)
+      throw new Error(
+        "The Gemini connection is unavailable. Keep Gather running, reload and try again, or use the on-device reader.",
+      );
+    throw error;
+  }
+}
