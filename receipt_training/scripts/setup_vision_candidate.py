@@ -25,8 +25,11 @@ def valid(path, entry):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--manifest", default="receipt_training/evaluation/vision-candidate-manifest.json")
     args = parser.parse_args()
-    manifest = json.loads((ROOT / "receipt_training/evaluation/vision-candidate-manifest.json").read_text(encoding="utf-8"))
+    manifest_path = (ROOT / args.manifest).resolve()
+    manifest_path.relative_to((ROOT / "receipt_training/evaluation").resolve())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     CACHE.mkdir(parents=True, exist_ok=True)
     files = manifest["files"]
     if sum(f["bytes"] for f in files) > 3_200_000_000:

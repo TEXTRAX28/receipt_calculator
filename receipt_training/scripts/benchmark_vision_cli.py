@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from vision_cli_text import parse_cli_transcript
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = ROOT / "qa-artifacts/advanced-ocr"
@@ -29,6 +30,9 @@ request_path.relative_to(ROOT)
 if os.name != "nt" or request_path.stat().st_size > 256 * 1024:
     raise ValueError("This pinned benchmark uses Windows and a bounded request file")
 request = json.loads(request_path.read_text(encoding="utf-8"))
+output_mode = request.get("output_mode", "structured-receipt")
+if output_mode not in ["structured-receipt", "text"]:
+    raise ValueError("Choose a supported experiment output mode")
 if not 512 <= request.get("context", 4096) <= 16384 or not 1 <= request.get("max_tokens", 1800) <= 6000 or not 64 <= request.get("image_tokens", 1024) <= 2048:
     raise ValueError("Context, output or vision-token budget exceeds the experiment limits")
 if not isinstance(request.get("prompt"), str) or not 1 <= len(request["prompt"]) <= 12000:
@@ -39,11 +43,15 @@ if isinstance(request.get("gpu_layers"), int) and not 0 <= request["gpu_layers"]
     raise ValueError("Invalid layer count")
 out = HERE / args.run
 out.mkdir(exist_ok=False)
-manifest_path = ROOT / "receipt_training/evaluation/vision-candidate-manifest.json"
+manifest_path = (ROOT / request.get("model_manifest", "receipt_training/evaluation/vision-candidate-manifest.json")).resolve()
+manifest_path.relative_to((ROOT / "receipt_training/evaluation").resolve())
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 (out / "model-manifest.json").write_bytes(manifest_path.read_bytes())
 cache = ROOT / "receipt_training/.cache/vision-experiment"
-cli = cache / f"runtime-{manifest['runtime_build']}/llama-mtmd-cli.exe"
+executable = manifest.get("runtime_executable", "llama-mtmd-cli.exe")
+if executable not in ["llama-mtmd-cli.exe", "llama-cli.exe"]:
+    raise ValueError("Use a verified pinned multimodal CLI executable")
+cli = cache / f"runtime-{manifest['runtime_build']}" / executable
 model, projector = [cache / entry["path"] for entry in manifest["files"][:2]]
 def sha(path):
     with path.open("rb") as source:
@@ -54,30 +62,45 @@ for entry, path in zip(manifest["files"][:2], [model, projector]):
 images = [(ROOT / path).resolve() for path in request["images"]]
 if not 1 <= len(images) <= 3:
     raise ValueError("Use one to three fixed local images for the pilot")
+if output_mode == "text" and len(images) != 1:
+    raise ValueError("Text recognition runs one attributable source panel at a time")
 for path in images:
     path.relative_to(ROOT)
     if not path.is_file() or path.stat().st_size > 12 * 1024**2:
         raise ValueError("Invalid local pilot image")
 (out / "request.json").write_bytes(request_path.read_bytes())
 (out / "harness.py").write_bytes(Path(__file__).read_bytes())
-(out / "schema.json").write_text(json.dumps(request["schema"]), encoding="utf-8")
+(out / "vision_cli_text.py").write_bytes(Path(__file__).with_name("vision_cli_text.py").read_bytes())
+if output_mode == "structured-receipt":
+    (out / "schema.json").write_text(json.dumps(request["schema"]), encoding="utf-8")
 command = [str(cli), "-m", str(model), "--mmproj", str(projector),
            "--image", ",".join(str(path) for path in images), "-p", request["prompt"],
-           "--json-schema-file", str(out / "schema.json"), "--ctx-size", str(request.get("context", 4096)),
+           "--ctx-size", str(request.get("context", 4096)),
            "--n-predict", str(request.get("max_tokens", 1800)), "--image-max-tokens", str(request.get("image_tokens", 1024)),
            "--gpu-layers", str(request.get("gpu_layers", "auto")), "--batch-size", "256", "--ubatch-size", "128",
            "--threads", "4", "--threads-batch", "4", "--temp", "0", "--seed", "20261031"]
+if output_mode == "structured-receipt":
+    command.extend(["--json-schema-file", str(out / "schema.json")])
+if executable == "llama-cli.exe":
+    command.extend(["--single-turn", "--no-display-prompt", "--simple-io", "--output", str(out / "transcript.txt")])
+if request.get("projector_gpu", True) is False:
+    command.append("--no-mmproj-offload")
+if request.get("verbose", False) is True:
+    command.append("--verbose")
 environment = {k:v for k,v in os.environ.items() if k.lower() in {"systemroot","windir","path","pathext","temp","tmp","userprofile","appdata","localappdata","programdata","programfiles","programfiles(x86)"}}
 environment["HF_HUB_OFFLINE"] = "1"
 metadata = {"model": manifest["model"], "revision": manifest["revision"], "runtime": manifest["runtime_build"],
             "started_at":datetime.now(timezone.utc).isoformat(),
             "manifest_sha256":sha(manifest_path), "cli_sha256":sha(cli), "harness_sha256":sha(Path(__file__)),
-            "request_sha256":sha(request_path), "schema_sha256":sha(out / "schema.json"),
+            "runtime_executable":executable,
+            "text_helper_sha256":sha(out / "vision_cli_text.py"),
+            "request_sha256":sha(request_path), "schema_sha256":sha(out / "schema.json") if output_mode == "structured-receipt" else None,
+            "output_mode":output_mode,
             "images":[{"path":str(p.relative_to(ROOT)),"sha256":sha(p)} for p in images],
             "external_api_requests":0,"external_receipt_uploads":0,"api_cost_usd":"0","compute_cost_usd":None,
             "label_files_read":False,"input_ocr_text":False,"deadline_seconds":args.deadline,
             "require_clean_schema":request.get("require_clean_schema", False),
-            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers"]},
+            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose"]},
             "timing_scope":"Fresh CLI model loading, image encoding and constrained generation; excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]
@@ -96,7 +119,8 @@ with stdout.open("wb") as output, stderr.open("wb") as errors:
         usage=Memory(); usage.cb=ctypes.sizeof(Memory)
         if memory_fn(int(process._handle),ctypes.byref(usage),ctypes.sizeof(usage)):
             peak=max(peak or 0,usage.PeakWorkingSetSize)
-        if time.perf_counter()-started > args.deadline or max(stdout.stat().st_size,stderr.stat().st_size)>1024**2:
+        transcript_file = out / "transcript.txt"
+        if time.perf_counter()-started > args.deadline or max(stdout.stat().st_size,stderr.stat().st_size,transcript_file.stat().st_size if transcript_file.exists() else 0)>1024**2:
             metadata["error"]="deadline-or-output-bound"
             subprocess.run(["taskkill.exe","/PID",str(process.pid),"/T","/F"],capture_output=True,timeout=10,creationflags=subprocess.CREATE_NO_WINDOW)
             process.wait(timeout=10)
@@ -109,14 +133,29 @@ metadata["decoder_schema_warning"]=("JSON schema conversion was incomplete" in d
 if metadata["require_clean_schema"] and metadata["decoder_schema_warning"]:
     metadata["error"]="decoder-schema-warning"
 text=re.sub(r"\x1b\[[0-9;]*m","",stdout.read_text(encoding="utf-8",errors="replace"))
-try:
-    start=text.index("{")
-    value,_=json.JSONDecoder().raw_decode(text[start:])
-    (out / "model-output.json").write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding="utf-8")
-    metadata["parsed_json"]=True
-except (ValueError,json.JSONDecodeError):
-    metadata["parsed_json"]=False
+if output_mode == "text":
+    if executable == "llama-cli.exe" and (out / "transcript.txt").exists():
+        metadata["transcript_sha256"] = sha(out / "transcript.txt")
+        try:
+            text = parse_cli_transcript((out / "transcript.txt").read_text(encoding="utf-8"), request["prompt"])
+        except (ValueError, UnicodeError):
+            metadata["error"] = "invalid-native-transcript"
+            text = ""
+    elif executable == "llama-cli.exe":
+        metadata["error"] = "missing-native-transcript"
+        text = ""
+    metadata["parsed_text"] = bool(text.strip()) and len(text) <= 60000
+    if metadata["parsed_text"]:
+        (out / "model-output.txt").write_text(text.strip(), encoding="utf-8")
+else:
+    try:
+        start=text.index("{")
+        value,_=json.JSONDecoder().raw_decode(text[start:])
+        (out / "model-output.json").write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding="utf-8")
+        metadata["parsed_json"]=True
+    except (ValueError,json.JSONDecodeError):
+        metadata["parsed_json"]=False
 (out / "metadata.json").write_text(json.dumps(metadata,indent=2),encoding="utf-8")
-print(json.dumps({k:metadata.get(k) for k in ["model","runtime","elapsed_ms","exit_code","peak_process_working_set_bytes","parsed_json","error"]}),flush=True)
-if process.returncode or not metadata["parsed_json"] or metadata.get("error"):
+print(json.dumps({k:metadata.get(k) for k in ["model","runtime","output_mode","elapsed_ms","exit_code","peak_process_working_set_bytes","parsed_json","parsed_text","error"]}),flush=True)
+if process.returncode or not metadata.get("parsed_json", metadata.get("parsed_text", False)) or metadata.get("error"):
     raise SystemExit(1)

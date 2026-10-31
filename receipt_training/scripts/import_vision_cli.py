@@ -44,6 +44,8 @@ def main():
         for filename, key in [("stdout.txt", "stdout_sha256"), ("stderr.txt", "stderr_sha256"), ("harness.py", "harness_sha256")]:
             if sha(raw / filename) != meta[key]:
                 raise ValueError("Saved raw output or harness changed")
+        if meta.get("text_helper_sha256") and sha(raw / "vision_cli_text.py") != meta["text_helper_sha256"]:
+            raise ValueError("Saved native-text helper changed")
         request = json.loads(request_path.read_text(encoding="utf-8"))
         if not re.fullmatch(r"[\w-]+", request["source_panel_run"]):
             raise ValueError("Invalid source panel run")
