@@ -46,7 +46,7 @@ All these model runs were local, with $0 receipt API cost. Compute/hosting cost 
 
 | Candidate | Verified capability / access | Current decision boundary |
 |---|---|---|
-| PaddleOCR 3.7.0, PP-OCRv6 | Detection, multilingual recognition, boxes and OCR scores; tested via ONNX Runtime 1.31.1. Code and the two downloaded model cards declare Apache-2.0. [Project](https://github.com/PaddlePaddle/PaddleOCR), [usage](https://www.paddleocr.ai/main/en/version3.x/pipeline_usage/OCR.html). | Stronger measured local candidate than docTR on this cohort. Not yet wired into the consumer workflow or sufficient for reliable financial extraction. |
+| PaddleOCR 3.7.0, PP-OCRv6 | Detection, multilingual recognition, boxes and OCR scores; tested via ONNX Runtime 1.31.1. Code and the two downloaded model cards declare Apache-2.0. [Project](https://github.com/PaddlePaddle/PaddleOCR), [usage](https://www.paddleocr.ai/main/en/version3.x/pipeline_usage/OCR.html). | Stronger measured local candidate than docTR on this cohort. Now available through the configured computer reader; financial extraction is still insufficient for unattended use. |
 | docTR 1.1.0 | Local neural detection/recognition with word geometry; project Apache-2.0. Tested with Torch 2.15.0+cpu, DB-ResNet50 and PARSeq. [Project](https://github.com/mindee/doctr). | Measured competitor; retained as a configurable adapter, not chosen over Paddle on current evidence. |
 | Surya 0.23.0 | Current project uses local inference through vLLM or llama.cpp. Code Apache-2.0; weights have a separate modified license with commercial conditions. [Project and license](https://github.com/datalab-to/surya). | Researched, not benchmarked. Backend setup and weight licensing need review before public integration. |
 | Veryfi | Structured receipt/invoice line items, quantities, discounts and taxes. Free plan lists 100 documents/month; Starter lists a $500 monthly minimum and $0.08/receipt. [Fields](https://faq.veryfi.com/en/articles/3740415-what-fields-veryfi-extract-for-receipts-invoices), [pricing](https://www.veryfi.com/pricing/). | No credentials or private-upload approval. No measured accuracy or Costco advantage is claimed. |
@@ -65,9 +65,19 @@ Cloud prices are published planning figures, not measured receipt costs or proof
 - Grouped-photo/control evaluation, exact panel exports and pluggable local-model benchmarking. Model adapters retain geometry and OCR scores independently of receipt parsing and money calculations.
 - The Gemini REST parser now reads final `model_output` steps. SDK `output_text` is not guaranteed in raw REST responses. Tests reject thought/user/tool content as financial output. [REST response specification](https://ai.google.dev/api/interactions-api).
 - Development/evaluation watchers ignore model environments and generated runs.
-- A bounded JSON-lines local-model worker validates parent-owned JPEG paths, hashes, decoded dimensions and protocol limits. Its real synthetic smoke test loaded Paddle, read the fixture, rejected an outside path and exited cleanly in 9,837 ms including startup. The parent HTTP/process bridge and frontend integration remain unimplemented; this is not yet a new consumer reader.
+- A bounded JSON-lines local-model worker validates parent-owned JPEG paths, hashes, decoded dimensions and protocol limits. Its real synthetic smoke test loaded Paddle, read the fixture, rejected an outside path and exited cleanly in 9,837 ms including startup.
+- A server-held persistent-worker bridge, local recognition/capability endpoints and the **This computer** scan choice now connect that model to the existing upload/review/split workflow. Cloud consent remains specific to Gemini; local errors retain photos and never trigger a cloud fallback. Public serving, authentication and deployment have not been implemented.
+- The computer reader validates pinned model assets before advertising availability, strips provider credentials from the worker environment, bounds UTF-8 output and photo references, stops its owned process tree on cancellation/deadline, and removes checked per-job temporary directories. Crash-time cleanup and OS-level isolation remain open.
 
-Current application unit tests: 119 passed. Current evaluation/spatial/worker checks: 22 passed. The production build and fresh browser run passed: 65 tests, one duplicate-breakpoint skip. No external real-receipt accuracy result has been produced.
+Current application unit tests: 132 passed, including thirteen new computer-process/API cases for malformed output, worker failure/recovery, concurrent scans, cancellation, deadlines, credential stripping and cleanup boundaries. Typecheck and production build passed. The browser report records 69 passed and one duplicate-breakpoint skip; four added desktop/mobile cases use explicitly mocked computer responses and cover phone layout, review-to-split and failure recovery. Existing evaluation/spatial/worker checks remain 22 passed. No external real-receipt accuracy result has been produced.
+
+### Genuine computer-reader integration checks
+
+Two opt-in browser cases used the installed Paddle model through the real local HTTP endpoint, in desktop and iPhone-sized contexts. Each uploaded the same made-up two-item receipt, automatically extracted its fields without correction and split its £5.50 total into £2.75 per person. They passed, blocked external browser requests, and made only the local recognition POST. Their durations (14.5 seconds desktop and 4.8 seconds mobile) are whole test durations, not corpus latency measurements.
+
+A separate HTTP check read two different synthetic receipts with one reused worker, returned the expected distinct text, and verified empty temporary-job storage after both requests. Example cold/warm request times were 9,404/986 ms. Those two observations do not establish mean/p95 latency or a speed advantage. Reproducibility assets now include fixed model URLs/revisions, sizes and SHA256 checksums, a verified-public-download setup script and an offline check. All six existing Paddle files passed; a fresh installation/download has not been claimed as tested.
+
+These checks prove the new provider can run through the consumer workflow. They do not prove complete automatic extraction of the real corpus; the supplied overlapping Costco photos still need an end-to-end accuracy check and overlap correction.
 
 ### Financial-parser follow-up
 
@@ -77,7 +87,7 @@ The same frozen Paddle outputs were rescored after these changes, with the origi
 
 ## Remaining requirements
 
-The next work must fix parsing/locale ambiguity and overlap handling, integrate the evidence-selected provider into the frontend/backend, and implement document classification, embedded PDF text, quality/edge/deskew/perspective handling, field-region uncertainty and item rescan. Refund/negative-line support, all split/currency invariants, mobile workflows and public-backend security must be completed and tested.
+The next work must fix parsing/locale ambiguity and overlap handling, measure the integrated provider on the full original cohort, and implement document classification, embedded PDF text, quality/edge/deskew/perspective handling, field-region uncertainty and item rescan. Refund/negative-line support, all split/currency invariants, mobile workflows and public-backend security must be completed and tested.
 
 The original model/schema lacked IDR/TWD and treated Indonesian thousands as decimal fractions. The new normalizer fixes clear grouping and rejects ambiguity, but a receipt without currency/format evidence still needs explicit user context. Recovering correct physical quantities, all money fields and cross-photo overlap remains open. Unknown tax codes/rates must continue to require receipt evidence.
 

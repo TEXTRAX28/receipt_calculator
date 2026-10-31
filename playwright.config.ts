@@ -1,9 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
-  testIgnore: process.env.GATHER_REAL_RECEIPT
-    ? []
-    : ["**/real-receipt.spec.ts"],
+  testIgnore: [
+    ...(!process.env.GATHER_REAL_RECEIPT ? ["**/real-receipt.spec.ts"] : []),
+    ...(!process.env.GATHER_LOCAL_MODEL_URL
+      ? ["**/computer-reader-real.spec.ts"]
+      : []),
+  ],
   timeout: 60000,
   expect: { timeout: 10000 },
   fullyParallel: true,
@@ -35,8 +38,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run preview -- --port 4173",
+    env: { LOCAL_OCR_PYTHON: "", GEMINI_API_KEY: "" },
     url: "http://127.0.0.1:4173",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 30000,
   },
 });

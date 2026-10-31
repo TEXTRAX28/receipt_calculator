@@ -2,24 +2,42 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { createReceiptApi } from "./server/receipt-api.mjs";
+import { createLocalModelReader } from "./server/local-ocr.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const api = () =>
-    createReceiptApi({
-      apiKey: env.GEMINI_API_KEY || "",
-      model: env.GEMINI_MODEL || undefined,
+  const api = () => {
+    const localReader = createLocalModelReader({
+      python: env.LOCAL_OCR_PYTHON || "",
+      engine: env.LOCAL_OCR_ENGINE || "paddle-v6",
     });
+    return {
+      localReader,
+      handler: createReceiptApi({
+        apiKey: env.GEMINI_API_KEY || "",
+        model: env.GEMINI_MODEL || undefined,
+        localReader,
+      }),
+    };
+  };
   return {
     plugins: [
       react(),
       {
         name: "private-local-receipt-api",
         configureServer(server) {
-          server.middlewares.use(api());
+          const reader = api();
+          server.middlewares.use(reader.handler);
+          server.httpServer?.once("close", () => {
+            void reader.localReader.dispose().catch(() => {});
+          });
         },
         configurePreviewServer(server) {
-          server.middlewares.use(api());
+          const reader = api();
+          server.middlewares.use(reader.handler);
+          server.httpServer?.once("close", () => {
+            void reader.localReader.dispose().catch(() => {});
+          });
         },
       },
       {

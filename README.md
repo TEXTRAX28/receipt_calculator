@@ -13,6 +13,8 @@ npm run dev
 
 Open the Local URL printed by Vite, normally `http://127.0.0.1:5173/`.
 
+In VS Code, open the folder containing `package.json`, choose **Terminal → New Terminal**, and run the commands above. Subsequent starts only need `npm run dev`; keep its terminal open. Stop it with **Ctrl+C** before reinstalling dependencies, since a running Vite process can lock native files on Windows. If the port is occupied, choose another explicitly, for example `npm run dev -- --port 5175`, and open the printed URL.
+
 The install, development and build scripts copy the OCR worker, English language data and WASM cores from installed packages to ignored `public/ocr/`. If those generated assets are missing:
 
 ```sh
@@ -27,6 +29,31 @@ npm run preview -- --port 4173
 ```
 
 On-device OCR needs no API key, paid service, database or account. Keep the local server running while using the app: an already-loaded page still needs it to download the OCR files. Nothing has been deployed or published.
+
+## Optional computer reader
+
+The **This computer** reader uses the locally installed PP-OCRv6 medium model through a separate Python worker. It needs no cloud API key. It has improved product detection on this project's receipts, but financial extraction still needs review; see the [measured comparison](receipt_training/evaluation/ADVANCED_OCR_REPORT.md). The ordinary **On-device** reader remains available without this setup.
+
+For a fresh Windows installation, install Python 3.12, then run from the project root:
+
+```powershell
+py -3.12 -m venv receipt_training/.cache/paddle-env
+& .\receipt_training\.cache\paddle-env\Scripts\python.exe -m pip install -r receipt_training/scripts/requirements-paddle.lock
+py -3.12 scripts/setup-local-ocr.py
+```
+
+The setup script downloads only public model files at pinned revisions, verifies their sizes and SHA256 hashes, and never reads or uploads receipts. Dependencies are pinned in the separate Python lockfile. If this environment and the models are already installed, skip those installation commands. An offline asset check is available with `py -3.12 scripts/setup-local-ocr.py --check`.
+
+Add these settings to the ignored `.env.local`, using the **absolute path for your checkout**, then restart the development server:
+
+```dotenv
+LOCAL_OCR_PYTHON=C:/path/to/costco_calc/receipt_training/.cache/paddle-env/Scripts/python.exe
+LOCAL_OCR_ENGINE=paddle-v6
+```
+
+The computer reader appears when its interpreter and verified model files are present. The first scan also starts the model; later scans reuse that worker until sixty seconds of inactivity. Only one computer scan runs at a time, with a two-minute deadline and cancellation. A failed computer scan retains the selected photos and lets you choose another reader; it never sends them to a cloud service automatically. The installed docTR adapter can instead be selected with `LOCAL_OCR_ENGINE=doctr` after installing its separate dependency environment and assets; its measured product recall was lower on the current corpus.
+
+This runs on the computer hosting Gather. It is not phone on-device inference. Access from a separate phone still needs an accessible, secured server URL; the current server accepts loopback only.
 
 ## Optional Gemini setup
 
@@ -75,13 +102,15 @@ See [calculation and security report](docs/IMPLEMENTATION_AND_SECURITY.md) for t
 
 Receipt images are signature-checked, dimension-checked and decoded locally. On-device mode never uploads them: normalized JPEGs and high-resolution detail windows go to the local OCR worker. The app fetches its OCR assets from its own origin. The English model is about 3 MB compressed, plus the chosen WASM core; these are software downloads, not per-scan service charges. Runtime cost is device CPU/memory and static asset hosting bandwidth.
 
+Computer mode sends prepared JPEG sections to the local computer server. The server checks their format and bounds, writes them to a dedicated temporary job directory, and removes that directory after success, failure or cancellation. Its worker receives an allowlist of operating-system environment variables, without cloud credentials. Worker output and source-photo references are validated before parsing. Images are not sent to a third party. A computer or server crash can interrupt cleanup; crash recovery and public-service isolation remain release work. The Python network restriction is an application-level guard, not an operating-system sandbox.
+
 Gemini mode forwards photos through the local server to Google **only after the user explicitly agrees and starts that scan**. Changing photos, order or crops clears that agreement. The local adapter does not log or save images, prompts, results or keys. It requests stateless provider processing, which is separate from Google's own data-use/abuse-monitoring terms. Crop out private footer details first. Google's terms depend on region and account tier. Participant names are not included in extraction requests.
 
 Extracted draft fields and participant names are saved in this origin's browser local storage. Raw OCR text and photos are not persisted and disappear on refresh/close. Anyone with access to that browser profile can read its stored draft; there is no account authentication. Delete/reset removes this app's saved receipt and its in-memory previews. Exported/downloaded copies remain where you saved or sent them.
 
-On-device OCR runs in English. Blur, creases, shadows, abbreviated names and unfamiliar receipt formats can cause mistakes with either reader. Review is required. Missing values stay editable; absent data is not filled merely to make a receipt balance. Gemini also flags a disagreement between its purchase count and a legible printed item count. A balanced total alone does not prove every item is correct.
+On-device OCR runs in English. Blur, creases, shadows, abbreviated names and unfamiliar receipt formats can cause mistakes with every reader. Review is required. Missing values stay editable; absent data is not filled merely to make a receipt balance. Gemini also flags a disagreement between its purchase count and a legible printed item count. A balanced total alone does not prove every item is correct.
 
-Upload limits: twelve photos, 12 MiB each, 48 MiB of original photos per receipt, 20,000 pixels per side and 25 megapixels per photo. Full previews are limited to 3,200 pixels/four megapixels. Tall-image windows are up to 1,400×2,200 pixels with at least 18% overlap; at most 24 reading panels are accepted per scan. Gemini requests are limited to 18 MiB of encoded JSON and responses to 1 MiB. Decode is bounded to ten seconds; reading has a 120-second server/worker deadline plus a small client allowance. Both readers support cancellation and have no automatic retries. Calculation changes never scan again.
+Upload limits: twelve photos, 12 MiB each, 48 MiB of original photos per receipt, 20,000 pixels per side and 25 megapixels per photo. Full previews are limited to 3,200 pixels/four megapixels. Tall-image windows are up to 1,400×2,200 pixels with at least 18% overlap; at most 24 reading panels are accepted per scan. Computer/Gemini requests are limited to 18 MiB of encoded JSON and responses to 1 MiB. Decode is bounded to ten seconds; reading has a 120-second server/worker deadline plus a small client allowance. All readers support cancellation and have no automatic retries. Calculation changes never scan again.
 
 Local OCR text passes `extractionOutputSchema` before parsing. Gemini uses the shared strict `aiReceiptSchema` on server and client, then the normal receipt schema and exact financial validation. Neither reader can execute instructions from a receipt. Gemini has no tools, links to fetch or receipt-controlled destinations. Only the server can access its API credential.
 
@@ -95,7 +124,16 @@ npm run format:check
 npm audit
 ```
 
-The browser suite expects installed Google Chrome (`channel: chrome`) and uses desktop and iPhone-sized Chromium contexts. On a machine without Chrome, install Chrome or change the configuration to use Playwright Chromium and install it with `npx playwright install chromium`. `npm run test:e2e` serves the existing production build on port 4173, so run `npm run build` first. It can reuse an existing preview on that port. Unit tests include seeded property checks for 2,500 generated allocation cases. OCR unit tests exercise bad outputs, missing assets, cancellation and timeouts; browser tests perform actual OCR as well as manual and sharing workflows.
+The browser suite expects installed Google Chrome (`channel: chrome`) and uses desktop and iPhone-sized Chromium contexts. On a machine without Chrome, install Chrome or change the configuration to use Playwright Chromium and install it with `npx playwright install chromium`. `npm run test:e2e` serves the existing production build on port 4173, so run `npm run build` first and leave that port free. Its isolated preview disables personal computer-model and Gemini configuration. Unit tests include seeded property checks for 2,500 generated allocation cases. OCR unit tests exercise bad outputs, missing assets, cancellation and timeouts; browser tests perform actual on-device OCR as well as manual and sharing workflows. Computer-reader protocol/UI fixtures are explicitly synthetic and do not prove OCR accuracy.
+
+To exercise the **real installed computer model** through its local HTTP endpoint and browser upload-to-split workflow, start the configured development server separately, then run:
+
+```powershell
+$env:GATHER_LOCAL_MODEL_URL = 'http://127.0.0.1:5174/' # Use your actual loopback development URL.
+npx playwright test computer-reader-real.spec.ts --workers=1
+```
+
+This opt-in test uses a made-up receipt, verifies automatic extraction and an exact split, blocks external browser requests, and makes no cloud call. A successful synthetic test proves integration, not real-receipt accuracy. Single-worker execution respects the local model's one-active-scan limit.
 
 `npm run format` formats source and tests. Generated reports, screenshots, recordings, local databases, environment secrets, uploads and private receipt files are ignored. Safe synthetic fixtures, test sources and the dependency lockfile are tracked.
 

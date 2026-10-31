@@ -1,11 +1,8 @@
 import { aiReceiptSchema } from "./extraction-schema.mjs";
 import { newItem, newReceipt, receiptSchema, type Receipt } from "./model";
-import {
-  MAX_AI_BODY_BYTES,
-  MAX_READING_PANELS,
-  MAX_RECEIPT_IMAGES,
-} from "./scan-limits.mjs";
-import { readingBlobs, type ReceiptImage } from "./images";
+import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
+import type { ReceiptImage } from "./images";
+import { panelsForImages } from "./panel-transport";
 import { z } from "zod";
 
 export function receiptFromAi(output: unknown): Receipt {
@@ -90,29 +87,8 @@ export async function extractWithGemini(
   signal: AbortSignal,
   progress: (status: string) => void,
 ): Promise<Receipt> {
-  if (!images.length || images.length > MAX_RECEIPT_IMAGES)
-    throw new Error(
-      `Choose between one and ${MAX_RECEIPT_IMAGES} receipt photos.`,
-    );
   progress("Preparing receipt sections for Gemini…");
-  const panels: { photo: number; part: number; data: string }[] = [];
-  for (const [index, image] of images.entries()) {
-    for (const [part, blob] of readingBlobs(image).entries()) {
-      if (signal.aborted)
-        throw new Error("Scan cancelled. Your photos are still available.");
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binary = "";
-      for (let offset = 0; offset < bytes.length; offset += 16384)
-        binary += String.fromCharCode(
-          ...bytes.subarray(offset, offset + 16384),
-        );
-      panels.push({ photo: index + 1, part: part + 1, data: btoa(binary) });
-    }
-  }
-  if (panels.length > MAX_READING_PANELS)
-    throw new Error(
-      "This receipt has too many detail panels. Choose fewer photos or crop away the background.",
-    );
+  const panels = await panelsForImages(images, signal);
   const body = JSON.stringify({ consent: true, panels });
   if (body.length > MAX_AI_BODY_BYTES)
     throw new Error(

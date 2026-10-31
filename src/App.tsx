@@ -62,6 +62,10 @@ import { parseReceiptText } from "./lib/parser";
 import { prepareImage, type ReceiptImage } from "./lib/images";
 import { localOcrProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
+import {
+  extractWithLocalModel,
+  localModelConfiguration,
+} from "./lib/local-model";
 import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
@@ -199,7 +203,14 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
-  const [reader, setReader] = useState<"local" | "gemini">("local");
+  const [reader, setReader] = useState<"local" | "computer" | "gemini">(
+    "local",
+  );
+  const readerChosen = useRef(false);
+  const [computerConfig, setComputerConfig] = useState<{
+    configured: boolean;
+    name: string;
+  } | null>(null);
   const [aiConsented, setAiConsented] = useState(false);
   const [aiConfig, setAiConfig] = useState<{
     configured: boolean;
@@ -222,6 +233,19 @@ export default function App() {
     state.finalizedStamp !== "" &&
     state.finalizedStamp === finalStamp(state) &&
     result.canFinalize;
+  useEffect(() => {
+    const check = new AbortController();
+    localModelConfiguration(
+      AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
+    )
+      .then((config) => {
+        if (check.signal.aborted) return;
+        setComputerConfig(config);
+        if (config.configured && !readerChosen.current) setReader("computer");
+      })
+      .catch(() => {});
+    return () => check.abort();
+  }, []);
   useEffect(() => {
     if (reader !== "gemini") return;
     const check = new AbortController();
@@ -402,6 +426,7 @@ export default function App() {
   async function scan() {
     if (busyRef.current || !images.length || !canReplace()) return;
     if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
+    if (reader === "computer" && !computerConfig?.configured) return;
     busyRef.current = true;
     setBusy(true);
     setImageError("");
@@ -420,11 +445,9 @@ export default function App() {
         );
         return;
       }
-      const output = await localOcrProvider.extract(
-        images,
-        controller.current.signal,
-        setScanStatus,
-      );
+      const output = await (
+        reader === "computer" ? extractWithLocalModel : localOcrProvider.extract
+      )(images, controller.current.signal, setScanStatus);
       setRawText(output.text);
       const parsed = parseReceiptText(output);
       parsed.warnings = [...parsed.warnings, ...(output.warnings || [])].slice(
@@ -855,6 +878,7 @@ export default function App() {
                       className={`button ${reader === "local" ? "button-primary" : "button-outline"}`}
                       aria-pressed={reader === "local"}
                       onClick={() => {
+                        readerChosen.current = true;
                         setReader("local");
                         setAiConsented(false);
                       }}
@@ -862,11 +886,26 @@ export default function App() {
                       <ShieldCheck size={17} />
                       On-device
                     </button>
+                    {computerConfig?.configured && (
+                      <button
+                        type="button"
+                        className={`button ${reader === "computer" ? "button-primary" : "button-outline"}`}
+                        aria-pressed={reader === "computer"}
+                        onClick={() => {
+                          readerChosen.current = true;
+                          setReader("computer");
+                          setAiConsented(false);
+                        }}
+                      >
+                        <ScanLine size={17} /> This computer
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`button ${reader === "gemini" ? "button-primary" : "button-outline"}`}
                       aria-pressed={reader === "gemini"}
                       onClick={() => {
+                        readerChosen.current = true;
                         setReader("gemini");
                         setAiConsented(false);
                       }}
@@ -880,6 +919,13 @@ export default function App() {
                       Free, private English OCR. Photos stay on your device.
                       Overlapping photos may need duplicate rows removed during
                       review.
+                    </p>
+                  ) : reader === "computer" ? (
+                    <p className="hint">
+                      Receipt photos are processed on this computer. The first
+                      scan takes longer while the reader starts. Check
+                      quantities, amounts and overlapping rows against the
+                      originals.
                     </p>
                   ) : (
                     <div className="ai-reader-info">
@@ -902,7 +948,7 @@ export default function App() {
                             <li>
                               Create an API key in{" "}
                               <a
-                                  href="https://aistudio.google.com/apikey"
+                                href="https://aistudio.google.com/apikey"
                                 target="_blank"
                                 rel="noreferrer"
                               >
@@ -972,7 +1018,9 @@ export default function App() {
                         ? scanStatus || "Preparing images…"
                         : reader === "gemini"
                           ? "Read receipt with Gemini"
-                          : "Read receipt on this device"}
+                          : reader === "computer"
+                            ? "Read receipt on this computer"
+                            : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -990,7 +1038,9 @@ export default function App() {
                   <span>
                     {reader === "local"
                       ? "On-device OCR keeps your photos on this device."
-                      : "Gemini only receives photos when you agree and start a scan."}
+                      : reader === "computer"
+                        ? "Photos are processed on this computer and temporary files are removed after reading."
+                        : "Gemini only receives photos when you agree and start a scan."}
                   </span>
                 </div>
                 <div className="or-divider">
