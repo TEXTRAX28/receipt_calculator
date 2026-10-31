@@ -78,12 +78,17 @@ export async function extractWithGemini(
           mime_type: "application/json",
           schema: aiReceiptJsonSchema,
         },
-        generation_config: { max_output_tokens: 24000 },
+        generation_config: { max_output_tokens: 24000, thinking_level: "low" },
       }),
     },
   );
   if (!response.ok) {
     await response.body?.cancel();
+    if ([502, 503, 504].includes(response.status))
+      throw new ScanError(
+        503,
+        "Gemini is busy or temporarily unavailable. Your photos are still available. Try again later, or use the on-device reader. No automatic retry was made.",
+      );
     if (response.status === 429)
       throw new ScanError(
         429,

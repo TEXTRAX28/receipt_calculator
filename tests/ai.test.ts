@@ -147,6 +147,10 @@ describe("server-held credentials and bounded provider calls", () => {
       /Keep genuinely separate repeated purchases/,
     );
     expect(body.response_format.mime_type).toBe("application/json");
+    expect(body.generation_config.thinking_level).toBe("low");
+    expect(
+      body.response_format.schema.properties.items.maxItems,
+    ).toBeUndefined();
   });
   it("shows configuration without exposing a key and fails clearly when no key exists", async () => {
     const { base, post } = await localApi();
@@ -179,18 +183,26 @@ describe("server-held credentials and bounded provider calls", () => {
     ).toBe(400);
     expect(upstream).not.toHaveBeenCalled();
   });
-  it("does not leak upstream error bodies or retry paid/quota failures", async () => {
-    const upstream = vi.fn(
-      async () => new Response("secret-debug-details", { status: 429 }),
-    );
-    const { post } = await localApi({ apiKey: "test-key", fetcher: upstream });
-    const result = await post();
-    expect(result.status).toBe(429);
-    const body = await result.text();
-    expect(body).toMatch(/usage limit/);
-    expect(body).not.toContain("secret-debug");
-    expect(upstream).toHaveBeenCalledOnce();
-  });
+  it.each([429, 502, 503, 504])(
+    "does not leak upstream error bodies or retry quota/service failure %i",
+    async (status) => {
+      const upstream = vi.fn(
+        async () => new Response("secret-debug-details", { status }),
+      );
+      const { post } = await localApi({
+        apiKey: "test-key",
+        fetcher: upstream,
+      });
+      const result = await post();
+      expect(result.status).toBe(status === 429 ? 429 : 503);
+      const body = await result.text();
+      expect(body).toMatch(
+        status === 429 ? /usage limit/ : /busy|temporarily unavailable/,
+      );
+      expect(body).not.toContain("secret-debug");
+      expect(upstream).toHaveBeenCalledOnce();
+    },
+  );
   it("bounds local scan attempts instead of running an automatic retry loop", async () => {
     const upstream = vi.fn(async () => response());
     const { post } = await localApi({ apiKey: "test-key", fetcher: upstream });

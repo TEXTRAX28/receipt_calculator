@@ -56,4 +56,28 @@ export const aiReceiptSchema = z.strictObject({
     .max(30),
   warnings: z.array(z.string().max(350)).max(30),
 });
-export const aiReceiptJsonSchema = z.toJSONSchema(aiReceiptSchema);
+// Keep decoding constraints small. Large nested array/numeric bounds can make
+// Gemini reject or stall a request. The full strict Zod schema above is still
+// applied to every returned result on the server and in the browser.
+function compactProviderSchema(value) {
+  if (Array.isArray(value)) return value.map(compactProviderSchema);
+  if (!value || typeof value !== "object") return value;
+  const localOnly = new Set([
+    "$schema",
+    "minItems",
+    "maxItems",
+    "minLength",
+    "maxLength",
+    "minimum",
+    "maximum",
+    "pattern",
+  ]);
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !localOnly.has(key))
+      .map(([key, child]) => [key, compactProviderSchema(child)]),
+  );
+}
+export const aiReceiptJsonSchema = compactProviderSchema(
+  z.toJSONSchema(aiReceiptSchema),
+);
