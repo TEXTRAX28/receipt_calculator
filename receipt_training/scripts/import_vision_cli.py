@@ -60,7 +60,7 @@ def main():
             if sha(path) != panel["sha256"]:
                 raise ValueError("Frozen image panel bytes changed")
         row = {"receipt_id": item["id"], "image_sha256": source["image_sha256"], "source_photos": sorted({p["photo_index"] + 1 for p in source["panels"]}), "reading_panels": len(source["panels"]), "inference_ms": meta["elapsed_ms"]}
-        if meta.get("parsed_json") and meta["exit_code"] == 0:
+        if meta.get("parsed_json") and meta["exit_code"] == 0 and not meta.get("error"):
             text = re.sub(r"\x1b\[[0-9;]*m", "", (raw / "stdout.txt").read_text(encoding="utf-8", errors="replace"))
             decoded, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
             if decoded != json.loads((raw / "model-output.json").read_text(encoding="utf-8")):

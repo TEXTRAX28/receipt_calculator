@@ -76,6 +76,7 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "images":[{"path":str(p.relative_to(ROOT)),"sha256":sha(p)} for p in images],
             "external_api_requests":0,"external_receipt_uploads":0,"api_cost_usd":"0","compute_cost_usd":None,
             "label_files_read":False,"input_ocr_text":False,"deadline_seconds":args.deadline,
+            "require_clean_schema":request.get("require_clean_schema", False),
             "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers"]},
             "timing_scope":"Fresh CLI model loading, image encoding and constrained generation; excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 class Memory(ctypes.Structure):
@@ -103,6 +104,10 @@ with stdout.open("wb") as output, stderr.open("wb") as errors:
         time.sleep(.25)
 metadata.update({"elapsed_ms":round((time.perf_counter()-started)*1000),"exit_code":process.returncode,"peak_process_working_set_bytes":peak,"stdout_sha256":sha(stdout),"stderr_sha256":sha(stderr)})
 metadata["completed_at"]=datetime.now(timezone.utc).isoformat()
+diagnostics=stderr.read_text(encoding="utf-8",errors="replace")
+metadata["decoder_schema_warning"]=("JSON schema conversion was incomplete" in diagnostics or "accepting any string" in diagnostics)
+if metadata["require_clean_schema"] and metadata["decoder_schema_warning"]:
+    metadata["error"]="decoder-schema-warning"
 text=re.sub(r"\x1b\[[0-9;]*m","",stdout.read_text(encoding="utf-8",errors="replace"))
 try:
     start=text.index("{")
@@ -113,5 +118,5 @@ except (ValueError,json.JSONDecodeError):
     metadata["parsed_json"]=False
 (out / "metadata.json").write_text(json.dumps(metadata,indent=2),encoding="utf-8")
 print(json.dumps({k:metadata.get(k) for k in ["model","runtime","elapsed_ms","exit_code","peak_process_working_set_bytes","parsed_json","error"]}),flush=True)
-if process.returncode or not metadata["parsed_json"]:
+if process.returncode or not metadata["parsed_json"] or metadata.get("error"):
     raise SystemExit(1)
