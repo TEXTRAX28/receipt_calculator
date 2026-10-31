@@ -5,6 +5,7 @@ import type { EvidenceLine, Recognition } from "./receipt-layout";
 import type { VisionBatch } from "./local-vision-batches";
 import { verifyIndependentReadings } from "./verify-readings";
 import { planVisionBatches } from "./vision-plan.mjs";
+import type { ReadingContext } from "./reading-context.mjs";
 
 const regionKey = (region: EvidenceLine) =>
   JSON.stringify([region.photo, region.part, region.box, region.text]);
@@ -26,6 +27,7 @@ export function joinVisionBatches(
   batches: VisionBatch[],
   panels: ReadingPanel[],
   recognition: Recognition,
+  context?: ReadingContext,
 ) {
   const plan = planVisionBatches(panels.length);
   if (
@@ -63,7 +65,7 @@ export function joinVisionBatches(
       throw new Error(
         "A section has no corresponding independent OCR evidence.",
       );
-    const compared = verifyIndependentReadings(batch.receipt, subset);
+    const compared = verifyIndependentReadings(batch.receipt, subset, context);
     const counts = new Map<string, number>();
     for (const anchor of compared.itemAnchors.filter(
       (anchor) => anchor.reliable,
@@ -174,6 +176,7 @@ export function joinVisionBatches(
   const result = verifyIndependentReadings(
     aiReceiptSchema.parse(draft),
     recognition,
+    context,
   );
   for (const field of new Set<ReceiptReviewField>(["items", ...conflicts])) {
     const existing = result.receipt.reviewChecks.find(

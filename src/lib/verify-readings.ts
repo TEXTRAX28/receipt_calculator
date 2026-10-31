@@ -15,6 +15,7 @@ import {
   parseReceiptWithSources,
   isFinalTotal,
 } from "./parser";
+import type { ReadingContext } from "./reading-context.mjs";
 import {
   assembleRecognition,
   type EvidenceLine,
@@ -155,12 +156,13 @@ function forcedPairs(weights: number[][], columns: number) {
 export function verifyIndependentReadings(
   output: unknown,
   recognition: Recognition,
+  context?: ReadingContext,
 ) {
   const raw = aiReceiptSchema.parse(output);
-  const receipt = receiptFromAi(raw, "Local vision");
+  const receipt = receiptFromAi(raw, "Local vision", context);
   const originalItems = receipt.items;
   const assembled = assembleRecognition(recognition);
-  const parsed = parseReceiptWithSources(assembled.text);
+  const parsed = parseReceiptWithSources(assembled.text, context);
   const ocr = parsed.receipt,
     lines = assembled.sourceLines;
   // A crop can start at a purchase while retaining independent retailer context.

@@ -1,0 +1,281 @@
+{
+  "scope": "Historical evidence integrity and fresh browser verification; no new OCR accuracy denominator",
+  "legacy_unresolved_hashes": 13,
+  "legacy_affected_reports": {
+    "advanced-area-reader.json": [
+      [
+        "qa-artifacts/area-device-real-desktop.json",
+        "ba87ba77b7cbc3173a3413578af40bdbb33d57ee073528bc2f019ba4f0e9d7e3"
+      ],
+      [
+        "qa-artifacts/area-device-real-desktop.png",
+        "6b60674cf6df8015a39646c9355a67e1b4e06f210f93c98611ffcdb1a195efd1"
+      ],
+      [
+        "qa-artifacts/area-device-real-mobile.json",
+        "1d8b36834de6aa2677e878a1838daa75197ecef8b8764f7b2e5425f10a003fe8"
+      ],
+      [
+        "qa-artifacts/area-device-real-mobile.png",
+        "a54bf79e3a9eb2e99134c3939a230a346ba23ca5d29b67a10b213042724240a6"
+      ],
+      [
+        "qa-artifacts/area-result-mobile.png",
+        "e0b39aae5bee9f93d5a75127c5a2b909f05d6b5180a3020e88400196a7555fe1"
+      ],
+      [
+        "qa-artifacts/area-select-mobile-390.png",
+        "3de6de053a3970cc7d124151c33ed50cca5eaaaaa1209f8180a1cb0231c7cd36"
+      ]
+    ],
+    "advanced-pdf-integration.json": [
+      [
+        "qa-artifacts/advanced-ocr/pdf-flow-desktop.json",
+        "93b94303cc9554f1001ede3ba79493e064d2477b01525e4b62a3ab716721386f"
+      ],
+      [
+        "qa-artifacts/advanced-ocr/pdf-flow-mobile.json",
+        "1b1978a3cc63c2c3117643c31ba4e4be24f1c962ab6e1db1460c6795dcc0785f"
+      ],
+      [
+        "qa-artifacts/pdf-review-mobile.png",
+        "a95698ba935d80463d01964e9af8a6ae405a18ed91a61b4853963311c7da4ac2"
+      ],
+      [
+        "qa-artifacts/pdf-upload-mobile.png",
+        "2330d692df65e4b31cfeb4d017cf72b128e1a4001e0cf94f4aef48e312170b63"
+      ]
+    ],
+    "advanced-refund-handling.json": [
+      [
+        "qa-artifacts/refund-ocr-desktop.json",
+        "76a51ec7183aa400f2a0cd7df6994947483002f36949db2be6d77ec45c46d858"
+      ],
+      [
+        "qa-artifacts/refund-ocr-mobile.json",
+        "5bc684a3a800876005fbaa99057aebec08ba3b7a25323547475694dad707ab90"
+      ],
+      [
+        "qa-artifacts/refund-summary-mobile.png",
+        "72949581f3539cf85fe5f9d7d668cd02040a21a762d123fa646fa45187b1b416"
+      ]
+    ]
+  },
+  "historical_gap": "Repeated tests overwrote 13 mutable aliases referenced by three older checkpoints. Their original exact JSON timing/IDs and screenshot bytes are not recovered. Old reports and hashes are unchanged; newer successful outputs do not replace those historical bytes. Legacy checkpoint --check commands can fail at these aliases. The full before/after audit checks 1831 unique declared paths; all other declarations resolve.",
+  "fix": "Affected refund, PDF, selected-area and currency browser tests write to per-test exclusive directories and reject duplicate names. Successful reruns leave earlier evidence intact. Existing mutable QA aliases were archived by exact content hash; audit fallback accepts only the original expected bytes and still reports unrecovered gaps.",
+  "preservation": {
+    "first_wave_files": 82,
+    "second_wave_total_files": 164,
+    "overwritten_first_wave_files": 0,
+    "observed_legacy_aliases_preserved": 65,
+    "new_legacy_gaps_after_rerun": 0
+  },
+  "fresh_verification": {
+    "focused_browser_passes": 48,
+    "full_browser_passes": 139,
+    "existing_skip": 1,
+    "refund_actual_tesseract": [
+      {
+        "project": "desktop",
+        "input_sha256": "6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465",
+        "elapsed_ms": 1577
+      },
+      {
+        "project": "mobile",
+        "input_sha256": "6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465",
+        "elapsed_ms": 1044
+      }
+    ],
+    "area_actual_tesseract": [
+      {
+        "project": "desktop",
+        "recognized_text_retained": true,
+        "elapsed_ms": 1195
+      },
+      {
+        "project": "mobile",
+        "recognized_text_retained": true,
+        "elapsed_ms": 1126
+      }
+    ],
+    "pdf_direct_text": [
+      {
+        "project": "desktop",
+        "total_minor": "650",
+        "shares_minor": [
+          "217",
+          "217",
+          "216"
+        ]
+      },
+      {
+        "project": "mobile",
+        "total_minor": "650",
+        "shares_minor": [
+          "217",
+          "217",
+          "216"
+        ]
+      }
+    ]
+  },
+  "limits": "The refund, area and PDF sources are synthetic. Desktop and phone emulation share source transactions; these are integration checks, not distinct accuracy samples or physical-phone benchmarks. The fresh packet verifies current behavior, not the old run's missing raw bytes. Other unlisted artifact writers should adopt the same exclusive-directory convention when added or revised.",
+  "network_requests_by_audit": 0,
+  "evidence_sha256": {
+    "qa-artifacts/evidence-audits/reading-currency-before-immutable-rerun.json": "65f38414b33d9605a21032a1bc5ff5572135846162a04f867d68d0c2969fa2a3",
+    "qa-artifacts/evidence-audits/reading-currency-after-immutable-rerun.json": "65f38414b33d9605a21032a1bc5ff5572135846162a04f867d68d0c2969fa2a3",
+    "qa-artifacts/evidence-blobs/3d7eb51b6d75d3acd2889512c03953d18ad7ffd6171c2cb8b10191ddf85537b8": "3d7eb51b6d75d3acd2889512c03953d18ad7ffd6171c2cb8b10191ddf85537b8",
+    "qa-artifacts/evidence-blobs/f26c9f849f6b8786068c52525bded60874f740dc203a32a53e951f25956ec03e": "f26c9f849f6b8786068c52525bded60874f740dc203a32a53e951f25956ec03e",
+    "qa-artifacts/evidence-blobs/d86c2c81c2f415e10e662ab962d826afed8a0290b95d4116eeb53a5cb087b995": "d86c2c81c2f415e10e662ab962d826afed8a0290b95d4116eeb53a5cb087b995",
+    "qa-artifacts/evidence-blobs/a60b17965d776650880ca1efbc51e7a95a8f6f97d17cc26dbd242d822ce55170": "a60b17965d776650880ca1efbc51e7a95a8f6f97d17cc26dbd242d822ce55170",
+    "qa-artifacts/evidence-blobs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qa-artifacts/evidence-blobs/e9726d6e826a0693bd1bb1b527a854a49278a1b36589826140a2d524a2ded2f4": "e9726d6e826a0693bd1bb1b527a854a49278a1b36589826140a2d524a2ded2f4",
+    "qa-artifacts/evidence-blobs/03501d43a1a9fad60424e968c5efc4566848a458d4125067e2448779d203bbc7": "03501d43a1a9fad60424e968c5efc4566848a458d4125067e2448779d203bbc7",
+    "qa-artifacts/evidence-blobs/fc75bd2abfd0c0c0085f7267944225001fa2c7cd1f47f382ea6a036a13da8b88": "fc75bd2abfd0c0c0085f7267944225001fa2c7cd1f47f382ea6a036a13da8b88",
+    "qa-artifacts/evidence-blobs/6c4d5133bb7cc7aeba12bde984895a848866fb9e7ac040f3d665c7c93c7a80fc": "6c4d5133bb7cc7aeba12bde984895a848866fb9e7ac040f3d665c7c93c7a80fc",
+    "qa-artifacts/evidence-blobs/e9da68966735795916e199aa37aac6ad2e79ab9687e208f21d3841b690b2a2b4": "e9da68966735795916e199aa37aac6ad2e79ab9687e208f21d3841b690b2a2b4",
+    "qa-artifacts/evidence-blobs/f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+    "qa-artifacts/evidence-blobs/36bb5ad2ebd05554c6e808316369e329de78882aca40eda9b5883a05493d2ffd": "36bb5ad2ebd05554c6e808316369e329de78882aca40eda9b5883a05493d2ffd",
+    "qa-artifacts/evidence-blobs/a5ce84eb4cd02a5f37a0d2a02ab7693be0d63a1b910cf219dfc106a32336a334": "a5ce84eb4cd02a5f37a0d2a02ab7693be0d63a1b910cf219dfc106a32336a334",
+    "qa-artifacts/evidence-blobs/cc6708af86ed4383dd59f0a36a17953065e6c7d2c56b19d594389355a6e1b74a": "cc6708af86ed4383dd59f0a36a17953065e6c7d2c56b19d594389355a6e1b74a",
+    "qa-artifacts/evidence-blobs/e6c9ba96998ef632a476df5be2d75f82d16e78e59d074017fe76d7db441a2ebf": "e6c9ba96998ef632a476df5be2d75f82d16e78e59d074017fe76d7db441a2ebf",
+    "qa-artifacts/evidence-blobs/d49ea1113a41281fb54d6bbd752644c6613a7f50cf6ca19d943b8eb708e5876b": "d49ea1113a41281fb54d6bbd752644c6613a7f50cf6ca19d943b8eb708e5876b",
+    "qa-artifacts/evidence-blobs/a154cb1d91fbeceeb957d191461b1444d6aa03ea5b8cb13afbb5b160683f8726": "a154cb1d91fbeceeb957d191461b1444d6aa03ea5b8cb13afbb5b160683f8726",
+    "qa-artifacts/evidence-blobs/36ee8f0e75012b7c10e23065f384357c361fb4d010203af78c908073fbeb0b41": "36ee8f0e75012b7c10e23065f384357c361fb4d010203af78c908073fbeb0b41",
+    "qa-artifacts/evidence-blobs/36ed6a7d63cf4d93a616aba6afde3a5f556e05fa044414da65b6ba8acd40e4b7": "36ed6a7d63cf4d93a616aba6afde3a5f556e05fa044414da65b6ba8acd40e4b7",
+    "qa-artifacts/evidence-blobs/161324892b0bb90c154ce4f6121fbefb3bdb5feca1a672d43f3a6155384803fb": "161324892b0bb90c154ce4f6121fbefb3bdb5feca1a672d43f3a6155384803fb",
+    "qa-artifacts/evidence-blobs/a12e02c5fa213b672205b3b26e01d16bcaa7fd0ff774b2c6105c09d302854d3e": "a12e02c5fa213b672205b3b26e01d16bcaa7fd0ff774b2c6105c09d302854d3e",
+    "qa-artifacts/evidence-blobs/62e0124a20744dba7785c56161941f8b749f4cbaa965e2ed71ed203d2676184b": "62e0124a20744dba7785c56161941f8b749f4cbaa965e2ed71ed203d2676184b",
+    "qa-artifacts/evidence-blobs/1e0aab77b0e1329ffaf12569cdfa8db0d82ead1679d7d1aed65c274ecadb8398": "1e0aab77b0e1329ffaf12569cdfa8db0d82ead1679d7d1aed65c274ecadb8398",
+    "qa-artifacts/evidence-blobs/d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41": "d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41",
+    "qa-artifacts/evidence-blobs/ddae1ba91bd2f70ebf4d0639dfd2410753e9af83d6baeed9cda150610373b5f6": "ddae1ba91bd2f70ebf4d0639dfd2410753e9af83d6baeed9cda150610373b5f6",
+    "qa-artifacts/evidence-blobs/c7e64d4ff299339bf57aa5ae5f1022a0365247c3d53d8ac7c7b760996bd94473": "c7e64d4ff299339bf57aa5ae5f1022a0365247c3d53d8ac7c7b760996bd94473",
+    "qa-artifacts/evidence-blobs/1856b1029c5308d320127b66c4ede49de864bf6edb07a96a6a6b62ee7e6a3642": "1856b1029c5308d320127b66c4ede49de864bf6edb07a96a6a6b62ee7e6a3642",
+    "qa-artifacts/evidence-blobs/3f89e25f2da56a82e5ab38bdb9b50bb5335fa9883c0694114d302affb3a7e15b": "3f89e25f2da56a82e5ab38bdb9b50bb5335fa9883c0694114d302affb3a7e15b",
+    "qa-artifacts/evidence-blobs/4b6f9b71e9858efffa72954fb6c36ed63eddbbcffe5c31e63f1ba52f5a3263d0": "4b6f9b71e9858efffa72954fb6c36ed63eddbbcffe5c31e63f1ba52f5a3263d0",
+    "qa-artifacts/evidence-blobs/089dc21b953aef6a1ceef400410a3013542f7ccec245116621cae5cd5d17ed8e": "089dc21b953aef6a1ceef400410a3013542f7ccec245116621cae5cd5d17ed8e",
+    "qa-artifacts/evidence-blobs/bb2ef18040c92aa7c81a4a3459a5822f3ecff9c4b6eb8d3eb25d12620bfcd433": "bb2ef18040c92aa7c81a4a3459a5822f3ecff9c4b6eb8d3eb25d12620bfcd433",
+    "qa-artifacts/evidence-blobs/93727702d7db83a5776f1967a95753242f3bfb5ae6e01b7f4fa716f2e7bcaac5": "93727702d7db83a5776f1967a95753242f3bfb5ae6e01b7f4fa716f2e7bcaac5",
+    "qa-artifacts/evidence-blobs/d52f7cf839e94d84f10237590b5e52c0fcd743e7ca1058a0018a0c468392b787": "d52f7cf839e94d84f10237590b5e52c0fcd743e7ca1058a0018a0c468392b787",
+    "qa-artifacts/evidence-blobs/7bb10674338e7ff85683d5d03c1933a2a49f0e4a7687d62415bfb8aea774bcc2": "7bb10674338e7ff85683d5d03c1933a2a49f0e4a7687d62415bfb8aea774bcc2",
+    "qa-artifacts/evidence-blobs/19e64f60b76884d9c3441d02c2359f932372a985ecf9af35855ee99db44f47f5": "19e64f60b76884d9c3441d02c2359f932372a985ecf9af35855ee99db44f47f5",
+    "qa-artifacts/evidence-blobs/b3accfea0619c2338f5dd48a6389aa7d7991e502857458e4341a86ac2c3a8022": "b3accfea0619c2338f5dd48a6389aa7d7991e502857458e4341a86ac2c3a8022",
+    "qa-artifacts/evidence-blobs/475060c98f2c69ead9ff50a6742bdaf58de1b78e37f27d7e0641f8079aafa531": "475060c98f2c69ead9ff50a6742bdaf58de1b78e37f27d7e0641f8079aafa531",
+    "qa-artifacts/evidence-blobs/85eac22f8feba34d7a1afd179953a0f9f13a43d8982c09bc269a6a5406236821": "85eac22f8feba34d7a1afd179953a0f9f13a43d8982c09bc269a6a5406236821",
+    "qa-artifacts/evidence-blobs/3d787f70993c3bf89548da92aa46b95959c1f614436bf0053708e4a1457bb9ea": "3d787f70993c3bf89548da92aa46b95959c1f614436bf0053708e4a1457bb9ea",
+    "qa-artifacts/evidence-blobs/5a0db4a357286b7e811189818f06d72b921dc7685640a74650d2165d00790008": "5a0db4a357286b7e811189818f06d72b921dc7685640a74650d2165d00790008",
+    "qa-artifacts/evidence-blobs/dc89e52260f9eff888bc0d7f95171242780655304e028b7d0950e59b57d181d9": "dc89e52260f9eff888bc0d7f95171242780655304e028b7d0950e59b57d181d9",
+    "qa-artifacts/evidence-blobs/9eeb374836757c3a843ef9f76859370ae132be753caa97ad072e24ee712ba926": "9eeb374836757c3a843ef9f76859370ae132be753caa97ad072e24ee712ba926",
+    "qa-artifacts/evidence-blobs/5c192e62d44fe4a33cbec166f0134bd7555ea3db44df73faf042c1c9dd4c3de5": "5c192e62d44fe4a33cbec166f0134bd7555ea3db44df73faf042c1c9dd4c3de5",
+    "qa-artifacts/evidence-blobs/f4b2e103e6f72be56065b30c33ebb9ce5d52b080e708058b04909aab5df33f73": "f4b2e103e6f72be56065b30c33ebb9ce5d52b080e708058b04909aab5df33f73",
+    "qa-artifacts/evidence-blobs/6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465": "6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465",
+    "qa-artifacts/evidence-blobs/b73b9eeb15db1d842c32eb909084e83cb39510eb927b8c2a4bb1c3f95d9bd758": "b73b9eeb15db1d842c32eb909084e83cb39510eb927b8c2a4bb1c3f95d9bd758",
+    "qa-artifacts/evidence-blobs/7be1d613fddc8aac22a1e6c64b17bf16011af36b2584bc71b49d48ad915a8e44": "7be1d613fddc8aac22a1e6c64b17bf16011af36b2584bc71b49d48ad915a8e44",
+    "qa-artifacts/evidence-blobs/6892c996caba47b02b0d72a4e0c868849bbab64789b508f24eb2c945d4d82c5c": "6892c996caba47b02b0d72a4e0c868849bbab64789b508f24eb2c945d4d82c5c",
+    "qa-artifacts/evidence-blobs/1ab2ac7e27922e78d98200c4f7e2d19ea293e01cb3efad90fc0cbf53a93fea72": "1ab2ac7e27922e78d98200c4f7e2d19ea293e01cb3efad90fc0cbf53a93fea72",
+    "qa-artifacts/evidence-blobs/d19a942c5572a851c7c461615aadaaec98fc267262ba5baeb1de3818fec37ed7": "d19a942c5572a851c7c461615aadaaec98fc267262ba5baeb1de3818fec37ed7",
+    "qa-artifacts/evidence-blobs/409dd79a7b89d8a6b5698643992e446ea2c814c4a7693cea7843d20a6fa77203": "409dd79a7b89d8a6b5698643992e446ea2c814c4a7693cea7843d20a6fa77203",
+    "qa-artifacts/evidence-blobs/c652192ff7d4b45d97cac41e6a476c67c68d85d4c0097e0d31f64655cfda60fb": "c652192ff7d4b45d97cac41e6a476c67c68d85d4c0097e0d31f64655cfda60fb",
+    "qa-artifacts/evidence-blobs/791b3a27c9eea74496f12bef2d117ed19ededb09c7fffab294f41cd4e0264fae": "791b3a27c9eea74496f12bef2d117ed19ededb09c7fffab294f41cd4e0264fae",
+    "qa-artifacts/evidence-blobs/3db8a52f72f5d29652ae41bc8912fcf2dc3342107370f4a9e4be196e5e3275eb": "3db8a52f72f5d29652ae41bc8912fcf2dc3342107370f4a9e4be196e5e3275eb",
+    "qa-artifacts/evidence-blobs/a3bb4211ab1e80ab2d9c6a52f78527dd664a466fb3264ebd0d40f69a0e546cd9": "a3bb4211ab1e80ab2d9c6a52f78527dd664a466fb3264ebd0d40f69a0e546cd9",
+    "qa-artifacts/evidence-blobs/c883295e8ad449f0e97399e29887e77590ecdc7a10368d39c2410acdc3dc15e8": "c883295e8ad449f0e97399e29887e77590ecdc7a10368d39c2410acdc3dc15e8",
+    "qa-artifacts/evidence-blobs/731e627ac5bbbdb13f41b5dd914f4dca78cab549a0580808ad603a00815ea1dd": "731e627ac5bbbdb13f41b5dd914f4dca78cab549a0580808ad603a00815ea1dd",
+    "qa-artifacts/evidence-blobs/1e0bc8f341606eb492f65dfeddbac1b74ce3b9609271c1c8bcf8fbea84238158": "1e0bc8f341606eb492f65dfeddbac1b74ce3b9609271c1c8bcf8fbea84238158",
+    "qa-artifacts/evidence-blobs/7b4512fa9d07afbfba7f266ba5273c92a24d48e8fc05248d91814c8bb5b0fe5c": "7b4512fa9d07afbfba7f266ba5273c92a24d48e8fc05248d91814c8bb5b0fe5c",
+    "qa-artifacts/evidence-archive-preservation-check.json": "214b9591fc180974769b7077a1d965d3e1f51d7099e34ce000de06dc9222f944",
+    "qa-artifacts/evidence-archive-first-wave.json": "8ad96381577e7da387d57cb598c346b204211707e5713e3e1306c0c01bdb0259",
+    "qa-artifacts/e2e-runs/desktop-9UNplF/receipt-source-desktop-320.png": "962c335024bcda20c61f8bfd0f575c0b08f84a119d34984b67e1d5fb56349441",
+    "qa-artifacts/e2e-runs/desktop-9UNplF/receipt-source-desktop-375.png": "ee93b5ed04afb3824cf9f24e0361e3ce8a68c56bbf33840e6688c2976465c81d",
+    "qa-artifacts/e2e-runs/desktop-9UNplF/receipt-source-desktop-390.png": "d5369c3ebf84a75ecb26be1e3d25ad6b042d17f0c4001ded5e1351b54fdafdbc",
+    "qa-artifacts/e2e-runs/desktop-9UNplF/receipt-source-desktop-667.png": "3ecfe269a3019601afb33ee25d566ec772012d91a49da5250ddb9a7854ca41c4",
+    "qa-artifacts/e2e-runs/desktop-9UNplF/test.json": "5ab7e6b65a1190f40ce450f702ff049672566ddcd95cf6ea4772a31debc4a526",
+    "qa-artifacts/e2e-runs/desktop-Ad1Ibo/refund-ocr-desktop-input.png": "6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465",
+    "qa-artifacts/e2e-runs/desktop-Ad1Ibo/refund-ocr-desktop.json": "1e29ebc3e2efac5f6d529fc37aa42eb43e6a9b6f4c87ef33bb1826104f83dc91",
+    "qa-artifacts/e2e-runs/desktop-Ad1Ibo/test.json": "1f0205d7ab6d56a0067a03c2fcc78057aefdfbeb6eb2d5c4095b5507707a55e2",
+    "qa-artifacts/e2e-runs/desktop-AKLgXY/computer-reader-desktop-320.png": "0d801045da509adca87ab8c99c0d76a21b7d199652a1bbd6464258993d4da427",
+    "qa-artifacts/e2e-runs/desktop-AKLgXY/computer-reader-desktop-390.png": "25f87f4a005e05000eea8367020a55f043effaeed3a1892a0a36551c525eca37",
+    "qa-artifacts/e2e-runs/desktop-AKLgXY/test.json": "e48abc5eb764b4d8733ae45c960373165faa1d379f736e30e05014e58b30a347",
+    "qa-artifacts/e2e-runs/desktop-dfdNw6/area-result-desktop.png": "90e83cce87d6bb78a34b3469fde0c8c6fe677512c96c427901d45c5c62cb9d47",
+    "qa-artifacts/e2e-runs/desktop-dfdNw6/area-select-desktop-320.png": "df58a55c053d1f7f4efc806fa8137a506ce42942d2bf61bc2d84d151edfb263a",
+    "qa-artifacts/e2e-runs/desktop-dfdNw6/area-select-desktop-390.png": "d31dd120c81c0e0acc77910be1544620cc9acea2c579173b3fbff59d103ca956",
+    "qa-artifacts/e2e-runs/desktop-dfdNw6/test.json": "37b9d4e8b00a9001b163d92237cf89a54fdfd019522a002e57d141b876f43630",
+    "qa-artifacts/e2e-runs/desktop-GsTk4m/pdf-long-source-desktop.png": "2ca1a0ba4c7a4147d5e9ac288477eb8d5040a1a07ac23e8c59ad19332c39193f",
+    "qa-artifacts/e2e-runs/desktop-GsTk4m/test.json": "cba83b027c9578812f3e89ec7cb916978ca73bb69418eaf4b9ceb8e066e05bb2",
+    "qa-artifacts/e2e-runs/desktop-PkR9Vw/local-vision-desktop-320.png": "93dcf1a7e60dbee08ea38a292c01f5c1cb82336b173773cd9c443fbc60ccd9de",
+    "qa-artifacts/e2e-runs/desktop-PkR9Vw/local-vision-desktop-375.png": "892167dc20ec7a30f3f6373bf353c91eabac10326ff1c660c4db11a91afec4d7",
+    "qa-artifacts/e2e-runs/desktop-PkR9Vw/local-vision-desktop-390.png": "b6c59785f09e6ca6b71b715ad71715123b7db25a8e3bf0b6948c6d06aa203ef0",
+    "qa-artifacts/e2e-runs/desktop-PkR9Vw/local-vision-desktop-667.png": "a6a229a27133dbf22335b47ffc49719a6711520d904f2be897380cc9e72f59c9",
+    "qa-artifacts/e2e-runs/desktop-PkR9Vw/test.json": "c3a9e95e5f053ebec8f9edee8eb87291f0e8982736fe1efaff79ff75ecbaa156",
+    "qa-artifacts/e2e-runs/desktop-QWaFEC/refund-metadata-desktop-320.png": "5cbfe442dedbc27a4fcf18c92a1daa3bc682fc84901a8661166999bc0439e5b7",
+    "qa-artifacts/e2e-runs/desktop-QWaFEC/refund-metadata-desktop-390.png": "62da61df825dae04721fd24c6c696504f1d37342a22e55fef7535a7c8b0c1afc",
+    "qa-artifacts/e2e-runs/desktop-QWaFEC/refund-summary-desktop.png": "6987ad98833270e6b895f0ee8bf6513603c317e85761972dc7c5ab5e335f2f7b",
+    "qa-artifacts/e2e-runs/desktop-QWaFEC/test.json": "6d05589e09365998d97c594cc0d58d053b94e482b4807fad42a6ae92903f3268",
+    "qa-artifacts/e2e-runs/desktop-qXvscZ/refund-ambiguous-source-desktop.png": "6bdf875bf160f7277742ce7119559def23216657812600b9588fc34098061c97",
+    "qa-artifacts/e2e-runs/desktop-qXvscZ/test.json": "69e34a4ff3a8aa51a7481db9a79847b3490f0e089bfc1d028fadc98128d563e2",
+    "qa-artifacts/e2e-runs/desktop-swKGgD/area-device-real-desktop.json": "e8813ccd2f1f882576def76b701e763cfef5b3676ee0dc4acf17fd929adb5bee",
+    "qa-artifacts/e2e-runs/desktop-swKGgD/area-device-real-desktop.png": "f26c9f849f6b8786068c52525bded60874f740dc203a32a53e951f25956ec03e",
+    "qa-artifacts/e2e-runs/desktop-swKGgD/test.json": "19156c50a5aad03d5d89160efc0a8811b1080949527c7213f8fd48a46d473ff4",
+    "qa-artifacts/e2e-runs/desktop-tBcQBw/reading-currency-control-desktop-320.png": "47ff97f39378ee06090209c20cfd433cb05ea5cddf5c68b4c73091a3f2e9e749",
+    "qa-artifacts/e2e-runs/desktop-tBcQBw/reading-currency-control-desktop-390.png": "d8809c966d8ad383809049f530d8299889a1aa73f8fc0f43d6cb8fdbd2d5b40c",
+    "qa-artifacts/e2e-runs/desktop-tBcQBw/reading-currency-desktop-320.png": "9b5055865a93d73b894e68cbae0a62e31fd7f0c4116b79fce55766d600cc2d5d",
+    "qa-artifacts/e2e-runs/desktop-tBcQBw/reading-currency-desktop-390.png": "c08d7f4f2ccf24cfce13533cac76b03bd67930fdcd3ef51b25844147cc1fbca5",
+    "qa-artifacts/e2e-runs/desktop-tBcQBw/test.json": "99643fcad6f2dc337e477f11dab98050e10676cb8bb18fc7a7be27861722f096",
+    "qa-artifacts/e2e-runs/desktop-X63iNu/pdf-flow-desktop.json": "bdca4c8c87cc730a889ce993fd1150a326d11d34126bf4027b199f1b0e0604ad",
+    "qa-artifacts/e2e-runs/desktop-X63iNu/pdf-review-desktop.png": "311bbc16c563c0cb54ec18b6f1cfb51eb21d72dbf71605596c812d78a5bb0ad4",
+    "qa-artifacts/e2e-runs/desktop-X63iNu/pdf-source-desktop.png": "25ed4ded4ddc2c704271d59b00e8a1c191cc956ace75b07819bf5b8e84e54114",
+    "qa-artifacts/e2e-runs/desktop-X63iNu/pdf-upload-desktop.png": "0b2d6536bf8134d977f2cb6c9b8130ce355c41a958bcd6fa6f4c62fc6113d525",
+    "qa-artifacts/e2e-runs/desktop-X63iNu/test.json": "08ebc573f99d28afce92f21b5e3951ad7c3754d5dca1663074bcedb0996f2401",
+    "qa-artifacts/e2e-runs/mobile-bOCzGd/area-device-real-mobile.json": "7bc85ed51f662ba6ac7c5a9ac4ce1d1273201ae3b75c3d3b576604d525b8177c",
+    "qa-artifacts/e2e-runs/mobile-bOCzGd/area-device-real-mobile.png": "a60b17965d776650880ca1efbc51e7a95a8f6f97d17cc26dbd242d822ce55170",
+    "qa-artifacts/e2e-runs/mobile-bOCzGd/test.json": "fcc3d824f07cf5050633d0904d98b5324e1bccda59cd46cc450061b88fa83d19",
+    "qa-artifacts/e2e-runs/mobile-CxYl2b/local-vision-mobile-320.png": "58ae8ecfde23e0d6b18e2179bbe5df768d1419738f38418aee2b2f4c8177ca4b",
+    "qa-artifacts/e2e-runs/mobile-CxYl2b/local-vision-mobile-375.png": "6de94aa868c3bbbb935528ad0e8cd3d1a4e17329d38eca24d6a4a7e30a7fb756",
+    "qa-artifacts/e2e-runs/mobile-CxYl2b/local-vision-mobile-390.png": "d75a98af5dacd86b59ac8e0fd4fec4f05b3301858cde7448ef09db5d31c05193",
+    "qa-artifacts/e2e-runs/mobile-CxYl2b/local-vision-mobile-667.png": "47742ef554d10b4422410bd17bbc3711045e89b47e35c2ba7c1b1c9d4d24a0fa",
+    "qa-artifacts/e2e-runs/mobile-CxYl2b/test.json": "e14c9b0f70129d5070039547504019379d366dfb2fd8582aa5fcbfebf6691181",
+    "qa-artifacts/e2e-runs/mobile-e7iolG/reading-currency-control-mobile-320.png": "1e50a58cdb39917bd9f3d50fa83773cc13882cd51c2c96400c2b0aa54e41e8ba",
+    "qa-artifacts/e2e-runs/mobile-e7iolG/reading-currency-control-mobile-390.png": "c7c82ff44eb535521e64ff1e7c9fdd45461c95963e3cc32f265b6dc40293941c",
+    "qa-artifacts/e2e-runs/mobile-e7iolG/reading-currency-mobile-320.png": "41ea53eea207dd5cfe4a5ae10971aef2ace468d688d3ef8a1c8aadc698641851",
+    "qa-artifacts/e2e-runs/mobile-e7iolG/reading-currency-mobile-390.png": "2c39b3ec841bc1df69e56846214262fc0eb737565a0607b63125a3be58c88bd4",
+    "qa-artifacts/e2e-runs/mobile-e7iolG/test.json": "1df52a74ecf38b9f86e6ad0fefda2cc95240261d30c3a70cc305e006a69200e1",
+    "qa-artifacts/e2e-runs/mobile-ee0dDY/area-result-mobile.png": "e6c9ba96998ef632a476df5be2d75f82d16e78e59d074017fe76d7db441a2ebf",
+    "qa-artifacts/e2e-runs/mobile-ee0dDY/area-select-mobile-320.png": "d49ea1113a41281fb54d6bbd752644c6613a7f50cf6ca19d943b8eb708e5876b",
+    "qa-artifacts/e2e-runs/mobile-ee0dDY/area-select-mobile-390.png": "8bdf8969dab614bbf92e1cd8a8dcee6fd93a53e6c5065885f95b6508aed39e4d",
+    "qa-artifacts/e2e-runs/mobile-ee0dDY/test.json": "94a5c59608a4326d5211f6b3fa6059bdfdd8fc917650f77d58e392bf0550def8",
+    "qa-artifacts/e2e-runs/mobile-fCDFED/pdf-flow-mobile.json": "fa5cac42bc08d1cc3b8927541c27ca4d29961d4b2b5598ad44757a6a3ed6c923",
+    "qa-artifacts/e2e-runs/mobile-fCDFED/pdf-review-mobile.png": "022836c006d25856c83b8ebd40afd6bed166d2d789d56abe2bf01abd7f09d6b5",
+    "qa-artifacts/e2e-runs/mobile-fCDFED/pdf-source-mobile.png": "b3accfea0619c2338f5dd48a6389aa7d7991e502857458e4341a86ac2c3a8022",
+    "qa-artifacts/e2e-runs/mobile-fCDFED/pdf-upload-mobile.png": "475060c98f2c69ead9ff50a6742bdaf58de1b78e37f27d7e0641f8079aafa531",
+    "qa-artifacts/e2e-runs/mobile-fCDFED/test.json": "5abdbe1448ccf2ee6e77c76a2c6742d30e830845fc036eeca7fd7d623aa8569a",
+    "qa-artifacts/e2e-runs/mobile-MpwQCF/pdf-long-source-mobile.png": "8a30cbf1f6e69838ecc2b1739db6c954e86989857d6621cb3806e430edebfd50",
+    "qa-artifacts/e2e-runs/mobile-MpwQCF/test.json": "66212106de34019fb60f8f711fe0f68a47a439da1b8ade4f6d8a43300718640f",
+    "qa-artifacts/e2e-runs/mobile-oQ8rb1/refund-metadata-mobile-320.png": "5c192e62d44fe4a33cbec166f0134bd7555ea3db44df73faf042c1c9dd4c3de5",
+    "qa-artifacts/e2e-runs/mobile-oQ8rb1/refund-metadata-mobile-390.png": "f4b2e103e6f72be56065b30c33ebb9ce5d52b080e708058b04909aab5df33f73",
+    "qa-artifacts/e2e-runs/mobile-oQ8rb1/refund-summary-mobile.png": "6892c996caba47b02b0d72a4e0c868849bbab64789b508f24eb2c945d4d82c5c",
+    "qa-artifacts/e2e-runs/mobile-oQ8rb1/test.json": "034b7a6d6097ee642069d33be87ada0202d0cdbffddf97686615ecee774d6c27",
+    "qa-artifacts/e2e-runs/mobile-p1ilAR/computer-reader-mobile-320.png": "6356732fb389edbd6ef74ac585f637a661f5eb6bd5de7230efe40b28d86b4901",
+    "qa-artifacts/e2e-runs/mobile-p1ilAR/computer-reader-mobile-390.png": "e14b5cd399d092b23ecbf3a4cea44ebeb2b2b2af40e0a6d0d21ff2d0584fea8c",
+    "qa-artifacts/e2e-runs/mobile-p1ilAR/test.json": "80391e79b4cd36bc60f4abd55ed5da87d381ccb58d2bf24bd9a7dad02b387bd3",
+    "qa-artifacts/e2e-runs/mobile-P9xEOt/refund-ocr-mobile-input.png": "6fe0c8713c7773185cd722413021bd59e2fab6319524261a53aa52e03f0d6465",
+    "qa-artifacts/e2e-runs/mobile-P9xEOt/refund-ocr-mobile.json": "8cf15bba71be73a466c2b0ae82584e3650b9638922051b6f360ee978b6185f0a",
+    "qa-artifacts/e2e-runs/mobile-P9xEOt/test.json": "d0b9f253bc36b2468eb856df6eb3f7dd71603b326a296573eedf3719d195c512",
+    "qa-artifacts/e2e-runs/mobile-SIJRPA/refund-ambiguous-source-mobile.png": "9eeb374836757c3a843ef9f76859370ae132be753caa97ad072e24ee712ba926",
+    "qa-artifacts/e2e-runs/mobile-SIJRPA/test.json": "5705e15b490afa5e8a537da5513461e8338086f3488a12bd3afcc2f0f655a4b3",
+    "qa-artifacts/e2e-runs/mobile-v9GgY6/receipt-source-mobile-320.png": "23ab8a55fa17706c0e4120bf45c96416101b3142f9da4040c71b80d541685ee3",
+    "qa-artifacts/e2e-runs/mobile-v9GgY6/receipt-source-mobile-375.png": "d801f03d3058e6637de7fc148c2b4f29c2d55e3ff0913f0ed1e2b6a7f3e04212",
+    "qa-artifacts/e2e-runs/mobile-v9GgY6/receipt-source-mobile-390.png": "58a067c5c076edc633d019dfaf26137ac52f543e086686498d71f0ca60a335ec",
+    "qa-artifacts/e2e-runs/mobile-v9GgY6/receipt-source-mobile-667.png": "28b18dd86a44b25b6dadec72ebb8738e7fa3cf1c4a5a1c65c07099c7faa190c0",
+    "qa-artifacts/e2e-runs/mobile-v9GgY6/test.json": "60eb802d61e80ce96c042373f580de241a7f9c79e587f4898214dd4727df8f17",
+    "qa-artifacts/evidence-archive-rerun-v1.log": "a05280b36869729402682628b6262af05661b3213620893754e2b1f1822398ff",
+    "qa-artifacts/evidence-archive-final-e2e.log": "34d7f34882afa9b8edf71e8f5fbe322a9ea48545a3f2155ae628cbdd27c2b291",
+    "qa-artifacts/evidence-archive-format-final-v2.log": "d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/tests/e2e/qa-artifacts.ts": "76d45083f061338a59ce152afe0604cfd4f34e002163708f05423a9f2fd1da9f",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/tests/e2e/refunds.spec.ts": "d91a60a5595734b9e76731e4e998dbd9e601abe799bc0aa0e184b7a4dcc94b89",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/tests/e2e/pdf-receipts.spec.ts": "53a33d847c3605e2f2d8d9efaada1ee9fe3b3cb903929fefa576be677bdabb89",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/tests/e2e/computer-reader.spec.ts": "3b92ad1dab23516728453308ad0a8bc320184f319e073f13b8cc64fd955521df",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/tests/e2e/local-vision.spec.ts": "1ed8b445b6f6250469db2cb4377a1bc9eff8c32f297333e9f9b4a698dad25d1c",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/receipt_training/scripts/audit_evidence_integrity.py": "399315d4cc5de793aba5269e6eda9eef4203eee7941ccba229a5cd6ba7ec9b1e",
+    "qa-artifacts/evidence-integrity-checkpoint-final-v2/source/receipt_training/scripts/build_evidence_integrity_report.py": "fe5f70621d92b78765c31bbdc449dc03ede209b5fcf57a103a2a3db55d5c2e29"
+  }
+}

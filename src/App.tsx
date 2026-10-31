@@ -289,6 +289,10 @@ export default function App() {
   const readerChosen = useRef(false);
   const pdfTextAvailable = canReadPdfText(images);
   const [compareWithVision, setCompareWithVision] = useState(false);
+  const [scanCurrency, setScanCurrency] = useState<Receipt["currency"] | "">(
+    "",
+  );
+  const readingContext = scanCurrency ? { currency: scanCurrency } : undefined;
   const [computerConfig, setComputerConfig] = useState<{
     configured: boolean;
     name: string;
@@ -499,6 +503,7 @@ export default function App() {
     storageConflict.current = false;
     images.forEach((i) => URL.revokeObjectURL(i.url));
     setImages([]);
+    setScanCurrency("");
     setScanEvidence(null);
     setSourceItemId(null);
     setSourceCheckKey(null);
@@ -610,7 +615,7 @@ export default function App() {
     controller.current = new AbortController();
     try {
       if (reader === "pdf") {
-        const output = readPdfText(images);
+        const output = readPdfText(images, readingContext);
         const evidence = collectReceiptEvidence(
           output.receipt,
           output.text,
@@ -645,6 +650,7 @@ export default function App() {
           images,
           controller.current.signal,
           setScanStatus,
+          readingContext,
         );
         const evidence = collectReceiptEvidence(
           compared.receipt,
@@ -669,6 +675,7 @@ export default function App() {
           images,
           controller.current.signal,
           setScanStatus,
+          readingContext,
         );
         replaceReceipt(parsed);
         setNotice(
@@ -681,6 +688,7 @@ export default function App() {
           images,
           controller.current.signal,
           setScanStatus,
+          readingContext,
         );
         replaceReceipt(parsed);
         setAiConsented(false);
@@ -705,7 +713,10 @@ export default function App() {
           setScanStatus,
         ));
       setRawText(output.text);
-      const { receipt: parsed, sources } = parseReceiptWithSources(output);
+      const { receipt: parsed, sources } = parseReceiptWithSources(
+        output,
+        readingContext,
+      );
       const evidence = computerOutput
         ? collectReceiptEvidence(
             parsed,
@@ -749,7 +760,7 @@ export default function App() {
   function parseText() {
     if (!canReplace()) return;
     try {
-      replaceReceipt(parseReceiptText(rawText));
+      replaceReceipt(parseReceiptText(rawText, readingContext));
       setImageError("");
     } catch {
       setImageError(
@@ -1149,6 +1160,28 @@ export default function App() {
                   </p>
                 )}
                 <PhotoGuidance images={images} />
+                <Field label="Receipt currency (optional)">
+                  <select
+                    value={scanCurrency}
+                    disabled={busy || importing}
+                    onChange={(event) => {
+                      setScanCurrency(
+                        event.target.value as Receipt["currency"] | "",
+                      );
+                      setAiConsented(false);
+                    }}
+                  >
+                    <option value="">Read from receipt</option>
+                    {Object.keys(currencies).map((code) => (
+                      <option key={code}>{code}</option>
+                    ))}
+                  </select>
+                </Field>
+                <p className="hint">
+                  Your selection fills missing currency details and helps
+                  interpret printed text. It does not convert prices.
+                  Conflicting currency and unclear amounts still need checking.
+                </p>
                 {imageError && (
                   <p className="inline-error" role="alert">
                     <AlertCircle size={17} />

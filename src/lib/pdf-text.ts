@@ -1,4 +1,5 @@
 import type { ReceiptImage } from "./images";
+import type { ReadingContext } from "./reading-context.mjs";
 import type { EvidenceLine, Recognition } from "./receipt-layout";
 import {
   PHOTO_SEPARATOR,
@@ -152,7 +153,7 @@ export function canReadPdfText(images: ReceiptImage[]) {
   );
 }
 
-export function readPdfText(images: ReceiptImage[]) {
+export function readPdfText(images: ReceiptImage[], context?: ReadingContext) {
   if (!canReadPdfText(images))
     throw new Error(
       "Some pages need an image reader. Choose On-device or This computer to read every page.",
@@ -179,7 +180,7 @@ export function readPdfText(images: ReceiptImage[]) {
   const { text } = extractionOutputSchema.parse({
     text: sourceLines.map((line) => line?.text ?? PHOTO_SEPARATOR).join("\n"),
   });
-  const parsed = parseReceiptWithSources({ text });
+  const parsed = parseReceiptWithSources({ text }, context);
   parsed.receipt.source = "text";
   parsed.receipt.warnings = [
     ...parsed.receipt.warnings,

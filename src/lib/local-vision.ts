@@ -4,6 +4,7 @@ import { aiReceiptSchema } from "./extraction-schema.mjs";
 import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { MAX_AI_BODY_BYTES, MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
+import type { ReadingContext } from "./reading-context.mjs";
 
 export async function extractLocalVisionEvidence(
   images: ReceiptImage[],
@@ -66,9 +67,11 @@ export async function extractWithLocalVision(
   images: ReceiptImage[],
   signal: AbortSignal,
   progress: (status: string) => void,
+  context?: ReadingContext,
 ) {
   return receiptFromAi(
     await extractLocalVisionEvidence(images, signal, progress),
     "Local vision",
+    context,
   );
 }

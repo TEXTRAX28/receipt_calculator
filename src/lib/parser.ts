@@ -8,6 +8,10 @@ import {
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
 import { z } from "zod";
+import {
+  readingContextSchema,
+  type ReadingContext,
+} from "./reading-context.mjs";
 
 export const extractionOutputSchema = z.object({
   text: z.string().min(1).max(60000),
@@ -25,15 +29,22 @@ export const isFinalTotal = (line: string) =>
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
 
 /** Heuristics produce an editable draft, never a declaration of financial correctness. */
-export function parseReceiptText(output: unknown): Receipt {
-  return parseReceiptWithSources(output).receipt;
+export function parseReceiptText(
+  output: unknown,
+  context?: ReadingContext,
+): Receipt {
+  return parseReceiptWithSources(output, context).receipt;
 }
 
 /** Indices refer to trimmed, nonempty text lines, including photo boundaries. */
-export function parseReceiptWithSources(output: unknown): {
+export function parseReceiptWithSources(
+  output: unknown,
+  context?: ReadingContext,
+): {
   receipt: Receipt;
   sources: Record<string, number[]>;
 } {
+  const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
     typeof output === "string" ? { text: output } : output,
   );
@@ -63,6 +74,7 @@ export function parseReceiptWithSources(output: unknown): {
         ) || ""
       ).slice(0, 100);
   let currencyIdentified = true;
+  let printedCurrencyIdentified = true;
   const explicitCurrency = text.match(
     /\b(GBP|USD|EUR|CAD|AUD|NZD|CHF|SEK|JPY|KRW|KWD|BHD|IDR|TWD)\b/,
   );
@@ -76,15 +88,43 @@ export function parseReceiptWithSources(output: unknown): {
   else if (text.includes("$") || /\bUSD\b/.test(text)) {
     receipt.currency = "USD";
     currencyIdentified = false;
-    if (!/\bUSD\b/.test(text))
+    printedCurrencyIdentified = false;
+    if (!/\bUSD\b/.test(text) && !selected)
       receipt.warnings.push(
         "Dollar symbols can mean several currencies. Confirm the selected currency.",
       );
   } else {
     currencyIdentified = false;
-    receipt.warnings.push(
-      "Currency was not identified. Confirm the selected currency.",
-    );
+    printedCurrencyIdentified = false;
+    if (!selected)
+      receipt.warnings.push(
+        "Currency was not identified. Confirm the selected currency.",
+      );
+  }
+  if (selected) {
+    const incompatibleDollar =
+      !printedCurrencyIdentified &&
+      text.includes("$") &&
+      !["USD", "CAD", "AUD", "NZD", "TWD"].includes(selected.currency);
+    if (!printedCurrencyIdentified && !incompatibleDollar) {
+      receipt.currency = selected.currency as Currency;
+      currencyIdentified = true;
+      receipt.warnings.push(
+        `Receipt currency supplied by you: ${selected.currency}. Check every printed amount; this is not a currency conversion.`,
+      );
+    } else if (receipt.currency !== selected.currency || incompatibleDollar) {
+      currencyIdentified = false;
+      receipt.warnings.push(
+        `The printed currency ${receipt.currency} conflicts with your selected ${selected.currency}. Confirm the currency and every amount against the receipt.`,
+      );
+      receipt.reviewChecks.push({
+        scope: "receipt",
+        field: "currency",
+        reason: "different",
+        other: `Selected reading currency: ${selected.currency}`,
+        confirmedValue: "",
+      });
+    }
   }
   receipt.currencyUnresolved = !currencyIdentified;
   const normalize = (token: string) => {

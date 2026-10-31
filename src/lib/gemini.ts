@@ -5,18 +5,25 @@ import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { z } from "zod";
 import { normalizeReceiptDate } from "./receipt-date";
+import {
+  readingContextSchema,
+  type ReadingContext,
+} from "./reading-context.mjs";
 
 export function receiptFromAi(
   output: unknown,
   provider: "Gemini" | "Local vision" = "Gemini",
+  context?: ReadingContext,
 ): Receipt {
   const data = aiReceiptSchema.parse(output);
+  const selected = readingContextSchema.optional().parse(context);
   const receipt = newReceipt();
   receipt.source = "ai";
   receipt.merchant = data.merchant;
   receipt.date = normalizeReceiptDate(data.date);
-  receipt.currency = data.currency || "GBP";
-  receipt.currencyUnresolved = !data.currency;
+  receipt.currency =
+    data.currency || (selected?.currency as Receipt["currency"]) || "GBP";
+  receipt.currencyUnresolved = !data.currency && !selected;
   receipt.subtotal = data.subtotal;
   receipt.printedTotal = data.printedTotal;
   receipt.printedTax = data.printedTax;
@@ -53,7 +60,25 @@ export function receiptFromAi(
     `${provider} prepared this draft from your photos. Check every purchase, discount, tax code and the printed total against the originals.`,
     ...data.warnings,
   ];
-  if (!data.currency)
+  if (selected) {
+    receipt.warnings.push(
+      `Receipt currency supplied by you: ${selected.currency}. Returned model amounts have not been reinterpreted or converted.`,
+    );
+    if (data.currency && data.currency !== selected.currency) {
+      receipt.currencyUnresolved = true;
+      receipt.reviewChecks.push({
+        scope: "receipt",
+        field: "currency",
+        reason: "different",
+        other: `Selected reading currency: ${selected.currency}`,
+        confirmedValue: "",
+      });
+      receipt.warnings.push(
+        `The reader returned ${data.currency}, which conflicts with your selected ${selected.currency}. Check the printed currency and every amount.`,
+      );
+    }
+  }
+  if (!data.currency && !selected)
     receipt.warnings.push(
       "Currency was unclear. Confirm the selected currency.",
     );
@@ -91,6 +116,7 @@ export async function extractWithGemini(
   images: ReceiptImage[],
   signal: AbortSignal,
   progress: (status: string) => void,
+  context?: ReadingContext,
 ): Promise<Receipt> {
   progress("Preparing receipt sections for Gemini…");
   const panels = await panelsForImages(images, signal);
@@ -120,7 +146,7 @@ export async function extractWithGemini(
           ? result.error.slice(0, 500)
           : "Gemini could not read the receipt. Try the on-device reader.",
       );
-    return receiptFromAi(result.receipt);
+    return receiptFromAi(result.receipt, "Gemini", context);
   } catch (error) {
     if (signal.aborted)
       throw new Error("Scan cancelled. Your photos are still available.");

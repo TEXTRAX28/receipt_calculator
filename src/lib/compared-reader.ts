@@ -8,12 +8,14 @@ import { panelsForImages } from "./panel-transport";
 import { MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 import { extractLocalVisionBatches } from "./local-vision-batches";
 import { joinVisionBatches } from "./join-vision-batches";
+import type { ReadingContext } from "./reading-context.mjs";
 
 /** Each model sees the original prepared images; OCR text never enters the vision request. */
 export async function extractComparedReceipt(
   images: ReceiptImage[],
   signal: AbortSignal,
   progress: (status: string) => void,
+  context?: ReadingContext,
 ): Promise<
   ReturnType<typeof verifyIndependentReadings> & { comparisonComplete: boolean }
 > {
@@ -26,10 +28,12 @@ export async function extractComparedReceipt(
             await extractLocalVisionBatches(panels, signal, progress),
             panels,
             primary.recognition,
+            context,
           )
         : verifyIndependentReadings(
             await extractLocalVisionEvidence(images, signal, progress),
             primary.recognition,
+            context,
           );
     progress("Comparing the independent readings with the printed rows…");
     if (signal.aborted)
@@ -41,7 +45,7 @@ export async function extractComparedReceipt(
   } catch (error) {
     if (signal.aborted) throw error;
     // Preserve a successful first reading, but never label it as independently checked.
-    const parsed = parseReceiptWithSources(primary);
+    const parsed = parseReceiptWithSources(primary, context);
     const receipt: Receipt = {
       ...parsed.receipt,
       source: "ocr",

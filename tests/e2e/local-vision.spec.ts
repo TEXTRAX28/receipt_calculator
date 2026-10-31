@@ -1,3 +1,4 @@
+import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
@@ -50,6 +51,84 @@ async function start(page: Page, count = 1) {
   });
 }
 
+test("a chosen currency fills review details without changing model requests or amounts", async ({
+  page,
+}, info) => {
+  const draft = {
+    ...aiCostcoDraft(),
+    currency: "",
+    subtotal: "12345",
+    printedTotal: "12345",
+    printedTax: "",
+    printedItemCount: 1,
+    pricesIncludeTax: true,
+    taxCodes: [],
+    adjustments: [],
+  };
+  draft.items = [
+    {
+      ...draft.items[0],
+      description: "SYNTHETIC TEA",
+      quantity: "1",
+      unitPrice: "7.000",
+      lineTotal: "7.000",
+      discount: "0",
+      taxCode: "",
+      sourcePhotos: [1],
+    },
+  ];
+  await page.route("**/api/receipts/vision", async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.context).toBeUndefined();
+    expect(Object.keys(body)).toEqual(["panels"]);
+    await route.fulfill({ json: { receipt: draft } });
+  });
+  const scan = await start(page);
+  await page
+    .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
+    .selectOption("IDR");
+  await mkdir("qa-artifacts", { recursive: true });
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: await qaArtifactPath(
+        info,
+        `reading-currency-${info.project.name}-${width}.png`,
+      ),
+      fullPage: true,
+    });
+    await page
+      .getByRole("combobox", {
+        name: "Receipt currency (optional)",
+        exact: true,
+      })
+      .locator("..")
+      .screenshot({
+        path: await qaArtifactPath(
+          info,
+          `reading-currency-control-${info.project.name}-${width}.png`,
+        ),
+      });
+  }
+  await scan.click();
+  await expect(
+    page.getByRole("combobox", { name: "Currency", exact: true }),
+  ).toHaveValue("IDR");
+  // The line amount is visible; unit price is in collapsed purchase details.
+  await expect(page.locator('input[value="7.000"]')).toHaveValue("7.000");
+  await expect(
+    page.getByText(/Receipt currency supplied by you: IDR/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Confirm receipt & add people" }),
+  ).toBeDisabled();
+});
+
 test("local vision → structured review → exact split uses only the local endpoint (mock protocol)", async ({
   page,
 }, info) => {
@@ -84,7 +163,10 @@ test("local vision → structured review → exact split uses only the local end
     });
     expect((await choice.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await page.locator(".reader-choice").screenshot({
-      path: `qa-artifacts/local-vision-${info.project.name}-${width}.png`,
+      path: await qaArtifactPath(
+        info,
+        `local-vision-${info.project.name}-${width}.png`,
+      ),
     });
   }
   await page.setViewportSize({ width: 390, height: 844 });

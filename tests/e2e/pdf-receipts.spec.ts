@@ -1,3 +1,4 @@
+import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -82,10 +83,13 @@ test("a digital purchase area can be reread by actual on-device OCR without chan
   ).toHaveValue("2");
   await mkdir("qa-artifacts", { recursive: true });
   await dialog.screenshot({
-    path: `qa-artifacts/area-device-real-${info.project.name}.png`,
+    path: await qaArtifactPath(
+      info,
+      `area-device-real-${info.project.name}.png`,
+    ),
   });
   await writeFile(
-    `qa-artifacts/area-device-real-${info.project.name}.json`,
+    await qaArtifactPath(info, `area-device-real-${info.project.name}.json`),
     JSON.stringify(
       {
         synthetic: true,
@@ -131,7 +135,7 @@ test("real PDF text → original row areas → checked three-person split, witho
     page.getByRole("button", { name: "PDF text", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({
-    path: `qa-artifacts/pdf-upload-${info.project.name}.png`,
+    path: await qaArtifactPath(info, `pdf-upload-${info.project.name}.png`),
     fullPage: true,
   });
   await page
@@ -172,9 +176,9 @@ test("real PDF text → original row areas → checked three-person split, witho
     .getByRole("button", { name: "View source for item 2", exact: true })
     .click();
   await expect(page.getByTestId("source-region")).toHaveCount(1);
-  await page
-    .locator(".receipt-source-image")
-    .screenshot({ path: `qa-artifacts/pdf-source-${info.project.name}.png` });
+  await page.locator(".receipt-source-image").screenshot({
+    path: await qaArtifactPath(info, `pdf-source-${info.project.name}.png`),
+  });
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await page
     .getByRole("checkbox", {
@@ -184,7 +188,7 @@ test("real PDF text → original row areas → checked three-person split, witho
     .check();
   await expect(confirm).toBeEnabled();
   await page.screenshot({
-    path: `qa-artifacts/pdf-review-${info.project.name}.png`,
+    path: await qaArtifactPath(info, `pdf-review-${info.project.name}.png`),
     fullPage: true,
   });
   expect(
@@ -220,7 +224,7 @@ test("real PDF text → original row areas → checked three-person split, witho
   await expect.poll(() => page.workers().length).toBe(0);
   await mkdir("qa-artifacts/advanced-ocr", { recursive: true });
   await writeFile(
-    `qa-artifacts/advanced-ocr/pdf-flow-${info.project.name}.json`,
+    await qaArtifactPath(info, `pdf-flow-${info.project.name}.json`),
     JSON.stringify(
       {
         synthetic: true,
@@ -270,7 +274,10 @@ test("a long digital PDF retains all sixty purchases and uses its full-page sour
   const region = page.getByTestId("source-region");
   expect(Number(await region.getAttribute("y"))).toBeGreaterThan(1500);
   await page.locator(".receipt-source-image").screenshot({
-    path: `qa-artifacts/pdf-long-source-${info.project.name}.png`,
+    path: await qaArtifactPath(
+      info,
+      `pdf-long-source-${info.project.name}.png`,
+    ),
   });
   expect(requests).toEqual({ posts: [], external: [] });
 });

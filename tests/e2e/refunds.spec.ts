@@ -1,3 +1,4 @@
+import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -71,7 +72,10 @@ test("phone refund controls → exact credit shares → honest export and privat
     expect(bounds!.width).toBeGreaterThanOrEqual(44);
     expect(bounds!.height).toBeGreaterThanOrEqual(44);
     await page.locator(".metadata").screenshot({
-      path: `qa-artifacts/refund-metadata-${info.project.name}-${width}.png`,
+      path: await qaArtifactPath(
+        info,
+        `refund-metadata-${info.project.name}-${width}.png`,
+      ),
     });
   }
   expect(
@@ -96,7 +100,7 @@ test("phone refund controls → exact credit shares → honest export and privat
     "Credit share",
   );
   await page.screenshot({
-    path: `qa-artifacts/refund-summary-${info.project.name}.png`,
+    path: await qaArtifactPath(info, `refund-summary-${info.project.name}.png`),
     fullPage: true,
   });
   const download = page.waitForEvent("download");
@@ -268,11 +272,11 @@ test("actual on-device OCR preserves a synthetic returned product and its negati
   await mkdir("qa-artifacts", { recursive: true });
   const input = Buffer.from(photo, "base64");
   await writeFile(
-    `qa-artifacts/refund-ocr-${info.project.name}-input.png`,
+    await qaArtifactPath(info, `refund-ocr-${info.project.name}-input.png`),
     input,
   );
   await writeFile(
-    `qa-artifacts/refund-ocr-${info.project.name}.json`,
+    await qaArtifactPath(info, `refund-ocr-${info.project.name}.json`),
     JSON.stringify(
       {
         synthetic: true,

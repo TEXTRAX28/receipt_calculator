@@ -1,3 +1,4 @@
+import { qaArtifactPath } from "./qa-artifacts";
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
@@ -117,7 +118,10 @@ test("configured computer reader fits phones and produces an editable balanced d
     });
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await page.locator(".reader-choice").screenshot({
-      path: `qa-artifacts/computer-reader-${info.project.name}-${width}.png`,
+      path: await qaArtifactPath(
+        info,
+        `computer-reader-${info.project.name}-${width}.png`,
+      ),
     });
   }
   expect(
@@ -283,7 +287,10 @@ test("source rows support phone review, edits, keyboard return and private refre
       viewport.width,
     );
     await dialog.screenshot({
-      path: `qa-artifacts/receipt-source-${info.project.name}-${viewport.width}.png`,
+      path: await qaArtifactPath(
+        info,
+        `receipt-source-${info.project.name}-${viewport.width}.png`,
+      ),
     });
     const back = dialog.getByRole("button", {
       name: "Back to receipt",
@@ -397,7 +404,10 @@ test("a selected purchase area is reread locally, preserves the draft and fits p
       .getByRole("heading", { name: "Choose the item area", exact: true })
       .scrollIntoViewIfNeeded();
     await dialog.screenshot({
-      path: `qa-artifacts/area-select-${info.project.name}-${width}.png`,
+      path: await qaArtifactPath(
+        info,
+        `area-select-${info.project.name}-${width}.png`,
+      ),
     });
   }
   expect(
@@ -432,7 +442,7 @@ test("a selected purchase area is reread locally, preserves the draft and fits p
   ).toHaveValue("2.00");
   await expect(dialog.getByTestId("source-region")).toHaveAttribute("y", "140");
   await dialog.screenshot({
-    path: `qa-artifacts/area-result-${info.project.name}.png`,
+    path: await qaArtifactPath(info, `area-result-${info.project.name}.png`),
   });
   expect(
     (
@@ -636,7 +646,10 @@ test("a balanced bare negative row needs a classification check with literal sou
   await dialog.locator(".verification-current").scrollIntoViewIfNeeded();
   await mkdir("qa-artifacts", { recursive: true });
   await dialog.screenshot({
-    path: `qa-artifacts/refund-ambiguous-source-${info.project.name}.png`,
+    path: await qaArtifactPath(
+      info,
+      `refund-ambiguous-source-${info.project.name}.png`,
+    ),
   });
   await dialog
     .getByRole("checkbox", {
