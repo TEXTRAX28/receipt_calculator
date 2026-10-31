@@ -65,8 +65,9 @@ Cloud prices are published planning figures, not measured receipt costs or proof
 - Grouped-photo/control evaluation, exact panel exports and pluggable local-model benchmarking. Model adapters retain geometry and OCR scores independently of receipt parsing and money calculations.
 - The Gemini REST parser now reads final `model_output` steps. SDK `output_text` is not guaranteed in raw REST responses. Tests reject thought/user/tool content as financial output. [REST response specification](https://ai.google.dev/api/interactions-api).
 - Development/evaluation watchers ignore model environments and generated runs.
+- A bounded JSON-lines local-model worker validates parent-owned JPEG paths, hashes, decoded dimensions and protocol limits. Its real synthetic smoke test loaded Paddle, read the fixture, rejected an outside path and exited cleanly in 9,837 ms including startup. The parent HTTP/process bridge and frontend integration remain unimplemented; this is not yet a new consumer reader.
 
-Current application unit tests: 119 passed. Current evaluation/spatial tests: 19 passed. The production build and fresh browser run passed: 65 tests, one duplicate-breakpoint skip. No external real-receipt accuracy result has been produced.
+Current application unit tests: 119 passed. Current evaluation/spatial/worker checks: 22 passed. The production build and fresh browser run passed: 65 tests, one duplicate-breakpoint skip. No external real-receipt accuracy result has been produced.
 
 ### Financial-parser follow-up
 
