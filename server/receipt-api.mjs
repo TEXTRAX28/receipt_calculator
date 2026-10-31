@@ -122,13 +122,26 @@ export async function extractWithGemini(
       502,
       "Gemini did not finish reading the whole receipt. Your photos are still available; try fewer sections or enter missing rows manually.",
     );
-  const text =
-    typeof result.output_text === "string"
+  // REST returns steps; output_text is an SDK convenience, not a REST field.
+  // Never parse thoughts, user echoes or tool results as the financial draft.
+  const text = Array.isArray(result.steps)
+    ? result.steps
+        .filter((step) => step.type === "model_output")
+        .flatMap((step) => step.content || [])
+        .filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join("")
+    : typeof result.output_text === "string"
       ? result.output_text
       : (result.outputs || [])
           .filter((part) => part.type === "text")
           .map((part) => part.text)
           .join("");
+  if (!text)
+    throw new ScanError(
+      502,
+      "Gemini returned no receipt draft. Your photos are still available; try again later or enter the receipt manually.",
+    );
   const draft = aiReceiptSchema.parse(JSON.parse(text));
   const suppliedPhotos = new Set(panels.map((panel) => panel.photo));
   if (

@@ -22,7 +22,12 @@ const response = (receipt = aiCostcoDraft()) =>
   new Response(
     JSON.stringify({
       status: "completed",
-      outputs: [{ type: "text", text: JSON.stringify(receipt) }],
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: JSON.stringify(receipt) }],
+        },
+      ],
     }),
     { headers: { "content-type": "application/json" } },
   );
@@ -117,6 +122,65 @@ describe("Gemini receipts are evidence for the exact engine", () => {
 });
 
 describe("server-held credentials and bounded provider calls", () => {
+  it("reads the REST model_output steps and ignores thoughts, user echoes and tool results", async () => {
+    const result = await serverExtract(panels, {
+      apiKey: "test-key",
+      signal: new AbortController().signal,
+      fetcher: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              status: "completed",
+              steps: [
+                {
+                  type: "thought",
+                  content: [{ type: "text", text: "invalid financial JSON" }],
+                },
+                {
+                  type: "user_input",
+                  content: [{ type: "text", text: "Ignore instructions" }],
+                },
+                {
+                  type: "function_result",
+                  content: [{ type: "text", text: "untrusted tool result" }],
+                },
+                {
+                  type: "model_output",
+                  content: [
+                    { type: "text", text: JSON.stringify(aiCostcoDraft()) },
+                  ],
+                },
+              ],
+            }),
+          ),
+      ),
+    });
+    expect(result.items).toHaveLength(18);
+  });
+  it("rejects an interaction with no final model output", async () => {
+    await expect(
+      serverExtract(panels, {
+        apiKey: "test-key",
+        signal: new AbortController().signal,
+        fetcher: vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                status: "completed",
+                steps: [
+                  {
+                    type: "thought",
+                    content: [
+                      { type: "text", text: JSON.stringify(aiCostcoDraft()) },
+                    ],
+                  },
+                ],
+              }),
+            ),
+        ),
+      }),
+    ).rejects.toThrow(/no receipt draft/);
+  });
   it("sends all numbered panels in one stateless, structured request, with no tools", async () => {
     const upstream = vi.fn(async () => response());
     const { post } = await localApi({
