@@ -1,4 +1,10 @@
-# Six-receipt comparison: prepared, awaiting separate approval
+# Six-receipt comparison: preparation record
+
+**2026-10-31 update:** the user confirmed six unused Free credits and approved
+the exact scope below. Six extractions succeeded and Veryfi reported six
+matching deletions. The permission is consumed. See the
+[completed comparison](VERYFI_SIX_RESULT.md) and its immutable evidence record.
+The remainder of this page records the preparation state before that approval.
 
 The first Veryfi test was promising through OCR text and our parser. This next
 screen checks a wider range of receipts before selecting a provider. It has made

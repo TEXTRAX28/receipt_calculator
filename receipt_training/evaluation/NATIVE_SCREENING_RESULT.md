@@ -1,4 +1,10 @@
-# Six native PNG controls; wider Veryfi test pending
+# Six native PNG controls: preparation checkpoint
+
+**2026-10-31 update:** the six separately approved Veryfi tests have now completed.
+See the [wider comparison result](VERYFI_SIX_RESULT.md). The text below preserves
+the earlier local-control checkpoint, when that approval was still pending.
+The unknown-tax review gap observed here was subsequently
+[fixed and replayed](UNKNOWN_TAX_REVIEW.md) without changing extracted values.
 
 Twelve actual local model reads completed on the same six lossless PNG crops
 prepared for the [Veryfi screen](VERYFI_SCREENING_SCOPE.md): six Paddle reads
