@@ -373,12 +373,32 @@ The offline field-review harness is prepared for the exact sealed response. It v
 
 Ten synthetic audit tests passed, including a real CLI subprocess on synthetic sealed evidence, exact decimal handling, wrong-item coupon association, repeated names, missing fields, unchanged review history and evidence-tamper refusal. The nine sealed offline transport tests and eleven-file plan check also pass. No live extraction accuracy or processing latency is claimed. Application sources and the protected original checkout are unchanged by this checkpoint. The full goal remains active.
 
+### Source-checked priced-row truth revision and paired rescoring
+
+Actual source-image review confirmed two paid add-ons and three zero-price options omitted from the original top-level CORD item view. The new private `priced-rows-v2-labels.jsonl` adds only those five printed rows across four transactions. All original top-level row values, receipt metadata, unknown fields, coverage flags, original labels, manifests and images remain unchanged. Parent ownership is preserved in each added row's provenance. Both paid add-ons have unprinted quantities and unit prices, which remain null. The separate zero-price options are not new paid products; this revision measures printed priced rows rather than the till's sold-product count.
+
+The observations are assistant source checks against actual images and retained upstream annotations, not independent human verification. Three amended transactions belong to the previously measured evaluation split. This is a disclosed retrospective truth repair, not a new blind holdout. No application, model, prompt, parser or matching rule was tuned from these cases. The new labels were written before rescoring and were never supplied to extraction. Frozen predictions from five existing full pipelines were checked against both annotation versions on the identical original fifty transactions:
+
+| Frozen pipeline | Original row detection | Revised priced-row detection | Revised exact line prices | Printed totals | Trusted reconciliation |
+|---|---:|---:|---:|---:|---:|
+| Original Tesseract | 33/130 | 33/135 | 3/134 | 0/49 | 0/49 |
+| Paddle + layout v3 parser | 102/130 | 103/135 | 8/134 | 3/49 | 0/49 |
+| docTR + layout v3 parser | 97/130 | 98/135 | 7/134 | 4/49 | 1/49 |
+| Qwen structured v2 | 129/130 | 133/135 | 102/134 | 33/49 | 0/49 |
+| Current independent hybrid replay | 129/130 | 133/135 | 102/134 | 33/49 | 0/49 |
+
+These are annotation-driven count changes on unchanged outputs, not recognition improvements. Historical pipeline versions, preparation and runtime circumstances differ; this is not an isolated engine ablation or a new latency measurement. Qwen and the hybrid already detect four of the five added rows. Three amounts are correct, including two zero-price options; only one of the two paid add-on amounts is correct. The other source prints `4,000`, while the canonical saved draft contains `4.000`. Exact IDR comparison fails that value without using truth to reinterpret it. The zero-price `Sedang` option is not a separate predicted row. Known quantities expand from 117 to 120, and the hybrid correctly supplies 119; the paid add-ons contribute no invented quantity labels. Nested ownership is retained as truth provenance but is not assessed by the existing flat app schema/scorer.
+
+All receipt-level total and trusted-reconciliation counts remain unchanged. Original strict complete-receipt accuracy is still unscorable: adding five source rows does not resolve blurred merchant evidence, missing quantities, tax/discount basis or incomplete financial coverage. A future expanded complete-financial metric must also assess fee amounts, rounding and nested ownership explicitly; a balanced total alone cannot establish these fields. Genuine digital/PDF/refund truth and representative new evaluation cases remain missing.
+
+Fifteen evaluation regression tests passed. The source-review checkpoint verifies twelve files; the paired rescore verifies 281 files, including all original source images, retained predictions, scanner/runtime snapshots and the unchanged scoring configuration. The preceding signed-finance checkpoint's 266-file verifier still passes, and the protected original checkout's HEAD, dirty paths and binary-diff hash are unchanged. No inference, external upload or application source change occurred. Reproduce the evidence checks with `python receipt_training/scripts/record_priced_row_review_v2.py --check` and `python receipt_training/scripts/build_priced_row_rescore_v2.py --check`. Aggregate evidence is in [advanced-priced-row-truth-v2.json](advanced-priced-row-truth-v2.json) and [advanced-priced-row-rescore-v2.json](advanced-priced-row-rescore-v2.json).
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |
 |---|---|
 | 1 — Investigation | Existing application, datasets, branches, extraction and financial paths inspected; primary changes preserved. |
-| 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. Complete original financial truth and genuine digital/PDF cases remain missing. |
+| 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. A separate source-checked priced-row revision adds two paid add-ons and three zero-price options; five frozen pipelines are rescored on both label versions without new inference. Complete original financial/global truth and genuine digital/PDF cases remain missing. |
 | 3 — Technology comparison | Full neural OCR comparisons, full Qwen3-VL cohort, PaddleOCR-VL, GLM modes and Qwen3.5 profiles measured. Identical redacted-crop local comparison exposed extra purchases and lost coupons; no result was hidden. Veryfi input, one-use transport and offline field audit are prepared and tested; settings pass local format checks, with the user-requested comparison awaiting unused Free quota confirmation. Two approved Gemini attempts returned 503; real cloud accuracy is unmeasured. Strongest final architecture is not certified. |
 | 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF/direct text, actual scanned-PDF OCR-to-split, advisory photo-quality checks and local selected-area rereads with manual correction work within tested limits. General document classification, genuine long-photo/PDF accuracy, overlap coverage, calibrated quality/edges/deskew/perspective and broader automatic recovery remain open. |
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
