@@ -28,9 +28,12 @@ if (await access(resolve(out, "metadata.json")).then(() => true, () => false))
   throw new Error("Run already exists. Preserve it and choose a new --run name.");
 await mkdir(out, { recursive: true });
 const sha = (data) => createHash("sha256").update(data).digest("hex");
-const manifestBytes = await readFile(resolve(root, "manifest.jsonl"));
+const manifestPath = resolve(root, option("--manifest", "manifest.jsonl"));
+if (!manifestPath.startsWith(root + "/") && !manifestPath.startsWith(root + "\\"))
+  throw new Error("Manifest must stay inside receipt_training");
+const manifestBytes = await readFile(manifestPath);
 const records = manifestBytes.toString().trim().split(/\r?\n/).map(JSON.parse)
-  .filter((record) => record.split === split && record.real_receipt && record.included_in_pilot !== false).slice(0, limit);
+  .filter((record) => record.split === split && (args.includes("--include-controls") || (record.real_receipt && record.included_in_pilot !== false))).slice(0, limit);
 const paths = ["images.ts", "ocr.ts", "parser.ts", "model.ts", "engine.ts", "money.ts", "scan-limits.mjs"];
 const sourceHashes = {};
 const frozenSources = new Map();
@@ -46,6 +49,7 @@ const metadata = {
   provider: "existing-localOcrProvider", split, runName,
   started_at: new Date().toISOString(), node: process.version,
   manifest_sha256: sha(manifestBytes), config_sha256: sha(configBytes), source_sha256: sourceHashes,
+  manifest_path: manifestPath,
   source_commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: project, encoding: "utf8" }).trim(),
   source_includes_uncommitted_work: true,
   source_served_from_frozen_snapshot: true,
@@ -88,25 +92,41 @@ try {
   const page = await context.newPage();
   await page.goto("http://127.0.0.1:5268/__receipt_evaluation");
   for (const record of records) {
-    const bytes = await readFile(resolve(root, record.file_path));
-    if (sha(bytes) !== record.sha256) throw new Error(`Checksum mismatch: ${record.receipt_id}`);
-    const mime = record.file_path.endsWith(".webp") ? "image/webp" : "image/jpeg";
+    const inputs = record.source_files || [{ file_path: record.file_path, sha256: record.sha256 }];
+    if (!inputs.length || inputs.length > 12) throw new Error("Invalid photo group");
+    const photos = [];
+    for (const input of inputs) {
+      const path = resolve(root, input.file_path);
+      if (!path.startsWith(root + "/") && !path.startsWith(root + "\\")) throw new Error("Receipt must stay inside receipt_training");
+      const bytes = await readFile(path);
+      if (sha(bytes) !== input.sha256) throw new Error(`Checksum mismatch: ${record.receipt_id}`);
+      const mime = /\.webp$/i.test(path) ? "image/webp" : /\.png$/i.test(path) ? "image/png" : "image/jpeg";
+      photos.push({ base64: bytes.toString("base64"), mime });
+    }
     const started = performance.now();
     let prediction;
     try {
-      prediction = await page.evaluate(async ({ base64, mime, id }) => {
+      prediction = await page.evaluate(async ({ photos, id }) => {
         const { prepareImage, readingBlobs } = await import("/src/lib/images.ts");
         const { localOcrProvider } = await import("/src/lib/ocr.ts");
         const { parseReceiptText } = await import("/src/lib/parser.ts");
         const { calculateReceipt } = await import("/src/lib/engine.ts");
-        const image = await prepareImage(new File([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], id, { type: mime }));
+        const images = [];
         try {
-          const extracted = await localOcrProvider.extract([image], new AbortController().signal, () => {});
-          const receipt = parseReceiptText(extracted);
-          const calculation = calculateReceipt(receipt);
-          return JSON.parse(JSON.stringify({ receipt, calculation, extraction_warnings: extracted.warnings || [], reading_panels: readingBlobs(image).length }, (_, value) => typeof value === "bigint" ? value.toString() : value));
-        } finally { URL.revokeObjectURL(image.url); }
-      }, { base64: bytes.toString("base64"), mime, id: record.receipt_id });
+          for (const [index, photo] of photos.entries()) {
+            images.push(await prepareImage(new File([Uint8Array.from(atob(photo.base64), (c) => c.charCodeAt(0))], `${id}-${index}`, { type: photo.mime })));
+          }
+          const extracted = await localOcrProvider.extract(images, new AbortController().signal, () => {});
+          const evidence = { extraction_warnings: extracted.warnings || [], reading_panels: images.reduce((n, image) => n + readingBlobs(image).length, 0) };
+          try {
+            const receipt = parseReceiptText(extracted);
+            const calculation = calculateReceipt(receipt);
+            return JSON.parse(JSON.stringify({ receipt, calculation, ...evidence }, (_, value) => typeof value === "bigint" ? value.toString() : value));
+          } catch (error) {
+            return { ...evidence, error: String(error).slice(0, 1000), extracted_text: extracted.text, failed_stage: "parse" };
+          }
+        } finally { images.forEach((image) => URL.revokeObjectURL(image.url)); }
+      }, { photos, id: record.receipt_id });
     } catch (error) {
       prediction = { error: String(error).slice(0, 1000) };
     }

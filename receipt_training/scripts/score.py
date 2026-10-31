@@ -108,8 +108,13 @@ def score_one(record, label, prediction, config):
     counts.update({"samples": 1, "item_label_samples": int(eligible), "expected_items": len(expected),
                    "predicted_items": len(predicted_items) if eligible else 0, "matched_items": len(matches)})
     errors = []
+    if label.get("merchant", {}).get("value") is not None:
+        counts["merchant_known"] += 1
+        counts["merchant_correct"] += int(description(label["merchant"]["value"]) == description(actual.get("merchant")))
     for index, item in enumerate(expected):
         target = predicted_items[matches[index]] if index in matches else {}
+        counts["description_known"] += 1
+        counts["description_correct"] += int(index in matches and description(item["description"]["value"]) == description(target.get("description")))
         for expected_key, actual_key, metric_name in [("line_total", "lineTotal", "item_price"), ("discount", "discount", "item_discount"), ("unit_price", "unitPrice", "unit_price")]:
             value = minor(item[expected_key]["value"], currency, config)
             if value is None:
@@ -133,6 +138,28 @@ def score_one(record, label, prediction, config):
             counts["quantity_correct"] += int(correct)
         if index not in matches:
             errors.append({"field": "missing_item", "item_id": item["id"], "expected": item["description"]["value"]})
+        # Matching deliberately ignores money. Association is then assessed on
+        # the matched purchase, so a correct coupon on the wrong item fails.
+        known_group = [("tax_code", "taxCode"), ("discount", "discount")]
+        checks = []
+        for key, predicted_key in known_group:
+            value = item.get(key, {}).get("value")
+            if value is None:
+                continue
+            if key == "tax_code":
+                checks.append(value == target.get(predicted_key))
+            else:
+                amount = minor(value, currency, config)
+                predicted_amount = minor(target.get(predicted_key), currency, config)
+                checks.append(amount is not None and predicted_amount is not None and abs(amount) == predicted_amount)
+        if checks:
+            counts["grouping_known"] += 1
+            counts["grouping_correct"] += int(index in matches and all(checks))
+    counts["missing_items"] += len(expected) - len(matches)
+    if eligible:
+        counts["unmatched_predictions"] += len(predicted_items) - len(matches)
+        if label.get("coverage", {}).get("items_complete_for_visible_body"):
+            counts["extra_items_on_complete_labels"] += len(predicted_items) - len(matches)
     receipt_discounts = [d for d in label["discounts"] if d["item_id"] is None and d["amount"]["value"] is not None]
     if receipt_discounts:
         amounts = [minor(d["amount"]["value"], currency, config) for d in receipt_discounts]
@@ -155,6 +182,11 @@ def score_one(record, label, prediction, config):
         counts["total_correct"] += int(correct)
         if not correct:
             errors.append({"field": "grand_total", "expected": label["grand_total"]["value"], "actual": actual.get("printedTotal")})
+    for key, actual_key in [("subtotal", "subtotal"), ("tax", "printedTax")]:
+        value = minor(label.get(key, {}).get("value"), currency, config)
+        if value is not None:
+            counts[key + "_known"] += 1
+            counts[key + "_correct"] += int(minor(actual.get(actual_key), currency, config) == value)
     calculation = prediction.get("calculation", {})
     if calculation.get("discrepancy") is None:
         counts["reconciliation_unavailable"] += 1
@@ -163,6 +195,29 @@ def score_one(record, label, prediction, config):
         counts["reconciliation_failed"] += int(int(calculation["discrepancy"]) != 0)
         counts["reconciliation_with_validation_issues"] += int(bool(calculation.get("issues")))
         counts["untrusted_zero_discrepancy"] += int(int(calculation["discrepancy"]) == 0 and bool(calculation.get("issues")))
+    if total is not None:
+        counts["trusted_reconciliation_known"] += 1
+        counts["trusted_reconciliation_correct"] += int(
+            calculation.get("discrepancy") == "0" and not calculation.get("issues")
+            and calculation.get("total") == str(total) and counts["currency_correct"] == 1
+            and counts["total_correct"] == 1 and "error" not in prediction)
+    coverage = label.get("coverage", {})
+    complete_eligible = bool(
+        eligible and expected and coverage.get("items_complete_for_visible_body")
+        and coverage.get("financial_fields_complete")
+        and all(label.get(k, {}).get("value") is not None for k in ["merchant", "currency", "subtotal", "tax", "grand_total"])
+        and label.get("prices_include_tax") is not None
+        and all(all(item.get(k, {}).get("value") is not None for k in ["description", "quantity", "line_total", "discount"]) for item in expected))
+    counts["complete_receipt_known"] += int(complete_eligible)
+    if complete_eligible:
+        fields = ["description", "quantity", "item_price", "unit_price", "item_discount", "receipt_discount", "grouping", "merchant", "currency", "subtotal", "tax", "total", "trusted_reconciliation"]
+        counts["complete_receipt_correct"] += int(
+            len(predicted_items) == len(expected) and len(matches) == len(expected)
+            and all(counts[k + "_correct"] == counts[k + "_known"] for k in fields)
+            and actual.get("pricesIncludeTax") == label["prices_include_tax"]
+            and not errors and "error" not in prediction)
+    else:
+        counts["complete_receipt_unscorable"] += 1
     counts["processing_errors"] += int("error" in prediction)
     counts["requires_review"] += int(bool(prediction.get("error") or actual.get("warnings") or calculation.get("issues") or errors))
     return {"receipt_id": record["receipt_id"], "category": record["category"], "country": record["country"],
@@ -179,10 +234,11 @@ def aggregate(rows):
     timings = sorted(row["elapsed_ms"] for row in rows)
     result = {"counts": dict(counts), "item_precision": metric(counts["matched_items"], counts["predicted_items"]),
               "item_recall": metric(counts["matched_items"], counts["expected_items"])}
-    for name in ["item_price", "unit_price", "item_discount", "receipt_discount", "quantity", "currency", "total"]:
+    for name in ["description", "merchant", "item_price", "unit_price", "item_discount", "receipt_discount", "quantity", "grouping", "currency", "subtotal", "tax", "total", "trusted_reconciliation", "complete_receipt"]:
         result[name] = metric(counts[name + "_correct"], counts[name + "_known"])
     result["matched_item_price"] = metric(counts["item_price_correct"], counts["item_price_matched_known"])
     result["latency_ms"] = {"samples": len(timings), "median": statistics.median(timings) if timings else None,
+                            "mean": statistics.mean(timings) if timings else None,
                             "p95_nearest_rank": timings[max(0, (95 * len(timings) + 99) // 100 - 1)] if timings else None,
                             "total": sum(timings)}
     return result
@@ -191,10 +247,17 @@ def aggregate(rows):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("runs", nargs="+", help="Local run folder names")
+    parser.add_argument("--manifest", default="manifest.jsonl")
+    parser.add_argument("--labels", default="annotations/labels.jsonl")
+    parser.add_argument("--output", default="evaluation/results.json")
     args = parser.parse_args()
     config = json.loads((ROOT / "evaluation/config.json").read_text(encoding="utf-8"))
-    records = {r["receipt_id"]: r for r in read_jsonl(ROOT / "manifest.jsonl")}
-    labels = {l["receipt_id"]: l for l in read_jsonl(ROOT / "annotations/labels.jsonl")}
+    def local_path(value):
+        path = (ROOT / value).resolve()
+        path.relative_to(ROOT.resolve())
+        return path
+    records = {r["receipt_id"]: r for r in read_jsonl(local_path(args.manifest))}
+    labels = {l["receipt_id"]: l for l in read_jsonl(local_path(args.labels))}
     rows, metadata, seen = [], [], set()
     for name in args.runs:
         if not re.fullmatch(r"[\w-]+", name):
@@ -230,7 +293,11 @@ def main():
         report["by_split_category"][split] = {category: aggregate([r for r in rows if r["split"] == split and r["category"] == category]) for category in CATEGORIES}
     for country, currency in sorted({(r["country"], r["currency"]) for r in rows}):
         report["by_country_currency"][f"{country}/{currency}"] = aggregate([r for r in rows if (r["country"], r["currency"]) == (country, currency)])
-    path = ROOT / "evaluation/results.json"
+    report["overall"] = aggregate(rows)
+    report["manifest_sha256"] = hashlib.sha256(local_path(args.manifest).read_bytes()).hexdigest()
+    report["labels_sha256"] = hashlib.sha256(local_path(args.labels).read_bytes()).hexdigest()
+    report["metric_scope"] = "Item metrics use annotated top-level purchases; incomplete labels can omit paid modifiers. Complete receipt accuracy requires explicit complete financial and item coverage; unknown fields are excluded, never fabricated. Unmatched predictions are not automatically called duplicates."
+    path = local_path(args.output)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for split, categories in report["by_split_category"].items():
         for category, data in categories.items():

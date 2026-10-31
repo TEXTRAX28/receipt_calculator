@@ -1,5 +1,6 @@
 import json
 import unittest
+from copy import deepcopy
 
 from collect import ROOT, cord_label, field, rupiah
 from score import match_items, minor, score_one
@@ -8,6 +9,56 @@ CONFIG = json.loads((ROOT / "evaluation/config.json").read_text(encoding="utf-8"
 
 
 class EvidenceTests(unittest.TestCase):
+    def financial_case(self):
+        label = cord_label("test", {"gt_parse": {"menu": {"nm": "MILK", "price": "2,000", "cnt": "1"}, "total": {"total_price": "2,000"}}, "meta": {}})
+        for key, value in {"merchant": "SHOP", "currency": "GBP", "subtotal": "2.00", "tax": "0.00", "grand_total": "2.00"}.items():
+            label[key] = field(value, value)
+        item = label["items"][0]
+        for key, value in {"description": "MILK", "quantity": "1", "unit_price": "2.00", "line_total": "2.00", "discount": "0.00", "tax_code": "Z"}.items():
+            item[key] = field(value, value)
+        label["prices_include_tax"] = True
+        label["coverage"] = {"item_metrics_eligible": True, "items_complete_for_visible_body": True, "financial_fields_complete": True}
+        record = {"receipt_id": "test", "category": "non_costco/physical", "country": "GB", "split": "development"}
+        prediction = {"elapsed_ms": 1, "receipt": {"merchant": "Shop", "currency": "GBP", "subtotal": "2.00", "printedTotal": "2.00", "printedTax": "0.00", "pricesIncludeTax": True, "items": [{"description": "MILK", "quantity": "1", "unitPrice": "2.00", "lineTotal": "2.00", "discount": "0.00", "taxCode": "Z"}]}, "calculation": {"discrepancy": "0", "total": "200", "issues": []}}
+        return record, label, prediction
+
+    def test_complete_metric_requires_explicit_complete_truth(self):
+        record, label, prediction = self.financial_case()
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["complete_receipt_correct"], 1)
+        del label["coverage"]["financial_fields_complete"]
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["complete_receipt_known"], 0)
+        self.assertEqual(counts["complete_receipt_unscorable"], 1)
+
+    def test_balanced_wrong_total_and_extra_purchase_fail(self):
+        record, label, prediction = self.financial_case()
+        prediction["calculation"]["total"] = "300"
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["trusted_reconciliation_correct"], 0)
+        self.assertEqual(counts["complete_receipt_correct"], 0)
+        prediction["calculation"]["total"] = "200"
+        prediction["receipt"]["items"].append(deepcopy(prediction["receipt"]["items"][0]))
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["extra_items_on_complete_labels"], 1)
+        self.assertEqual(counts["complete_receipt_correct"], 0)
+
+    def test_fuzzy_detection_is_not_exact_description_accuracy(self):
+        record, label, prediction = self.financial_case()
+        prediction["receipt"]["items"][0]["description"] = "MILC"
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["matched_items"], 1)
+        self.assertEqual(counts["description_correct"], 0)
+        self.assertEqual(counts["complete_receipt_correct"], 0)
+
+    def test_coupon_association_is_checked_on_the_purchase(self):
+        record, label, prediction = self.financial_case()
+        label["items"][0]["discount"] = field("-0.20", "-0.20")
+        prediction["receipt"]["adjustments"] = [{"kind": "discount", "amount": "0.20"}]
+        counts = score_one(record, label, prediction, CONFIG)["counts"]
+        self.assertEqual(counts["grouping_correct"], 0)
+        self.assertEqual(counts["item_discount_correct"], 0)
+
     def test_thousands_are_not_decimal_rupiah(self):
         self.assertEqual(rupiah("1,591,600"), "1591600")
         self.assertEqual(rupiah("43.636"), "43636")
