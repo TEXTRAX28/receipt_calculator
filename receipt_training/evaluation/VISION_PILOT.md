@@ -38,6 +38,8 @@ A separately generated synthetic image tested fee, VAT and negative rounding. On
 
 ## Reproduction on the tested Windows host
 
+The later full original-50 regression is recorded separately in [advanced-qwen-full-v2.json](advanced-qwen-full-v2.json) and the main report. It improves product matching to 129/130 and line prices to 99/129, but still has zero trusted reconciliations and missing complete original truth. The additional document-specific component pilot is [advanced-paddle-vl16-pilot.json](advanced-paddle-vl16-pilot.json). These results do not replace or expand this seven-case pilot's denominator.
+
 The profile is [vision-candidate-manifest.json](vision-candidate-manifest.json). Its three public artifacts total approximately 2.99 GB. Setup verifies official sizes/SHA256 values, extracts the runtime under the ignored model cache, checks archive paths/expansion bounds, and preserves at least 10 GiB free. It reads no receipts and installs nothing globally.
 
 ```powershell

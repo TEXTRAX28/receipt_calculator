@@ -1,6 +1,6 @@
 # Advanced OCR investigation — work in progress
 
-Updated 2026-10-31. The full twelve-phase objective remains active. This report records evidence gathered so far; it does not certify a finished scanner or public release.
+Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds a full original-cohort structured vision comparison and source-region purchase review. This report records evidence gathered so far; it does not certify a finished scanner or public release.
 
 ## Protected baseline
 
@@ -10,7 +10,7 @@ The original checkout on `receipt-dataset-evaluation` remains untouched, includi
 
 ## Original system and corpus
 
-The original pipeline uses English Tesseract.js 6.0.1 with single-block segmentation, browser image normalization and overlapping panels for tall images. A heuristic parser creates an editable draft, then a separate exact-money engine validates and splits it. Graph navigation and verified source locations: `src/lib/ocr.ts:L1`, `src/lib/images.ts:L252`, `src/lib/parser.ts:L36`, `src/lib/engine.ts:L31`, `src/lib/engine.ts:L390`, `src/lib/money.ts:L1`.
+The original pipeline uses English Tesseract.js 6.0.1 with single-block segmentation, browser image normalization and overlapping panels for tall images. A heuristic parser creates an editable draft, then a separate exact-money engine validates and splits it. Current graph navigation and verified source locations: `src/lib/ocr.ts:L1`, `src/lib/images.ts:L272`, `src/lib/parser.ts:L28`, `src/lib/engine.ts:L31`, `src/lib/engine.ts:L390`, `src/lib/money.ts:L1`.
 
 The original manifest contains 50 distinct financial receipts: 44 CORD, four Taiwan Costco, one UK Bristol Costco and one historical Tesco. There is also one nonfinancial photo-order control and a byte-identical Bristol alias. Original financial splits remain 38 development / 12 evaluation. The original evaluation set was inspected in an earlier task; repeating it provides regression evidence, not a fresh blind holdout.
 
@@ -18,7 +18,7 @@ The two original user photos form a separate UK Costco transaction with 18 purch
 
 There are no genuine digital receipts or PDFs in this corpus. CORD labels cover top-level menu items and can omit paid nested modifiers. Six original financial manual annotations are partial source-checked visual references, not independent human verification. The original set has **zero** receipts with enough explicitly complete ground truth for the strict complete-receipt metric. That result is unscorable, not a claimed 0% or 100%. A source-checked complete financial transcription exists for the supplementary UK transaction, with its verification limitations recorded.
 
-## Measured model comparison
+## Initial model comparison with the original text parser
 
 The same frozen prepared image panels, original labels, original parser and exact calculation code were used for both neural OCR candidates. No inference runner reads labels. Source, image, panel, prediction and model hashes are recorded. Private raw outputs and images remain ignored; aggregate results are in `advanced-model-comparison.json`.
 
@@ -140,6 +140,71 @@ python receipt_training/scripts/score.py local-http-development-new local-http-e
 ```
 
 The supplement has complete labels only for its grouped transaction. Do not score all four diagnostics against a one-record label map. No cloud provider is enabled in this benchmark.
+
+### Document-specific VLM component trial
+
+The official Apache-2.0 [PaddleOCR-VL 1.6 GGUF](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF/tree/511b09642bb324401f15f97cc23bc67e8f0a291d) provides approximately 1.82 GB of language/projector weights, pinned and checked against official sizes/SHA256 values. The existing llama.cpp build supports the architecture. Its legacy multimodal CLI crashed on the synthetic input with Windows `c0000409` in `ucrtbase.dll`; that failure is preserved and its root cause is not established. The documented standard CLI worked. A versioned output-file decoder removes only its verified user/assistant transcript framing, retains the model's values and rejects malformed/empty/reasoning outputs. Native streams, decoder/harness/request/model hashes and the original transcript remain archived. Five new transport tests bring Python verification to **27 passed**.
+
+All seven previous cases were sealed before real inference, with the same nine image-panel bytes and no labels or OCR text supplied. Every native panel returned usable text. With the existing text parser, the six financial cases produced **41/55 product matches**, **18/54 prices**, **18/55 quantities**, **2/6 totals** and **0/6 trusted reconciliations**. The control produced zero purchases. Tesco output exceeded the parser's line/length bound and remains a failure. The grouped UK transaction retained twenty purchase rows. This component-plus-parser pipeline was not selected over the stronger structured candidate.
+
+This tests the element recognizer on complete prepared panels. [Paddle's documentation](https://www.paddleocr.ai/main/en/version3.x/pipeline_usage/PaddleOCR-VL.html) distinguishes that component from the complete layout-analysis/recognition pipeline and warns that directly invoking the VLM does not reproduce full-pipeline performance. No word boxes or confidence scores were fabricated for its text-only output. Full-pipeline deployment remains untested. Detailed counts, resource scope and provenance are in [advanced-paddle-vl16-pilot.json](advanced-paddle-vl16-pilot.json).
+
+### Full structured vision comparison on all original receipts
+
+The corrected Qwen protocol was extended to **all 50 original financial receipts plus the four separate diagnostics**. Selection used frozen preparation inventories, never label files. The seven previously tested requests retained exactly their bytes; new requests used the same instructions/schema/settings and their own verified image/photo mapping. All 54 native runs returned JSON without decoder-relaxation warnings and all passed strict application validation and supplied-photo reference checks. The browser postprocessor was frozen to the v2 library bytes while source-review development continued; no extracted amount or uncertainty was repaired. This is the previously inspected regression cohort, not a fresh blind holdout.
+
+| Original 50, frozen annotation scope | Tesseract baseline | Current Paddle text pipeline | Current docTR text pipeline | Qwen structured v2 |
+|---|---:|---:|---:|---:|
+| Matched labelled products / 130 | 33 | 102 | 97 | 129 |
+| Exact normalized descriptions / 130 | 20 | 81 | 69 | 118 |
+| Correct line prices / 129 | 3 | 8 | 7 | 99 |
+| Correct purchased quantities / 117 | 3 | 6 | 6 | 117 |
+| Correct final printed totals / 49 | 0 | 3 | 4 | 33 |
+| Trusted financial reconciliations / 49 | 0 | 0 | 1 | 0 |
+
+Qwen item precision was **129/137 (94.16%)**, recall **129/130 (99.23%)**, line-price accuracy **99/129 (76.74%)**, unit prices **22/31**, item discounts **4/7**, grouping **10/14**, subtotals **25/34** and tax **12/22**. Exact normalized merchant matches were only **1/6**; the frozen metric does not introduce new brand/translation aliases after seeing results. Forty cases retained unresolved currency evidence. Two drafts had correct labelled amounts and zero financial issues/discrepancy but still lacked currency evidence; they do not count as trusted reconciliation. Original strict complete accuracy remains **unscorable, denominator zero**. The grouped supplement still has 22 proposed purchases against 18 actual purchases and **0/1 strict complete receipt**.
+
+This is a substantial field-extraction gain and the strongest measured structured candidate on this cohort. It has not earned unconditional financial acceptance or public release. The comparison is between practical pipelines: Qwen produces structured fields instead of passing raw OCR through the heuristic text parser. The entire gain must not be attributed to raw recognition alone. CORD modifier omissions and partial manual truth remain limitations. The current application still uses its tested computer OCR reader; native structured-VLM consumer integration and measured hybrid recovery remain next work.
+
+Original-50 native mean was **20,011.04 ms**, median **18,590.5 ms**, p95 **32,395 ms**. Browser validation/RPC brought the scored mean to **20,037.84 ms**. Fresh process/model loading is included for each receipt, with potentially warm file/shader caches; browser image preparation and initial download/asset verification are excluded. Peak CLI working set was **3,678,318,592 bytes**, excluding GPU/whole-application memory. This differs from persistent CPU reader e2e timing and establishes no speed advantage. API charges and external receipt uploads were zero; hardware compute cost is unmeasured. Full aggregate counts, hashes and limitations are in [advanced-qwen-full-v2.json](advanced-qwen-full-v2.json).
+
+Reproduce with retained private inputs under fresh run names. Execute the CLI benchmark once per sealed request before import, with one process at a time:
+
+```powershell
+python receipt_training/scripts/prepare_vision_cohort.py --base-pilot qa-artifacts/advanced-ocr/qwen-numeric-rounding-v2.json --version cohort-new
+# Run benchmark_vision_cli.py for every request in cohort-new.json, with a new matching output prefix.
+python receipt_training/scripts/import_vision_cli.py --pilot qa-artifacts/advanced-ocr/qwen-v2-full-cohort-v1.json --prefix qwen-full-v2 --run full-vision-import-new
+node receipt_training/scripts/evaluate.mjs --structured-run full-vision-import-new --source-run qwen-vl4b-pilot-v2-original --split development --run full-vision-development-new
+node receipt_training/scripts/evaluate.mjs --structured-run full-vision-import-new --source-run qwen-vl4b-pilot-v2-original --split evaluation --run full-vision-evaluation-new
+python receipt_training/scripts/score.py full-vision-development-new full-vision-evaluation-new --output evaluation/runs/full-vision-development-new/combined-score-original50.json
+```
+
+The import example verifies retained original outputs; a newly generated protocol requires running and importing its own plan/prefix. Keep the supplement/control separate and do not score unlabelled individual photos as complete transactions.
+
+### Source-region purchase review
+
+Computer scans now retain a transient mapping from parsed purchases to literal recognized source lines. Identical purchases keep their separate positions; attached coupon rows follow the purchase; removed overlapping footer copies are excluded. Misaligned text or missing image references never authorize a guessed source rectangle. The new **View on receipt** action shows a cropped context view with real line boxes, flags low-scoring OCR words for checking, and keeps the original read visible while description/quantity/price/discount/tax-code fields are edited. Shared deterministic validation reports invalid fields and recalculates the receipt. The source score is advisory, not a calibrated probability or proof of correctness.
+
+Current graph/source locations are `src/lib/parser.ts:L33`, `src/lib/receipt-evidence.ts:L32`, `src/lib/receipt-evidence.ts:L100`, `src/ReceiptSource.tsx:L1`. Source metadata is separate from persisted financial state. Image changes, replacement/reset and refresh clear it; object URLs are released when their view closes. Other-provider provenance, exact per-field grounding, receipt-wide adjustment regions and individual-area rescanning remain open work.
+
+Verification: **176 application unit tests**, typecheck, production build, format check, **71 standard browser passes / one duplicate layout skip**, and **27 Python tests**. The new browser workflow passed at 320, 375, 390 and landscape 667 pixels, checks keyboard return and accessible errors, and confirms that source coordinates/blobs/text are absent from local storage. Frozen current HTTP recognition replay mapped **190/190 parsed rows across 54 cases**, with every financial draft unchanged; this is a provenance/parser regression replay, not new OCR or a spatial-accuracy annotation. Separate actual two-photo Costco desktop/mobile runs passed with all eighteen financial rows, distinct source positions for both chickens, four source boxes for the cloth/coupon, no edits and the exact **58.93/58.93/58.92** split. Screenshots were visually inspected. Source-review implementation is isolated in commit `25f8d7b`; its model/provider settings and stable baseline remain unchanged.
+
+## Requirement status against the full objective
+
+| Phase | Current evidence and unfinished acceptance work |
+|---|---|
+| 1 — Investigation | Existing application, datasets, branches, extraction and financial paths inspected; primary changes preserved. |
+| 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. Complete original financial truth and genuine digital/PDF cases remain missing. |
+| 3 — Technology comparison | Full neural OCR comparisons, full structured vision cohort and document-VLM component trial measured. Dedicated/cloud providers remain unconfigured or lack private-upload approval; strongest final architecture is not certified. |
+| 4 — Hybrid pipeline | Modular local/AI boundaries, exact validation and source-row review implemented. Classification/direct PDF text, quality/edges/deskew/perspective, measured independent recovery, exact field grounding and area rescan remain open. |
+| 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
+| 6 — Credentials/services | Keys remain server-only; synthetic Gemini connectivity works. No private cloud uploads or paid activation; pending approval is not inferred. |
+| 7 — Git protection | Stable baseline and separate improvement branch preserved; incremental local commits; no merge/push/deploy. |
+| 8 — Splitting | Exact allocation/property and currency/rounding regressions pass. Full refund/negative-purchase support still needs implementation and tests. |
+| 9 — Mobile UX | Capture/reorder/crop/progress, responsive source review and sharing work in browser tests. Actual camera guidance/edges and item rescan remain open. |
+| 10 — Public security | Local host/origin/body/rate/timeout/cleanup/secret boundaries tested. Public authentication/TLS, crash recovery/OS isolation, production quotas/spend/provider privacy review remain open. |
+| 11 — Complete verification | All original cases processed locally; full original structured regression and real supplied-photo workflow tested. Whole-app peak memory, missing input types/ground truth and cloud/provider/recovery coverage remain incomplete. |
+| 12 — Final report | This is a maintained evidence report with limitations and reproduction. Final requirement-by-requirement acceptance is not yet achieved. |
 
 ## Remaining requirements
 
