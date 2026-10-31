@@ -1,4 +1,4 @@
-import { currencies, type Currency } from "./model";
+import { currencies, type Currency, type Receipt } from "./model";
 
 export const SCALE = 1_000_000n;
 export const MAX_MINOR = 100_000_000_000n;
@@ -103,4 +103,13 @@ export function formatMoney(amount: bigint, currency: Currency): string {
   const text = minorString(negative ? -amount : amount, currency);
   const [integer, fraction] = text.split(".");
   return `${negative ? "−" : ""}${symbols[currency]}${BigInt(integer).toLocaleString("en-GB")}${fraction === undefined ? "" : `.${fraction}`}`;
+}
+
+export function formatReceiptMoney(
+  amount: bigint,
+  receipt: Pick<Receipt, "currency" | "currencyUnresolved">,
+): string {
+  return receipt.currencyUnresolved
+    ? "—"
+    : formatMoney(amount, receipt.currency);
 }

@@ -1,6 +1,6 @@
 # Advanced OCR investigation — work in progress
 
-Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds a full original-cohort structured vision comparison and source-region purchase review. This report records evidence gathered so far; it does not certify a finished scanner or public release.
+Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds an explicit unresolved-currency gate to the full original-cohort structured vision comparison and source-region purchase review. This report records evidence gathered so far; it does not certify a finished scanner or public release.
 
 ## Protected baseline
 
@@ -189,6 +189,14 @@ Current graph/source locations are `src/lib/parser.ts:L33`, `src/lib/receipt-evi
 
 Verification: **176 application unit tests**, typecheck, production build, format check, **71 standard browser passes / one duplicate layout skip**, and **27 Python tests**. The new browser workflow passed at 320, 375, 390 and landscape 667 pixels, checks keyboard return and accessible errors, and confirms that source coordinates/blobs/text are absent from local storage. Frozen current HTTP recognition replay mapped **190/190 parsed rows across 54 cases**, with every financial draft unchanged; this is a provenance/parser regression replay, not new OCR or a spatial-accuracy annotation. Separate actual two-photo Costco desktop/mobile runs passed with all eighteen financial rows, distinct source positions for both chickens, four source boxes for the cloth/coupon, no edits and the exact **58.93/58.93/58.92** split. Screenshots were visually inspected. Source-review implementation is isolated in commit `25f8d7b`; its model/provider settings and stable baseline remain unchanged.
 
+### Explicit currency evidence before financial calculations
+
+An extracted draft with an empty AI currency, missing text currency or an ambiguous dollar/yen symbol now requires an explicit currency selection. The internal legacy currency placeholder is not used to interpret decimal precision, reconcile a printed total or finalize a split while that selection is unresolved. Calculated receipt/item/share displays and draft exports show an em dash instead of a guessed currency amount. Original amount strings stay editable and unchanged, including JPY integers and KWD three-place decimals. Choosing the same GBP value that was previously only a placeholder still resolves the selection and requires a new financial review.
+
+Older extracted drafts that contain the application's unresolved-currency warning reopen at review, preserving their items, people and assignments. Valid known-currency review fingerprints remain compatible, and a current explicit selection survives refresh even when the original scan warning remains. Manual drafts retain their selected default currency. This gate handles a missing/ambiguous currency reported by extraction; it does not prove that every model-provided currency is correct. General human review and unresolved tax-inclusion evidence remain necessary.
+
+Verification: **191 application unit tests passed**, including fifteen currency-evidence/migration/conservation regressions, typecheck, production build and format check. The standard browser suite passed **73 tests with one duplicate layout skip**. After the small-screen metadata layout was widened, ten phone workflow/layout cases passed; the dedicated unresolved-currency review was checked separately on desktop and mobile at 320px, including accessible field errors, retained amounts on refresh, explicit selection and renewed review. Screenshots were inspected. No new recognition-accuracy or model-latency result is claimed by this checkpoint, and the frozen OCR/VLM comparisons are preserved. Stable ref `ee725ba45e799bee8501d3de034e0302c0127afd` and the original checkout's binary patch hash `72fe803bf341a3052a441b7144838d06e7f4cbea5b59d612feb649368442e31b` remain unchanged. Full goal acceptance is still outstanding.
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |
@@ -200,7 +208,7 @@ Verification: **176 application unit tests**, typecheck, production build, forma
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
 | 6 — Credentials/services | Keys remain server-only; synthetic Gemini connectivity works. No private cloud uploads or paid activation; pending approval is not inferred. |
 | 7 — Git protection | Stable baseline and separate improvement branch preserved; incremental local commits; no merge/push/deploy. |
-| 8 — Splitting | Exact allocation/property and currency/rounding regressions pass. Full refund/negative-purchase support still needs implementation and tests. |
+| 8 — Splitting | Exact allocation/property and currency/rounding regressions pass; unresolved currency now blocks calculations/confirmation until explicit selection. Full refund/negative-purchase support still needs implementation and tests. |
 | 9 — Mobile UX | Capture/reorder/crop/progress, responsive source review and sharing work in browser tests. Actual camera guidance/edges and item rescan remain open. |
 | 10 — Public security | Local host/origin/body/rate/timeout/cleanup/secret boundaries tested. Public authentication/TLS, crash recovery/OS isolation, production quotas/spend/provider privacy review remain open. |
 | 11 — Complete verification | All original cases processed locally; full original structured regression and real supplied-photo workflow tested. Whole-app peak memory, missing input types/ground truth and cloud/provider/recovery coverage remain incomplete. |

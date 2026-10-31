@@ -1,14 +1,14 @@
 import { calculateSplit } from "./engine";
 import type { AppState } from "./model";
-import { formatMoney } from "./money";
+import { formatReceiptMoney } from "./money";
 export function readableSummary(state: AppState): string {
   const result = calculateSplit(state);
-  const f = (n: bigint) => formatMoney(n, state.receipt.currency);
+  const f = (n: bigint) => formatReceiptMoney(n, state.receipt);
   const lines = [
     "GATHER · SHARED SHOPPING",
     state.receipt.merchant,
     state.receipt.date || "Date not supplied",
-    `Currency: ${state.receipt.currency}`,
+    `Currency: ${state.receipt.currencyUnresolved ? "Choose currency" : state.receipt.currency}`,
     result.canFinalize ? "Checked split" : "DRAFT — unresolved details remain",
     "",
     `Receipt total: ${f(result.receipt.total)}`,

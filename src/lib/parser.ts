@@ -75,6 +75,7 @@ export function parseReceiptWithSources(output: unknown): {
   else if (/\bKWD\b/.test(text)) receipt.currency = "KWD";
   else if (text.includes("$") || /\bUSD\b/.test(text)) {
     receipt.currency = "USD";
+    currencyIdentified = false;
     if (!/\bUSD\b/.test(text))
       receipt.warnings.push(
         "Dollar symbols can mean several currencies. Confirm the selected currency.",
@@ -85,6 +86,7 @@ export function parseReceiptWithSources(output: unknown): {
       "Currency was not identified. Confirm the selected currency.",
     );
   }
+  receipt.currencyUnresolved = !currencyIdentified;
   const normalize = (token: string) => {
     try {
       return normalizeAmount(

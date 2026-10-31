@@ -12,6 +12,7 @@ export function receiptFromAi(output: unknown): Receipt {
   receipt.merchant = data.merchant;
   receipt.date = data.date;
   receipt.currency = data.currency || "GBP";
+  receipt.currencyUnresolved = !data.currency;
   receipt.subtotal = data.subtotal;
   receipt.printedTotal = data.printedTotal;
   receipt.printedTax = data.printedTax;

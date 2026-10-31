@@ -29,6 +29,34 @@ export interface ReceiptResult {
 const sum = (values: bigint[]) => values.reduce((a, b) => a + b, 0n);
 
 export function calculateReceipt(receipt: Receipt): ReceiptResult {
+  if (receipt.currencyUnresolved)
+    return {
+      issues: [
+        {
+          path: "currency",
+          message:
+            "Choose the receipt currency before calculating or confirming amounts.",
+        },
+      ],
+      // Decimal precision depends on the currency. Keep the original strings untouched
+      // until it is chosen; these placeholders are not displayable money amounts.
+      items: receipt.items.map(({ id }) => ({
+        id,
+        net: 0n,
+        receiptDiscount: 0n,
+        tax: 0n,
+        charges: 0n,
+        total: 0n,
+      })),
+      subtotal: 0n,
+      receiptDiscount: 0n,
+      tax: 0n,
+      otherCharges: 0n,
+      total: 0n,
+      printed: null,
+      discrepancy: null,
+      equalCharges: [],
+    };
   const issues: Issue[] = [];
   const issue = (path: string, message: string) =>
     issues.push({ path, message });

@@ -2373,6 +2373,9 @@ input[aria-invalid="true"] {
   .form-grid {
     gap: 13px;
   }
+  .metadata {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .metadata .field:last-child {
     grid-column: 1/-1;
   }

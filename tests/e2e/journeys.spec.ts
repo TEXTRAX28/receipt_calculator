@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { mkdir } from "node:fs/promises";
 
 async function manual(page: Page, price = "10.00", merchant = "Little Market") {
   await page.goto("/");
@@ -34,6 +35,70 @@ async function selectAll(page: Page) {
   for (let i = 0; i < 3; i++) await card.getByRole("checkbox").nth(i).check();
   return card;
 }
+
+test("unknown currency stays unpriced until explicitly selected, including the existing default", async ({
+  page,
+}, info) => {
+  await page.goto("/");
+  await page.getByText("Already have receipt text?", { exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Receipt text", exact: true })
+    .fill("Little Market\nMilk 1x 2.00 2.00\nTOTAL 2.00");
+  await page
+    .getByRole("button", { name: "Review this text", exact: true })
+    .click();
+  const currency = page.getByRole("combobox", {
+    name: "Currency",
+    exact: true,
+  });
+  const confirm = page.getByRole("button", {
+    name: "Confirm receipt & add people",
+  });
+  await expect(currency).toHaveValue("");
+  await expect(currency).toHaveAttribute("aria-invalid", "true");
+  await expect(confirm).toBeDisabled();
+  await expect(page.locator(".item-cost")).toHaveText("—");
+  await expect(page.locator(".grand-total strong")).toHaveText("—");
+  await page.reload();
+  await expect(currency).toHaveValue("");
+  await expect(confirm).toBeDisabled();
+  await expect(
+    page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
+  ).toHaveValue("2.00");
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect((await currency.boundingBox())!.width).toBeGreaterThanOrEqual(220);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await mkdir("qa-artifacts", { recursive: true });
+  await page
+    .locator(".metadata")
+    .screenshot({
+      path: `qa-artifacts/currency-metadata-${info.project.name}.png`,
+    });
+  await page.screenshot({
+    path: `qa-artifacts/currency-unresolved-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await currency.selectOption("GBP");
+  await expect(currency).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator(".item-cost")).toHaveText("£2.00");
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Good things are better shared." }),
+  ).toBeVisible();
+});
 test("manual entry → review → people → equal sharing → export and refresh", async ({
   page,
 }) => {

@@ -56,6 +56,7 @@ export const receiptSchema = z.object({
   merchant: z.string().max(100),
   date: z.string().max(20),
   currency: z.enum(Object.keys(currencies) as [Currency, ...Currency[]]),
+  currencyUnresolved: z.boolean().default(false),
   subtotal: numericDraft,
   printedTotal: numericDraft,
   printedTax: numericDraft.default(""),
@@ -125,6 +126,7 @@ export function newReceipt(): Receipt {
     merchant: "",
     date: "",
     currency: "GBP",
+    currencyUnresolved: false,
     subtotal: "",
     printedTotal: "",
     printedTax: "",
@@ -150,9 +152,12 @@ export function newState(): AppState {
     step: "scan",
   };
 }
-export const receiptStamp = (receipt: Receipt) =>
-  JSON.stringify({
-    ...receipt,
+export const receiptStamp = (receipt: Receipt) => {
+  const { currencyUnresolved, ...fields } = receipt;
+  return JSON.stringify({
+    ...fields,
+    // Preserve valid review fingerprints from drafts saved before this flag existed.
+    ...(currencyUnresolved ? { currencyUnresolved: true } : {}),
     rawText: "",
     items: receipt.items.map(
       ({
@@ -163,6 +168,7 @@ export const receiptStamp = (receipt: Receipt) =>
       }) => financial,
     ),
   });
+};
 export const finalStamp = (state: AppState) =>
   JSON.stringify([
     state.receipt,

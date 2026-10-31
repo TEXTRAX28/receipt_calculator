@@ -56,7 +56,7 @@ import {
   removePerson,
   type ReceiptResult,
 } from "./lib/engine";
-import { formatMoney } from "./lib/money";
+import { formatReceiptMoney } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
 import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
 import { prepareImage, type ReceiptImage } from "./lib/images";
@@ -255,7 +255,7 @@ export default function App() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const result = useMemo(() => calculateSplit(state), [state]);
   const receiptResult = result.receipt;
-  const f = (amount: bigint) => formatMoney(amount, state.receipt.currency);
+  const f = (amount: bigint) => formatReceiptMoney(amount, state.receipt);
   const finalized =
     state.finalizedStamp !== "" &&
     state.finalizedStamp === finalStamp(state) &&
@@ -622,7 +622,10 @@ export default function App() {
         </div>
         <h2>{state.receipt.merchant || "A new adventure"}</h2>
         <span className="muted">
-          {state.receipt.date || "Receipt draft"} · {state.receipt.currency}
+          {state.receipt.date || "Receipt draft"} ·{" "}
+          {state.receipt.currencyUnresolved
+            ? "Choose currency"
+            : state.receipt.currency}
         </span>
         <div className="receipt-dashes" />
         <SummaryRows receipt={state.receipt} result={receiptResult} />
@@ -1316,7 +1319,11 @@ export default function App() {
                       )}
                       <div className="panel-heading">
                         <h2>The receipt details</h2>
-                        <span className="pill">{state.receipt.currency}</span>
+                        <span className="pill">
+                          {state.receipt.currencyUnresolved
+                            ? "Currency needed"
+                            : state.receipt.currency}
+                        </span>
                       </div>
                       <div className="form-grid metadata">
                         <Field label="Merchant">
@@ -1337,15 +1344,30 @@ export default function App() {
                             }
                           />
                         </Field>
-                        <Field label="Currency">
+                        <Field
+                          label="Currency"
+                          error={
+                            state.receipt.currencyUnresolved
+                              ? "Choose the currency printed on your receipt."
+                              : undefined
+                          }
+                        >
                           <select
-                            value={state.receipt.currency}
+                            value={
+                              state.receipt.currencyUnresolved
+                                ? ""
+                                : state.receipt.currency
+                            }
                             onChange={(e) =>
                               editReceipt({
                                 currency: e.target.value as Receipt["currency"],
+                                currencyUnresolved: false,
                               })
                             }
                           >
+                            <option value="" disabled>
+                              Choose currency
+                            </option>
                             {Object.keys(currencies).map((code) => (
                               <option key={code}>{code}</option>
                             ))}
@@ -2453,7 +2475,7 @@ function SummaryRows({
   receipt: Receipt;
   result: ReceiptResult;
 }) {
-  const f = (n: bigint) => formatMoney(n, receipt.currency);
+  const f = (n: bigint) => formatReceiptMoney(n, receipt);
   return (
     <dl className="summary-rows">
       <div>
@@ -2501,7 +2523,7 @@ function SummaryItemCost({
   cost?: ReceiptResult["items"][number];
 }) {
   if (!cost) return null;
-  const f = (n: bigint) => formatMoney(n, receipt.currency);
+  const f = (n: bigint) => formatReceiptMoney(n, receipt);
   return (
     <dl className="summary-rows">
       <div>
@@ -2571,7 +2593,7 @@ function ItemEditor({
           onChange={(lineTotal) => onChange({ lineTotal })}
         />
         <strong className="item-cost">
-          {formatMoney(cost, receipt.currency)}
+          {formatReceiptMoney(cost, receipt)}
         </strong>
         <button
           className="icon-button"

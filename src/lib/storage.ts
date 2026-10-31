@@ -9,7 +9,27 @@ export function loadDraft(storage: Pick<Storage, "getItem">): {
     if (!raw) return { state: newState(), warning: "" };
     if (raw.length > 800000)
       throw new Error("Stored draft exceeds the safety limit.");
-    const state = appSchema.parse(JSON.parse(raw));
+    const input = JSON.parse(raw);
+    const state = appSchema.parse(input);
+    if (
+      input.receipt.currencyUnresolved === undefined &&
+      ["ocr", "ai", "text"].includes(state.receipt.source) &&
+      state.receipt.warnings.some((warning) =>
+        /^(Currency was (?:unclear|not identified)\.|Dollar symbols can mean several currencies\.)/.test(
+          warning,
+        ),
+      )
+    ) {
+      state.receipt.currencyUnresolved = true;
+      state.reviewedStamp = "";
+      state.finalizedStamp = "";
+      state.step = "review";
+      return {
+        state,
+        warning:
+          "Your saved receipt needs its currency selected before amounts can be checked. Your items and assignments are still here.",
+      };
+    }
     // Receipt images and raw OCR are intentionally not persisted.
     return { state, warning: "" };
   } catch {
