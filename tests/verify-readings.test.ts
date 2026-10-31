@@ -189,6 +189,34 @@ describe("independent original-image readings are grounded without labels or bal
     expect(result.receipt.reviewChecks).toEqual([]);
     expect(calculateReceipt(result.receipt).issues).toEqual([]);
   });
+  it("recovers a source-confirmed coupon when the merchant header has been cropped out", () => {
+    const { texts, raw } = costco();
+    texts.shift();
+    raw.merchant = "";
+    const result = verifyIndependentReadings(raw, recognition(texts));
+    expect(result.receipt.items).toHaveLength(3);
+    expect(result.receipt.items[0].discount).toBe("2.00");
+    expect(result.corrections).toHaveLength(1);
+    expect(
+      result.receipt.items.filter(
+        (entry) => entry.description === "KS ROTISS CHICKEN",
+      ),
+    ).toHaveLength(2);
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({ field: "discount", reason: "recovered" }),
+    );
+    expect(calculateReceipt(result.receipt).total).toBe(1758n);
+  });
+  it("does not use a vision-only merchant claim to apply another retailer's coupon convention", () => {
+    const { texts, raw } = costco();
+    texts[0] = "Little Market";
+    for (const index of [5, 7]) texts[index] = "ROAST CHICKEN";
+    raw.items[2].description = raw.items[3].description = "ROAST CHICKEN";
+    const result = verifyIndependentReadings(raw, recognition(texts));
+    expect(result.corrections).toHaveLength(0);
+    expect(result.receipt.items).toHaveLength(4);
+    expect(result.receipt.items[0].discount).toBe("0");
+  });
   it("does not use a legible zero-rate row to confirm a different unclear rate", () => {
     const { texts, raw } = costco();
     const result = verifyIndependentReadings(raw, recognition(texts, 11));
@@ -215,37 +243,41 @@ describe("independent original-image readings are grounded without labels or bal
       expect.objectContaining({ field: "taxCodes", reason: "coverage" }),
     );
   });
-  it("does not double-count source-confirmed coupon summaries, counts or future loyalty earnings", () => {
-    const { texts, raw } = costco();
-    texts.push(
-      "Savings: £2.00 1 Coupon(s)",
-      "you have earned £0.32 towards your",
-      "annual executive reward.",
-    );
-    const value = {
-      ...raw,
-      adjustments: [
-        { label: "Savings", kind: "discount", amount: "2.00" },
-        { label: "Coupon(s)", kind: "discount", amount: "1" },
-        { label: "Executive Reward", kind: "discount", amount: "0.32" },
-      ],
-    };
-    const result = verifyIndependentReadings(value, recognition(texts));
-    expect(result.removedAdjustments.map((entry) => entry.reason)).toEqual([
-      "coupon-summary",
-      "coupon-count",
-      "future-reward",
-    ]);
-    expect(result.receipt.adjustments).toEqual([]);
-    const check = result.receipt.reviewChecks.find(
-      (check) => check.field === "adjustments",
-    )!;
-    expect(check.details).toHaveLength(3);
-    expect(calculateReceipt(result.receipt).total).toBe(1758n);
-    expect(calculateReceipt(result.receipt).issues).toContainEqual(
-      expect.objectContaining({ path: "adjustments" }),
-    );
-  });
+  it.each(["printed", "cropped"])(
+    "does not double-count source-confirmed coupon summaries, counts or future loyalty earnings with a %s header",
+    (header) => {
+      const { texts, raw } = costco();
+      if (header === "cropped") texts.shift();
+      texts.push(
+        "Savings: £2.00 1 Coupon(s)",
+        "you have earned £0.32 towards your",
+        "annual executive reward.",
+      );
+      const value = {
+        ...raw,
+        adjustments: [
+          { label: "Savings", kind: "discount", amount: "2.00" },
+          { label: "Coupon(s)", kind: "discount", amount: "1" },
+          { label: "Executive Reward", kind: "discount", amount: "0.32" },
+        ],
+      };
+      const result = verifyIndependentReadings(value, recognition(texts));
+      expect(result.removedAdjustments.map((entry) => entry.reason)).toEqual([
+        "coupon-summary",
+        "coupon-count",
+        "future-reward",
+      ]);
+      expect(result.receipt.adjustments).toEqual([]);
+      const check = result.receipt.reviewChecks.find(
+        (check) => check.field === "adjustments",
+      )!;
+      expect(check.details).toHaveLength(3);
+      expect(calculateReceipt(result.receipt).total).toBe(1758n);
+      expect(calculateReceipt(result.receipt).issues).toContainEqual(
+        expect.objectContaining({ path: "adjustments" }),
+      );
+    },
+  );
   it.each([
     "before-total",
     "count-mismatch",

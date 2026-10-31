@@ -163,6 +163,16 @@ export function verifyIndependentReadings(
   const parsed = parseReceiptWithSources(assembled.text);
   const ocr = parsed.receipt,
     lines = assembled.sourceLines;
+  // A crop can start at a purchase while retaining independent retailer context.
+  // Keep an unrecognized heading from being overridden by product-name markers.
+  const firstSourceLine = lines.findIndex((line) => line !== null);
+  const startsAtPurchase =
+    firstSourceLine >= 0 &&
+    ocr.items.length > 0 &&
+    (parsed.sources[ocr.items[0].id] || []).includes(firstSourceLine);
+  const costcoSource =
+    /\bcostco\b/i.test(assembled.text) ||
+    (startsAtPurchase && ocr.merchant === "Costco");
   const currencyWitnesses = new Map<Receipt["currency"], number[]>();
   for (const [index, line] of lines.entries()) {
     if (
@@ -394,7 +404,7 @@ export function verifyIndependentReadings(
     });
   };
 
-  if (/\bcostco\b/i.test(assembled.text)) {
+  if (costcoSource) {
     for (const [nativeIndex, sourceIndex] of pairs) {
       const owner = receipt.items[nativeIndex],
         source = sourceRows[sourceIndex];
@@ -534,7 +544,7 @@ export function verifyIndependentReadings(
     reason: string;
     sourceIndices: number[];
   }[] = [];
-  if (/\bcostco\b/i.test(assembled.text)) {
+  if (costcoSource) {
     const negativeRows = lines.filter(
       (line) => line && matchCostcoRow(line.text)?.deduction,
     );
