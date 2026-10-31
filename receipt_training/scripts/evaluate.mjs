@@ -25,6 +25,8 @@ const limit = Number(option("--limit", "1000"));
 const prepareOnly = args.includes("--prepare-only");
 const ocrRun = option("--ocr-run", null);
 if (ocrRun && (!/^[\w-]+$/.test(ocrRun) || prepareOnly)) throw new Error("Choose one valid OCR input run");
+const recognitionLayout = args.includes("--recognition-layout");
+if (recognitionLayout && !ocrRun) throw new Error("Recognition layout requires a frozen --ocr-run");
 let candidateMetadata;
 let candidateById;
 if (ocrRun) {
@@ -64,12 +66,17 @@ for (const file of paths) {
   await writeFile(resolve(out, "source", file), data);
 }
 const configBytes = await readFile(resolve(root, "evaluation/config.json"));
+const runnerBytes = await readFile(fileURLToPath(import.meta.url));
+await writeFile(resolve(out, "evaluate.mjs"), runnerBytes);
 const metadata = {
   provider: prepareOnly ? "frozen-image-preparation-only" : ocrRun ? candidateMetadata.adapter : "existing-localOcrProvider", split, runName,
   candidate_run: ocrRun,
   candidate_ocr_sha256: candidateMetadata?.ocr_sha256,
+  recognition_assembly: recognitionLayout ? "source-region-layout" : "legacy-text-window-join",
+  cached_evidence_scope: ocrRun ? "Parser/layout replay of the original frozen model evidence, not a live HTTP/decode gate replay. Earlier preview rounding can exceed today's exact pixel budget; those source pixels and model outputs remain unchanged." : null,
   started_at: new Date().toISOString(), node: process.version,
   manifest_sha256: sha(manifestBytes), config_sha256: sha(configBytes), source_sha256: sourceHashes,
+  evaluation_runner_sha256: sha(runnerBytes),
   manifest_path: manifestPath,
   source_commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: project, encoding: "utf8" }).trim(),
   source_includes_uncommitted_work: true,
@@ -82,7 +89,7 @@ const metadata = {
 await writeFile(resolve(out, "metadata.json"), JSON.stringify(metadata, null, 2));
 execFileSync(process.execPath, ["scripts/prepare-ocr.mjs"], { cwd: project, stdio: "pipe" });
 const server = await createServer({
-  configFile: false, root: project, logLevel: "error",
+  configFile: false, root: project, logLevel: "error", cacheDir: resolve(out, "vite-cache"),
   server: { host: "127.0.0.1", port: 5268, strictPort: true, hmr: false,
     watch: { ignored: ["**/receipt_training/.cache/**", "**/receipt_training/evaluation/runs/**", "**/qa-artifacts/**"] } },
   optimizeDeps: { noDiscovery: true, include: ["zod", "tesseract.js"] },
@@ -130,7 +137,7 @@ try {
     const started = performance.now();
     let prediction;
     try {
-      prediction = await page.evaluate(async ({ photos, id, prepareOnly, candidate }) => {
+      prediction = await page.evaluate(async ({ photos, id, prepareOnly, candidate, recognitionLayout, adapter }) => {
         const { prepareImage, readingBlobs } = await import("/src/lib/images.ts");
         const { localOcrProvider, joinDetailText } = await import("/src/lib/ocr.ts");
         const { parseReceiptText, PHOTO_SEPARATOR } = await import("/src/lib/parser.ts");
@@ -159,7 +166,16 @@ try {
             return { preparedPanels };
           }
           let extracted;
-          if (candidate) {
+          if (candidate && recognitionLayout) {
+            const { assembleRecognition } = await import("/src/lib/receipt-layout.ts");
+            const panels = candidate.panels.map(({ photo_index, panel_index, width, height, words, lines }) => ({
+              photo: photo_index + 1, part: panel_index + 1, width, height, words, lines,
+            }));
+            // Hash-bound offline OCR evidence is not an upload. Do not alter legacy
+            // panel dimensions to masquerade as a current live request-gate test.
+            const assembled = assembleRecognition({ engine: adapter, panels });
+            extracted = { text: assembled.text, warnings: assembled.warnings };
+          } else if (candidate) {
             const grouped = new Map();
             for (const panel of [...candidate.panels].sort((a, b) => a.photo_index - b.photo_index || a.panel_index - b.panel_index)) {
               const list = grouped.get(panel.photo_index) || [];
@@ -168,7 +184,7 @@ try {
             }
             extracted = { text: [...grouped.values()].map(joinDetailText).join(`\n${PHOTO_SEPARATOR}\n`), warnings: [] };
           } else extracted = await localOcrProvider.extract(images, new AbortController().signal, () => {});
-          const evidence = { extraction_warnings: extracted.warnings || [], reading_panels: candidate ? candidate.panels.length : images.reduce((n, image) => n + readingBlobs(image).length, 0) };
+          const evidence = { extraction_warnings: extracted.warnings || [], reading_panels: candidate ? candidate.panels.length : images.reduce((n, image) => n + readingBlobs(image).length, 0), cached_panels_over_current_pixel_limit: candidate ? candidate.panels.some((p) => p.width * p.height > 4_000_000) : false };
           try {
             const receipt = parseReceiptText(extracted);
             const calculation = calculateReceipt(receipt);
@@ -177,7 +193,7 @@ try {
             return { ...evidence, error: String(error).slice(0, 1000), extracted_text: extracted.text, failed_stage: "parse" };
           }
         } finally { images.forEach((image) => URL.revokeObjectURL(image.url)); }
-      }, { photos, id: record.receipt_id, prepareOnly, candidate });
+      }, { photos, id: record.receipt_id, prepareOnly, candidate, recognitionLayout, adapter: candidateMetadata?.adapter });
     } catch (error) {
       prediction = { error: String(error).slice(0, 1000) };
     }

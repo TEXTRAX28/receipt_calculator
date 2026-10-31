@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { validateRecognition } from "./recognition-schema.mjs";
-import { joinDetailText } from "./ocr";
-import { PHOTO_SEPARATOR, extractionOutputSchema } from "./parser";
+import { assembleRecognition } from "./receipt-layout";
+import { extractionOutputSchema } from "./parser";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 
 const capabilities = z.object({
@@ -55,20 +55,12 @@ export async function extractWithLocalModel(
           : "The computer reader could not finish. Your photos are still available.",
       );
     const recognition = validateRecognition(result.recognition, panels);
-    const photos = new Map<number, string[]>();
-    for (const panel of [...recognition.panels].sort(
-      (a, b) => a.photo - b.photo || a.part - b.part,
-    )) {
-      const parts = photos.get(panel.photo) || [];
-      parts.push(panel.lines.map((line) => line.text).join("\n"));
-      photos.set(panel.photo, parts);
-    }
-    const text = [...photos.values()]
-      .map(joinDetailText)
-      .join(`\n${PHOTO_SEPARATOR}\n`);
+    const assembled = assembleRecognition(recognition);
+    const text = assembled.text;
     extractionOutputSchema.parse({ text });
     const warnings = [
       "The computer model prepared this draft. Check every purchase, quantity, discount and amount against the originals.",
+      ...assembled.warnings,
     ];
     if (
       recognition.panels.some((panel) =>

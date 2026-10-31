@@ -6,6 +6,7 @@ import {
   type Currency,
 } from "./model";
 import { printedAmount } from "./printed-amount";
+import { matchCostcoRow } from "./costco-row";
 import { z } from "zod";
 
 export const extractionOutputSchema = z.object({
@@ -18,7 +19,7 @@ export function normalizeAmount(token: string, currency?: Currency): string {
 }
 const valuesIn = (line: string) =>
   [...line.matchAll(amountPattern)].map((m) => m[0]);
-const isFinalTotal = (line: string) =>
+export const isFinalTotal = (line: string) =>
   /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|total\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[£$€]?\s*\d)/i.test(
     line,
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
@@ -117,8 +118,18 @@ export function parseReceiptText(output: unknown): Receipt {
     );
     if (code)
       receipt.taxCodes.push({ code: code[1], rate: code[2].replace(",", ".") });
-    if (isFinalTotal(line))
-      receipt.printedTotal = lastAmount(line) || receipt.printedTotal;
+    if (isFinalTotal(line)) {
+      const candidate = lastAmount(line);
+      if (
+        candidate &&
+        receipt.printedTotal &&
+        candidate !== receipt.printedTotal
+      )
+        receipt.warnings.push(
+          "Different final totals were read. Check the printed total against the original before confirming this receipt.",
+        );
+      receipt.printedTotal = candidate || receipt.printedTotal;
+    }
     if (/\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line))
       receipt.subtotal = lastAmount(line) || receipt.subtotal;
     if (
@@ -184,7 +195,7 @@ export function parseReceiptText(output: unknown): Receipt {
     );
   let pendingDescription = "";
   let itemSectionEnded = false;
-  for (const line of lines) {
+  for (const [lineIndex, line] of lines.entries()) {
     if (line === PHOTO_SEPARATOR) {
       itemSectionEnded = false;
       pendingDescription = "";
@@ -206,13 +217,11 @@ export function parseReceiptText(output: unknown): Receipt {
       pendingDescription = "";
       continue;
     }
-    const costco = line.match(
-      /(?:^|\s)\d{1,12}[\s©|]+(\d+(?:[.,]\d+)?|[Il])\s*[x×]\s+([\d,.]+)\s+([\d,.]+)\s*(-)?\s*([A-Z0-9]{1,6})?\s*[^A-Z\d.,-]{0,5}$/i,
-    );
+    const costco = matchCostcoRow(line);
     if (costco) {
       const description = pendingDescription || "";
-      const negative = !!costco[4];
-      const value = normalize(costco[3]);
+      const negative = costco.deduction;
+      const value = normalize(costco.lineTotal);
       if (negative) {
         if (!value) {
           receipt.adjustments.push({
@@ -242,7 +251,7 @@ export function parseReceiptText(output: unknown): Receipt {
             previous.discount = value;
             previous.note =
               "Separate discount matched to this preceding purchase. Confirm the match.";
-            if (costco[5] && previous.taxCode !== costco[5].toUpperCase())
+            if (costco.taxCode && previous.taxCode !== costco.taxCode)
               receipt.warnings.push(
                 `Discount tax code differs for ${previous.description}. Check the discount match.`,
               );
@@ -262,12 +271,12 @@ export function parseReceiptText(output: unknown): Receipt {
       } else {
         const item = newItem();
         item.description = description.slice(0, 180);
-        item.quantity = /^[Il]$/i.test(costco[1])
+        item.quantity = /^[Il]$/i.test(costco.quantity)
           ? ""
-          : costco[1].replace(",", ".");
-        item.unitPrice = normalize(costco[2]);
+          : costco.quantity.replace(",", ".");
+        item.unitPrice = normalize(costco.unitPrice);
         item.lineTotal = value;
-        item.taxCode = (costco[5] || "").toUpperCase();
+        item.taxCode = costco.taxCode;
         if (!description)
           item.note = "Description missing. Copy it from the original receipt.";
         if (!item.quantity)
@@ -276,6 +285,12 @@ export function parseReceiptText(output: unknown): Receipt {
         receipt.items.push(item);
       }
       pendingDescription = "";
+      continue;
+    }
+    // A complete following SKU/quantity/price row identifies this as its title.
+    // In particular, 0.75L is a pack measurement, not a 0.75 price with tax code L.
+    if (/[a-z]{2}/i.test(line) && matchCostcoRow(lines[lineIndex + 1] || "")) {
+      pendingDescription = line.replace(/\*+/g, "").trim();
       continue;
     }
     const generic = line.match(

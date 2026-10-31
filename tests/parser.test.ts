@@ -88,6 +88,19 @@ TOTAL INCL VAT £9.58`);
     expect(r.items[0].unitPrice).toBe("");
     expect(r.items[0].packSize).toBe("");
   });
+  it.each(["HONEY 1.36KG", "OLIVE OIL 0.75L", "COFFEE 2.2LB"])(
+    "keeps decimal measurements in a product description: %s",
+    (description) => {
+      const r = parseReceiptText(
+        `Costco UK\n${description}\n107624 1x 5.99 5.99 Z\nTOTAL £5.99`,
+      );
+      expect(r.items).toHaveLength(1);
+      expect(r.items[0].description).toBe(description);
+      expect(r.items[0].quantity).toBe("1");
+      expect(r.items[0].unitPrice).toBe("5.99");
+      expect(r.items[0].packSize).toBe("");
+    },
+  );
   it("keeps unknown Costco tax codes unresolved", () => {
     const r = parseReceiptText(costcoText.replace("9.49 Z", "9.49 B"));
     expect(r.taxCodes).toContainEqual({ code: "B", rate: "" });

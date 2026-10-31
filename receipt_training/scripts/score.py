@@ -275,6 +275,8 @@ def main():
             raise ValueError("Scoring configuration changed after inference")
         if meta["predictions_sha256"] != hashlib.sha256((folder / "predictions.jsonl").read_bytes()).hexdigest():
             raise ValueError("Predictions changed after inference")
+        if meta.get("evaluation_runner_sha256") and meta["evaluation_runner_sha256"] != hashlib.sha256((folder / "evaluate.mjs").read_bytes()).hexdigest():
+            raise ValueError("Saved evaluation runner changed after inference")
         metadata.append(meta)
         for prediction in read_jsonl(folder / "predictions.jsonl"):
             receipt_id = prediction["receipt_id"]
@@ -285,7 +287,8 @@ def main():
             if prediction["image_sha256"] != record["sha256"] or meta["split"] != record["split"]:
                 raise ValueError("Receipt bytes or split differs from the run")
             rows.append(score_one(record, labels[receipt_id], prediction, config))
-    report = {"baseline": "existing Tesseract browser pipeline, unchanged", "run_names": args.runs,
+    report = {"baseline": "Existing Tesseract browser pipeline is the reference; these results describe the listed run providers", "run_names": args.runs,
+              "providers": sorted({m["provider"] for m in metadata}),
               "label_basis": "CORD upstream semantic annotations; assistant visual transcriptions checked against source images are separate exploratory development references, with no independent human verification",
               "api_requests": sum(m["api_requests"] for m in metadata), "api_cost_usd": "0", "compute_cost": None,
               "by_split_category": {}, "by_country_currency": {}, "receipts": rows}

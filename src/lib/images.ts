@@ -119,6 +119,30 @@ export interface ReceiptImage {
 export const readingBlobs = (image: ReceiptImage): Blob[] =>
   image.panels || [image.ocrBlob || image.blob];
 
+/** Round down so both prepared uploads and crops satisfy the exact decode budget. */
+export function previewDimensions(
+  width: number,
+  height: number,
+  upscale = false,
+) {
+  if (
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    width < 1 ||
+    height < 1
+  )
+    throw new Error("Invalid image dimensions.");
+  const scale = Math.min(
+    upscale ? 2 : 1,
+    3200 / Math.max(width, height),
+    Math.sqrt(4_000_000 / (width * height)),
+  );
+  return {
+    width: Math.max(1, Math.floor(width * scale)),
+    height: Math.max(1, Math.floor(height * scale)),
+  };
+}
+
 /** Read a tall image in overlapping windows instead of shrinking all its text to 3200px. */
 export function planReadingPanels(width: number, height: number) {
   const scale = Math.min(2, 1400 / width, 20000 / height);
@@ -212,13 +236,9 @@ export async function cropImage(
       Math.round((bitmap.height * (100 - bounds.top - bounds.bottom)) / 100),
     );
     const canvas = document.createElement("canvas");
-    const scale = Math.min(
-      2,
-      3200 / Math.max(width, height),
-      Math.sqrt(4_000_000 / (width * height)),
-    );
-    canvas.width = Math.max(1, Math.round(width * scale));
-    canvas.height = Math.max(1, Math.round(height * scale));
+    const output = previewDimensions(width, height, true);
+    canvas.width = output.width;
+    canvas.height = output.height;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Image processing is unavailable.");
     context.fillStyle = "#fff";
@@ -276,14 +296,10 @@ export async function prepareImage(file: File): Promise<ReceiptImage> {
   try {
     if (bitmap.width * bitmap.height > MAX_PIXELS || !header.width)
       throw new Error("Decoded image is too large.");
-    const scale = Math.min(
-      1,
-      3200 / Math.max(bitmap.width, bitmap.height),
-      Math.sqrt(4_000_000 / (bitmap.width * bitmap.height)),
-    );
+    const output = previewDimensions(bitmap.width, bitmap.height);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.width = output.width;
+    canvas.height = output.height;
     const context = canvas.getContext("2d");
     if (!context)
       throw new Error("Image processing is unavailable. Use manual entry.");
