@@ -25,14 +25,17 @@ const limit = Number(option("--limit", "1000"));
 const prepareOnly = args.includes("--prepare-only");
 const ocrRun = option("--ocr-run", null);
 if (ocrRun && (!/^[\w-]+$/.test(ocrRun) || prepareOnly)) throw new Error("Choose one valid OCR input run");
+const structuredRun = option("--structured-run", null);
+if (structuredRun && (!/^[\w-]+$/.test(structuredRun) || ocrRun || prepareOnly)) throw new Error("Choose one OCR or structured input run");
+const candidateRun = ocrRun || structuredRun;
 const recognitionLayout = args.includes("--recognition-layout");
 if (recognitionLayout && !ocrRun) throw new Error("Recognition layout requires a frozen --ocr-run");
 let candidateMetadata;
 let candidateById;
-if (ocrRun) {
-  candidateMetadata = JSON.parse(await readFile(resolve(root, "evaluation/runs", ocrRun, "metadata.json"), "utf8"));
-  const bytes = await readFile(resolve(root, "evaluation/runs", ocrRun, "ocr.jsonl"));
-  if (!candidateMetadata.completed_at || createHash("sha256").update(bytes).digest("hex") !== candidateMetadata.ocr_sha256)
+if (candidateRun) {
+  candidateMetadata = JSON.parse(await readFile(resolve(root, "evaluation/runs", candidateRun, "metadata.json"), "utf8"));
+  const bytes = await readFile(resolve(root, "evaluation/runs", candidateRun, structuredRun ? "structured.jsonl" : "ocr.jsonl"));
+  if (!candidateMetadata.completed_at || createHash("sha256").update(bytes).digest("hex") !== (structuredRun ? candidateMetadata.structured_sha256 : candidateMetadata.ocr_sha256))
     throw new Error("Candidate run is incomplete or changed");
   candidateById = new Map(bytes.toString().trim().split(/\r?\n/).map(JSON.parse).map((r) => [r.receipt_id, r]));
 }
@@ -69,11 +72,12 @@ const configBytes = await readFile(resolve(root, "evaluation/config.json"));
 const runnerBytes = await readFile(fileURLToPath(import.meta.url));
 await writeFile(resolve(out, "evaluate.mjs"), runnerBytes);
 const metadata = {
-  provider: prepareOnly ? "frozen-image-preparation-only" : ocrRun ? candidateMetadata.adapter : "existing-localOcrProvider", split, runName,
-  candidate_run: ocrRun,
+  provider: prepareOnly ? "frozen-image-preparation-only" : candidateRun ? candidateMetadata.adapter : "existing-localOcrProvider", split, runName,
+  candidate_run: candidateRun,
   candidate_ocr_sha256: candidateMetadata?.ocr_sha256,
+  candidate_structured_sha256: candidateMetadata?.structured_sha256,
   recognition_assembly: recognitionLayout ? "source-region-layout" : "legacy-text-window-join",
-  cached_evidence_scope: ocrRun ? "Parser/layout replay of the original frozen model evidence, not a live HTTP/decode gate replay. Earlier preview rounding can exceed today's exact pixel budget; those source pixels and model outputs remain unchanged." : null,
+  cached_evidence_scope: candidateRun ? "Frozen model evidence replay, not a live HTTP/decode gate replay. Earlier preview rounding can exceed today's exact pixel budget; those source pixels and model outputs remain unchanged." : null,
   started_at: new Date().toISOString(), node: process.version,
   manifest_sha256: sha(manifestBytes), config_sha256: sha(configBytes), source_sha256: sourceHashes,
   evaluation_runner_sha256: sha(runnerBytes),
@@ -83,7 +87,7 @@ const metadata = {
   source_served_from_frozen_snapshot: true,
   source_snapshot_from_run: sourceRun,
   selected_ids: records.map((r) => r.receipt_id),
-  timing_scope: ocrRun ? "Precomputed local model inference plus browser parsing/reconciliation/RPC; excludes image preparation and model startup. Not a baseline end-to-end latency comparison." : prepareOnly ? "Frozen browser image preparation and panel export/RPC only" : "per-receipt browser preparation, new OCR worker, OCR, parser, reconciliation and RPC; excludes server/browser startup",
+  timing_scope: structuredRun ? "Precomputed fresh vision CLI process/model loading, image encoding and generation plus browser structured validation/reconciliation/RPC; excludes initial preparation/download/asset verification. Not a baseline end-to-end latency comparison." : ocrRun ? "Precomputed local model inference plus browser parsing/reconciliation/RPC; excludes image preparation and model startup. Not a baseline end-to-end latency comparison." : prepareOnly ? "Frozen browser image preparation and panel export/RPC only" : "per-receipt browser preparation, new OCR worker, OCR, parser, reconciliation and RPC; excludes server/browser startup",
   api_requests: 0, api_cost: "0", api_cost_currency: "USD", compute_cost: null,
 };
 await writeFile(resolve(out, "metadata.json"), JSON.stringify(metadata, null, 2));
@@ -137,7 +141,7 @@ try {
     const started = performance.now();
     let prediction;
     try {
-      prediction = await page.evaluate(async ({ photos, id, prepareOnly, candidate, recognitionLayout, adapter }) => {
+      prediction = await page.evaluate(async ({ photos, id, prepareOnly, candidate, recognitionLayout, adapter, structured }) => {
         const { prepareImage, readingBlobs } = await import("/src/lib/images.ts");
         const { localOcrProvider, joinDetailText } = await import("/src/lib/ocr.ts");
         const { parseReceiptText, PHOTO_SEPARATOR } = await import("/src/lib/parser.ts");
@@ -164,6 +168,22 @@ try {
               }
             }
             return { preparedPanels };
+          }
+          if (candidate && structured) {
+            try {
+              const { receiptFromAi } = await import("/src/lib/gemini.ts");
+              const receipt = receiptFromAi(candidate.receipt);
+              const supplied = new Set(candidate.source_photos);
+              if (candidate.receipt.items.some((item) => item.sourcePhotos.some((photo) => !supplied.has(photo))))
+                throw new Error("Structured output refers to a photograph that was not supplied");
+              // Attribute the shared postprocessor's brand-only review messages correctly.
+              // No extracted financial field, source reference or uncertainty is repaired.
+              receipt.warnings = receipt.warnings.map((s) => s.replaceAll("Gemini", "The vision model"));
+              const calculation = calculateReceipt(receipt);
+              return JSON.parse(JSON.stringify({ receipt, calculation, extraction_warnings: candidate.receipt.warnings, reading_panels: candidate.reading_panels, structured_postprocessor: "receiptFromAi; brand-only warning labels adjusted" }, (_, value) => typeof value === "bigint" ? value.toString() : value));
+            } catch (error) {
+              return { error: String(error).slice(0, 1000), failed_stage: "structured-validation", reading_panels: candidate.reading_panels };
+            }
           }
           let extracted;
           if (candidate && recognitionLayout) {
@@ -193,7 +213,7 @@ try {
             return { ...evidence, error: String(error).slice(0, 1000), extracted_text: extracted.text, failed_stage: "parse" };
           }
         } finally { images.forEach((image) => URL.revokeObjectURL(image.url)); }
-      }, { photos, id: record.receipt_id, prepareOnly, candidate, recognitionLayout, adapter: candidateMetadata?.adapter });
+      }, { photos, id: record.receipt_id, prepareOnly, candidate, recognitionLayout, adapter: candidateMetadata?.adapter, structured: !!structuredRun });
     } catch (error) {
       prediction = { error: String(error).slice(0, 1000) };
     }

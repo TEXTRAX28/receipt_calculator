@@ -1,0 +1,4220 @@
+{
+  "updated": "2026-10-31",
+  "scope": "Predeclared seven-case development pilot: six financial receipts (five original, one supplied-photo supplement) and one nonfinancial control. No original held-out evaluation receipt selected.",
+  "selection": "First two original CORD development IDs; first Taiwan Costco; Bristol Costco; historical Tesco; original grouped user Costco as separate development supplement. Frozen pixels match model-comparison inputs. No label file read for selection/inference. Plus the original nonfinancial photo-order control; declared before any real-pilot inference.",
+  "predeclaration_sha256": "512773ebb8f8987f2e7d9321b625f5ebd2c6872ff9234ac4ed6622df670bd1e0",
+  "model_manifest": "vision-candidate-manifest.json",
+  "original_50_results_not_replaced": true,
+  "identical_frozen_panel_bytes_verified": true,
+  "labels_or_ocr_text_supplied_to_vision": false,
+  "external_receipt_uploads": 0,
+  "api_requests": 0,
+  "api_cost_usd": "0",
+  "compute_cost_usd": null,
+  "model_runs": {
+    "Tesseract_frozen_baseline": {
+      "runs": [
+        {
+          "run": "advanced-baseline-20261031-development",
+          "metadata_sha256": "6bf91b3c09c4a2f9a2490ea21a82a709c5ee624245e14560e29e71be1a6f191e",
+          "predictions_sha256": "f88932cd33d264a3dd882c26b579f836c66fa4639afd63939f80006f93265411"
+        },
+        {
+          "run": "advanced-baseline-20261031-supplement",
+          "metadata_sha256": "39c94765461e2b14b143074ae4de0edef27503e6e1c1e7aa92fc190934ad465e",
+          "predictions_sha256": "4251af459ebd61d46b257027dfc751fe8b5086f12d71848ec9c495e77429714d"
+        }
+      ],
+      "source_snapshots_equal_within_provider": true,
+      "financial_metrics": {
+        "counts": {
+          "samples": 7,
+          "item_label_samples": 4,
+          "expected_items": 55,
+          "predicted_items": 9,
+          "matched_items": 3,
+          "description_known": 55,
+          "description_correct": 1,
+          "item_price_known": 54,
+          "item_price_correct": 3,
+          "quantity_known": 55,
+          "quantity_correct": 3,
+          "missing_items": 52,
+          "unmatched_predictions": 6,
+          "currency_known": 7,
+          "currency_unresolved": 2,
+          "selected_currency_correct": 3,
+          "currency_correct": 3,
+          "currency_dataset_context": 2,
+          "total_known": 6,
+          "total_correct": 0,
+          "subtotal_known": 3,
+          "subtotal_correct": 0,
+          "tax_known": 3,
+          "tax_correct": 0,
+          "reconciliation_unavailable": 7,
+          "trusted_reconciliation_known": 6,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 1,
+          "complete_receipt_unscorable": 6,
+          "processing_errors": 0,
+          "requires_review": 7,
+          "merchant_known": 5,
+          "merchant_correct": 2,
+          "item_discount_known": 21,
+          "item_discount_correct": 0,
+          "unit_price_known": 27,
+          "unit_price_correct": 3,
+          "grouping_known": 27,
+          "grouping_correct": 3,
+          "extra_items_on_complete_labels": 3,
+          "complete_receipt_correct": 0,
+          "item_price_matched_known": 3,
+          "unit_price_matched_known": 3
+        },
+        "item_precision": {
+          "correct": 3,
+          "count": 9,
+          "rate": 0.3333
+        },
+        "item_recall": {
+          "correct": 3,
+          "count": 55,
+          "rate": 0.0545
+        },
+        "description": {
+          "correct": 1,
+          "count": 55,
+          "rate": 0.0182
+        },
+        "merchant": {
+          "correct": 2,
+          "count": 5,
+          "rate": 0.4
+        },
+        "item_price": {
+          "correct": 3,
+          "count": 54,
+          "rate": 0.0556
+        },
+        "unit_price": {
+          "correct": 3,
+          "count": 27,
+          "rate": 0.1111
+        },
+        "item_discount": {
+          "correct": 0,
+          "count": 21,
+          "rate": 0.0
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "quantity": {
+          "correct": 3,
+          "count": 55,
+          "rate": 0.0545
+        },
+        "grouping": {
+          "correct": 3,
+          "count": 27,
+          "rate": 0.1111
+        },
+        "currency": {
+          "correct": 3,
+          "count": 7,
+          "rate": 0.4286
+        },
+        "subtotal": {
+          "correct": 0,
+          "count": 3,
+          "rate": 0.0
+        },
+        "tax": {
+          "correct": 0,
+          "count": 3,
+          "rate": 0.0
+        },
+        "total": {
+          "correct": 0,
+          "count": 6,
+          "rate": 0.0
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 6,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 1,
+          "rate": 0.0
+        },
+        "matched_item_price": {
+          "correct": 3,
+          "count": 3,
+          "rate": 1.0
+        },
+        "latency_ms": {
+          "samples": 7,
+          "median": 2368,
+          "mean": 3226.714285714286,
+          "p95_nearest_rank": 9601,
+          "total": 22587
+        }
+      },
+      "per_financial_case": [
+        {
+          "receipt_id": "cord-v2-train-000",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 22,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "description_known": 22,
+            "description_correct": 0,
+            "item_price_known": 21,
+            "item_price_correct": 0,
+            "quantity_known": 22,
+            "quantity_correct": 0,
+            "missing_items": 22,
+            "unmatched_predictions": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 1068,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "75000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-1",
+              "expected": "Nasi Campur Bali"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "125000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-2",
+              "expected": "Bbk Bengil Nasi"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "37000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-3",
+              "expected": "MilkShake Starwb"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "24000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-4",
+              "expected": "Ice Lemon Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "70000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-5",
+              "expected": "Nasi Ayam Dewata"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "65000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-7",
+              "expected": "Organic Green Sa"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "18000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-8",
+              "expected": "Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "29000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-9",
+              "expected": "Ice Orange"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "85000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-10",
+              "expected": "Ayam Suir Bali"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "36000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-11",
+              "expected": "Tahu Goreng"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "36000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-12",
+              "expected": "Tempe Goreng"
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "70000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-14",
+              "expected": "Nasi Goreng Samb"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "366000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-15",
+              "expected": "Bbk Panggang Sam"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "92000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-16",
+              "expected": "Ayam Sambal Hija"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "44000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-17",
+              "expected": "Hot Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "32000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-18",
+              "expected": "Ice Kopi"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-19",
+              "expected": "40000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-19",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-20",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-20",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-21",
+              "expected": "44000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-21",
+              "expected": "Bebek Street"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-22",
+              "expected": "18000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-22",
+              "expected": "Ice Tea Tawar"
+            },
+            {
+              "field": "grand_total",
+              "expected": "1591600",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 3,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "cord-v2-train-001",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 6,
+            "predicted_items": 3,
+            "matched_items": 0,
+            "description_known": 6,
+            "description_correct": 0,
+            "item_price_known": 6,
+            "item_price_correct": 0,
+            "quantity_known": 6,
+            "quantity_correct": 0,
+            "missing_items": 6,
+            "unmatched_predictions": 3,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 1561,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "58000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-1",
+              "expected": "SPGTHY BOLOGNASE"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "165000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-2",
+              "expected": "PEPPER AUS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "195000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-3",
+              "expected": "WAGYU RIBEYE"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "22000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-4",
+              "expected": "ICED LEMON TEA"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "28000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-5",
+              "expected": "FUSION TEA LYCHE"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "35000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "NUTTELA BROWNIES"
+            },
+            {
+              "field": "grand_total",
+              "expected": "580965",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 7,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-20121104",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 853,
+          "errors": [
+            {
+              "field": "grand_total",
+              "expected": "1891",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-photo-20130612",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "reconciliation_unavailable": 1,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 2368,
+          "errors": [],
+          "scanner_issue_count": 3,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "supplement-user-uk-20261026-group",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 18,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "description_known": 18,
+            "description_correct": 0,
+            "item_price_known": 18,
+            "item_price_correct": 0,
+            "item_discount_known": 18,
+            "item_discount_correct": 0,
+            "unit_price_known": 18,
+            "unit_price_correct": 0,
+            "quantity_known": 18,
+            "quantity_correct": 0,
+            "grouping_known": 18,
+            "grouping_correct": 0,
+            "missing_items": 18,
+            "unmatched_predictions": 0,
+            "extra_items_on_complete_labels": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 1,
+            "complete_receipt_correct": 0,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 9601,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-01",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-01",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-01",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-01",
+              "expected": "SPAM 6X340G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-02",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-02",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-02",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-02",
+              "expected": "JW TUN/OIL 12X145G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-03",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-03",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-03",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-03",
+              "expected": "MEDIUM EGGS 5 DZN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-04",
+              "expected": "9.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-04",
+              "expected": "-2.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-04",
+              "expected": "9.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-04",
+              "expected": "CHICKEN SKEWER 15"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-05",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-05",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-05",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-05",
+              "expected": "ROWSE HONEY 1.36KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-06",
+              "expected": "23.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-06",
+              "expected": "-1.60",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-06",
+              "expected": "23.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-06",
+              "expected": "BELVEDERE VOD.70CL"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-07",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-07",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-07",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-07",
+              "expected": "MEADOWCHURN 4X250G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-08",
+              "expected": "5.29",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-08",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-08",
+              "expected": "5.29",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-08",
+              "expected": "SCOTCH SCOURER 24P"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-09",
+              "expected": "10.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-09",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-09",
+              "expected": "10.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-09",
+              "expected": "FERRERO ROCHER T48"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "9.79",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-10",
+              "expected": "-1.80",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-10",
+              "expected": "9.79",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-10",
+              "expected": "KINDER BUENO T20"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "11.59",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-11",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-11",
+              "expected": "11.59",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-11",
+              "expected": "PRAWN WONTON SOUP"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "19.03",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-12",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-12",
+              "expected": "19.03",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-12",
+              "expected": "PARMAREGGIO 30M"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-13",
+              "expected": "4.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-13",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-13",
+              "expected": "4.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "BABY PLUM TOMS 1KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-14",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-14",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-14",
+              "expected": "GARLIC 1KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "7.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-15",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-15",
+              "expected": "7.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-15",
+              "expected": "PLASTIC CONT 38OZ"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-16",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-16",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-16",
+              "expected": "KS ROTISS CHICKEN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-17",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-17",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-17",
+              "expected": "KS ROTISS CHICKEN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "6.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-18",
+              "expected": "-1.50",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-18",
+              "expected": "6.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-18",
+              "expected": "SPONTEX CLOTHS 24P"
+            },
+            {
+              "field": "grand_total",
+              "expected": "176.78",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "tesco-gb-1994",
+          "category": "non_costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 4482,
+          "errors": [
+            {
+              "field": "grand_total",
+              "expected": "6.71",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 12,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "user-costco-bristol-001",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 9,
+            "predicted_items": 6,
+            "matched_items": 3,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "description_known": 9,
+            "description_correct": 1,
+            "item_price_known": 9,
+            "item_price_correct": 3,
+            "item_discount_known": 3,
+            "item_discount_correct": 0,
+            "unit_price_known": 9,
+            "unit_price_correct": 3,
+            "quantity_known": 9,
+            "quantity_correct": 3,
+            "grouping_known": 9,
+            "grouping_correct": 3,
+            "item_price_matched_known": 3,
+            "unit_price_matched_known": 3,
+            "missing_items": 6,
+            "unmatched_predictions": 3,
+            "extra_items_on_complete_labels": 3,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 2654,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-1",
+              "expected": "7.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-1",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-1",
+              "expected": "M.CHOC B.PARTS 675"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-3",
+              "expected": "5.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-3",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-3",
+              "expected": "MYTAGALONGS B/PACK"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-6",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "BENYLIN 300ML"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-7",
+              "expected": "1.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-7",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-7",
+              "expected": "SHEN DAN DUCK EGGS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-8",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-9",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "grand_total",
+              "expected": "74.57",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 7,
+          "scanner_discrepancy_minor": null
+        }
+      ],
+      "nonfinancial_controls": []
+    },
+    "Paddle_current_layout": {
+      "runs": [
+        {
+          "run": "paddle-v6-layout-v3-development",
+          "metadata_sha256": "ae14443f244d16e21afd5a7a3a1335c61087cd2ca58431a734889ecd83bca12b",
+          "predictions_sha256": "df802d9db0a4dfd0441f6d7eb31946f4e2127f0e6c5caf699154f48334163e23"
+        },
+        {
+          "run": "paddle-v6-layout-vision-pilot-supplement",
+          "metadata_sha256": "4a76fedf82ddaac592022b265703c5a07c709926a07f3143d849194da1e9e134",
+          "predictions_sha256": "c013b72a4842ff02d19325c23b7defa7eb0f8405b215c04b83e39da86d79abc2"
+        }
+      ],
+      "source_snapshots_equal_within_provider": true,
+      "financial_metrics": {
+        "counts": {
+          "samples": 7,
+          "item_label_samples": 4,
+          "expected_items": 55,
+          "predicted_items": 54,
+          "matched_items": 48,
+          "description_known": 55,
+          "description_correct": 45,
+          "item_price_known": 54,
+          "item_price_matched_known": 48,
+          "item_price_correct": 25,
+          "quantity_known": 55,
+          "quantity_correct": 24,
+          "missing_items": 7,
+          "unmatched_predictions": 6,
+          "currency_known": 7,
+          "currency_unresolved": 6,
+          "selected_currency_correct": 3,
+          "currency_correct": 1,
+          "currency_dataset_context": 2,
+          "total_known": 6,
+          "total_correct": 2,
+          "subtotal_known": 3,
+          "subtotal_correct": 1,
+          "tax_known": 3,
+          "tax_correct": 1,
+          "reconciliation_checked": 3,
+          "reconciliation_failed": 2,
+          "reconciliation_with_validation_issues": 2,
+          "untrusted_zero_discrepancy": 0,
+          "trusted_reconciliation_known": 6,
+          "trusted_reconciliation_correct": 1,
+          "complete_receipt_known": 1,
+          "complete_receipt_unscorable": 6,
+          "processing_errors": 0,
+          "requires_review": 7,
+          "reconciliation_unavailable": 4,
+          "merchant_known": 5,
+          "merchant_correct": 4,
+          "item_discount_known": 21,
+          "item_discount_matched_known": 21,
+          "item_discount_correct": 19,
+          "unit_price_known": 27,
+          "unit_price_matched_known": 25,
+          "unit_price_correct": 24,
+          "grouping_known": 27,
+          "grouping_correct": 23,
+          "extra_items_on_complete_labels": 4,
+          "complete_receipt_correct": 0
+        },
+        "item_precision": {
+          "correct": 48,
+          "count": 54,
+          "rate": 0.8889
+        },
+        "item_recall": {
+          "correct": 48,
+          "count": 55,
+          "rate": 0.8727
+        },
+        "description": {
+          "correct": 45,
+          "count": 55,
+          "rate": 0.8182
+        },
+        "merchant": {
+          "correct": 4,
+          "count": 5,
+          "rate": 0.8
+        },
+        "item_price": {
+          "correct": 25,
+          "count": 54,
+          "rate": 0.463
+        },
+        "unit_price": {
+          "correct": 24,
+          "count": 27,
+          "rate": 0.8889
+        },
+        "item_discount": {
+          "correct": 19,
+          "count": 21,
+          "rate": 0.9048
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "quantity": {
+          "correct": 24,
+          "count": 55,
+          "rate": 0.4364
+        },
+        "grouping": {
+          "correct": 23,
+          "count": 27,
+          "rate": 0.8519
+        },
+        "currency": {
+          "correct": 1,
+          "count": 7,
+          "rate": 0.1429
+        },
+        "subtotal": {
+          "correct": 1,
+          "count": 3,
+          "rate": 0.3333
+        },
+        "tax": {
+          "correct": 1,
+          "count": 3,
+          "rate": 0.3333
+        },
+        "total": {
+          "correct": 2,
+          "count": 6,
+          "rate": 0.3333
+        },
+        "trusted_reconciliation": {
+          "correct": 1,
+          "count": 6,
+          "rate": 0.1667
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 1,
+          "rate": 0.0
+        },
+        "matched_item_price": {
+          "correct": 25,
+          "count": 48,
+          "rate": 0.5208
+        },
+        "latency_ms": {
+          "samples": 7,
+          "median": 6045,
+          "mean": 6529,
+          "p95_nearest_rank": 14440,
+          "total": 45703
+        }
+      },
+      "per_financial_case": [
+        {
+          "receipt_id": "cord-v2-train-000",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 22,
+            "predicted_items": 18,
+            "matched_items": 18,
+            "description_known": 22,
+            "description_correct": 18,
+            "item_price_known": 21,
+            "item_price_matched_known": 18,
+            "item_price_correct": 0,
+            "quantity_known": 22,
+            "quantity_correct": 0,
+            "missing_items": 4,
+            "unmatched_predictions": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 4709,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "75000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "125000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "37000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "24000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "70000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "65000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "18000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "29000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "85000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "36000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "36000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "70000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "366000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "92000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "44000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "32000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-19",
+              "expected": "40000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-19",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-20",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-20",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-21",
+              "expected": "44000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-22",
+              "expected": "18000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "grand_total",
+              "expected": "1591600",
+              "actual": "1346000"
+            }
+          ],
+          "scanner_issue_count": 37,
+          "scanner_discrepancy_minor": "-134600000"
+        },
+        {
+          "receipt_id": "cord-v2-train-001",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 6,
+            "predicted_items": 7,
+            "matched_items": 5,
+            "description_known": 6,
+            "description_correct": 4,
+            "item_price_known": 6,
+            "item_price_matched_known": 5,
+            "item_price_correct": 0,
+            "quantity_known": 6,
+            "quantity_correct": 0,
+            "missing_items": 1,
+            "unmatched_predictions": 2,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 2614,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "58000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "165000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "195000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "22000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "28000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "35000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "NUTTELA BROWNIES"
+            },
+            {
+              "field": "grand_total",
+              "expected": "580965",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 15,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-20121104",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 3484,
+          "errors": [
+            {
+              "field": "grand_total",
+              "expected": "1891",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-photo-20130612",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "reconciliation_unavailable": 1,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 6049,
+          "errors": [],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "supplement-user-uk-20261026-group",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 18,
+            "predicted_items": 18,
+            "matched_items": 18,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "description_known": 18,
+            "description_correct": 16,
+            "item_price_known": 18,
+            "item_price_matched_known": 18,
+            "item_price_correct": 18,
+            "item_discount_known": 18,
+            "item_discount_matched_known": 18,
+            "item_discount_correct": 18,
+            "unit_price_known": 18,
+            "unit_price_matched_known": 18,
+            "unit_price_correct": 18,
+            "quantity_known": 18,
+            "quantity_correct": 18,
+            "grouping_known": 18,
+            "grouping_correct": 18,
+            "missing_items": 0,
+            "unmatched_predictions": 0,
+            "extra_items_on_complete_labels": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "subtotal_known": 1,
+            "subtotal_correct": 1,
+            "tax_known": 1,
+            "tax_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 0,
+            "reconciliation_with_validation_issues": 0,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 1,
+            "complete_receipt_known": 1,
+            "complete_receipt_correct": 0,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 14440,
+          "errors": [],
+          "scanner_issue_count": 0,
+          "scanner_discrepancy_minor": "0"
+        },
+        {
+          "receipt_id": "tesco-gb-1994",
+          "category": "non_costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 1,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 8362,
+          "errors": [],
+          "scanner_issue_count": 10,
+          "scanner_discrepancy_minor": "-135"
+        },
+        {
+          "receipt_id": "user-costco-bristol-001",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 9,
+            "predicted_items": 11,
+            "matched_items": 7,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "description_known": 9,
+            "description_correct": 7,
+            "item_price_known": 9,
+            "item_price_matched_known": 7,
+            "item_price_correct": 7,
+            "item_discount_known": 3,
+            "item_discount_matched_known": 3,
+            "item_discount_correct": 1,
+            "unit_price_known": 9,
+            "unit_price_matched_known": 7,
+            "unit_price_correct": 6,
+            "quantity_known": 9,
+            "quantity_correct": 6,
+            "grouping_known": 9,
+            "grouping_correct": 5,
+            "missing_items": 2,
+            "unmatched_predictions": 4,
+            "extra_items_on_complete_labels": 4,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 1,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 6045,
+          "errors": [
+            {
+              "field": "item_discount",
+              "item_id": "item-3",
+              "expected": "5.00",
+              "actual": "0",
+              "detected": true
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-7",
+              "expected": "1.00",
+              "actual": "0",
+              "detected": true
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-7",
+              "expected": "3.99",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-8",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-9",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "grand_total",
+              "expected": "74.57",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 15,
+          "scanner_discrepancy_minor": null
+        }
+      ],
+      "nonfinancial_controls": []
+    },
+    "docTR_current_layout": {
+      "runs": [
+        {
+          "run": "doctr-layout-v3-development",
+          "metadata_sha256": "2fef14782a79e22915c7d56f8af7415db391861a6ce9d53e29299b5073e63d62",
+          "predictions_sha256": "d5d9bd407d2bb7a04e4185115a708245830bd8430dcbcba9592b60f97e9296b4"
+        },
+        {
+          "run": "doctr-layout-vision-pilot-supplement",
+          "metadata_sha256": "51e64a31eb1a1abe1a67728e320b99f388ef4af9994e34c8ebbe4eca89eb0a48",
+          "predictions_sha256": "7c58dd18a6842c8900544109d01108d40279b050dc9d8b0d2aa5f77fb8eb811d"
+        }
+      ],
+      "source_snapshots_equal_within_provider": true,
+      "financial_metrics": {
+        "counts": {
+          "samples": 7,
+          "item_label_samples": 4,
+          "expected_items": 55,
+          "predicted_items": 52,
+          "matched_items": 48,
+          "description_known": 55,
+          "description_correct": 39,
+          "item_price_known": 54,
+          "item_price_matched_known": 48,
+          "item_price_correct": 24,
+          "quantity_known": 55,
+          "quantity_correct": 24,
+          "missing_items": 7,
+          "unmatched_predictions": 4,
+          "currency_known": 7,
+          "currency_unresolved": 6,
+          "selected_currency_correct": 3,
+          "currency_correct": 1,
+          "currency_dataset_context": 2,
+          "total_known": 6,
+          "total_correct": 3,
+          "subtotal_known": 3,
+          "subtotal_correct": 0,
+          "tax_known": 3,
+          "tax_correct": 1,
+          "reconciliation_checked": 3,
+          "reconciliation_failed": 3,
+          "reconciliation_with_validation_issues": 3,
+          "untrusted_zero_discrepancy": 0,
+          "trusted_reconciliation_known": 6,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 1,
+          "complete_receipt_unscorable": 6,
+          "processing_errors": 0,
+          "requires_review": 7,
+          "reconciliation_unavailable": 4,
+          "merchant_known": 5,
+          "merchant_correct": 3,
+          "item_discount_known": 21,
+          "item_discount_matched_known": 20,
+          "item_discount_correct": 20,
+          "unit_price_known": 27,
+          "unit_price_matched_known": 24,
+          "unit_price_correct": 24,
+          "grouping_known": 27,
+          "grouping_correct": 24,
+          "extra_items_on_complete_labels": 3,
+          "complete_receipt_correct": 0
+        },
+        "item_precision": {
+          "correct": 48,
+          "count": 52,
+          "rate": 0.9231
+        },
+        "item_recall": {
+          "correct": 48,
+          "count": 55,
+          "rate": 0.8727
+        },
+        "description": {
+          "correct": 39,
+          "count": 55,
+          "rate": 0.7091
+        },
+        "merchant": {
+          "correct": 3,
+          "count": 5,
+          "rate": 0.6
+        },
+        "item_price": {
+          "correct": 24,
+          "count": 54,
+          "rate": 0.4444
+        },
+        "unit_price": {
+          "correct": 24,
+          "count": 27,
+          "rate": 0.8889
+        },
+        "item_discount": {
+          "correct": 20,
+          "count": 21,
+          "rate": 0.9524
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "quantity": {
+          "correct": 24,
+          "count": 55,
+          "rate": 0.4364
+        },
+        "grouping": {
+          "correct": 24,
+          "count": 27,
+          "rate": 0.8889
+        },
+        "currency": {
+          "correct": 1,
+          "count": 7,
+          "rate": 0.1429
+        },
+        "subtotal": {
+          "correct": 0,
+          "count": 3,
+          "rate": 0.0
+        },
+        "tax": {
+          "correct": 1,
+          "count": 3,
+          "rate": 0.3333
+        },
+        "total": {
+          "correct": 3,
+          "count": 6,
+          "rate": 0.5
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 6,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 1,
+          "rate": 0.0
+        },
+        "matched_item_price": {
+          "correct": 24,
+          "count": 48,
+          "rate": 0.5
+        },
+        "latency_ms": {
+          "samples": 7,
+          "median": 9160,
+          "mean": 10729.857142857143,
+          "p95_nearest_rank": 30064,
+          "total": 75109
+        }
+      },
+      "per_financial_case": [
+        {
+          "receipt_id": "cord-v2-train-000",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 22,
+            "predicted_items": 18,
+            "matched_items": 18,
+            "description_known": 22,
+            "description_correct": 12,
+            "item_price_known": 21,
+            "item_price_matched_known": 18,
+            "item_price_correct": 0,
+            "quantity_known": 22,
+            "quantity_correct": 0,
+            "missing_items": 4,
+            "unmatched_predictions": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 1,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 9160,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "75000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "125000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "37000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "24000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "70000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "65000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "18000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "29000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "85000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "36000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "36000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "70000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "366000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "92000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "44000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "32000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-19",
+              "expected": "40000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-19",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-20",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-20",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-21",
+              "expected": "44000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-22",
+              "expected": "18000",
+              "actual": "",
+              "detected": true
+            }
+          ],
+          "scanner_issue_count": 37,
+          "scanner_discrepancy_minor": "-159160000"
+        },
+        {
+          "receipt_id": "cord-v2-train-001",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 6,
+            "predicted_items": 7,
+            "matched_items": 6,
+            "description_known": 6,
+            "description_correct": 4,
+            "item_price_known": 6,
+            "item_price_matched_known": 6,
+            "item_price_correct": 0,
+            "quantity_known": 6,
+            "quantity_correct": 0,
+            "missing_items": 0,
+            "unmatched_predictions": 1,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 4779,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "58000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "165000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "195000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "22000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "28000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "35000",
+              "actual": "",
+              "detected": true
+            },
+            {
+              "field": "grand_total",
+              "expected": "580965",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 15,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-20121104",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 4534,
+          "errors": [
+            {
+              "field": "grand_total",
+              "expected": "1891",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "costco-tw-photo-20130612",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "reconciliation_unavailable": 1,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 5344,
+          "errors": [],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "supplement-user-uk-20261026-group",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 18,
+            "predicted_items": 20,
+            "matched_items": 18,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "description_known": 18,
+            "description_correct": 17,
+            "item_price_known": 18,
+            "item_price_matched_known": 18,
+            "item_price_correct": 18,
+            "item_discount_known": 18,
+            "item_discount_matched_known": 18,
+            "item_discount_correct": 18,
+            "unit_price_known": 18,
+            "unit_price_matched_known": 18,
+            "unit_price_correct": 18,
+            "quantity_known": 18,
+            "quantity_correct": 18,
+            "grouping_known": 18,
+            "grouping_correct": 18,
+            "missing_items": 0,
+            "unmatched_predictions": 2,
+            "extra_items_on_complete_labels": 2,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 1,
+            "complete_receipt_correct": 0,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 30064,
+          "errors": [],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": "1138"
+        },
+        {
+          "receipt_id": "tesco-gb-1994",
+          "category": "non_costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 1,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 11228,
+          "errors": [],
+          "scanner_issue_count": 10,
+          "scanner_discrepancy_minor": "-55"
+        },
+        {
+          "receipt_id": "user-costco-bristol-001",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 9,
+            "predicted_items": 7,
+            "matched_items": 6,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "description_known": 9,
+            "description_correct": 6,
+            "item_price_known": 9,
+            "item_price_matched_known": 6,
+            "item_price_correct": 6,
+            "item_discount_known": 3,
+            "item_discount_matched_known": 2,
+            "item_discount_correct": 2,
+            "unit_price_known": 9,
+            "unit_price_matched_known": 6,
+            "unit_price_correct": 6,
+            "quantity_known": 9,
+            "quantity_correct": 6,
+            "grouping_known": 9,
+            "grouping_correct": 6,
+            "missing_items": 3,
+            "unmatched_predictions": 1,
+            "extra_items_on_complete_labels": 1,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 1,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 10000,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-7",
+              "expected": "1.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-7",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-7",
+              "expected": "SHEN DAN DUCK EGGS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-8",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-8",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-9",
+              "expected": "11.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-9",
+              "expected": "KS SALTED CASHEWS"
+            },
+            {
+              "field": "grand_total",
+              "expected": "74.57",
+              "actual": ""
+            }
+          ],
+          "scanner_issue_count": 10,
+          "scanner_discrepancy_minor": null
+        }
+      ],
+      "nonfinancial_controls": []
+    },
+    "Qwen_current_protocol": {
+      "runs": [
+        {
+          "run": "qwen-vl4b-pilot-v1-verified-validation-original",
+          "metadata_sha256": "65918fa494dffdcb8a205e073c5c68c79d2b0fe1a5842608685091d73c33dcf3",
+          "predictions_sha256": "e4d312a651619f9b8818894d511b161ced672560387c9ae9973be7cb79ed5dac"
+        },
+        {
+          "run": "qwen-vl4b-pilot-v1-verified-validation-supplement",
+          "metadata_sha256": "cb666504a057eea5bba9d5a24713c587897e7c84c3a5798afa32ede5860f9482",
+          "predictions_sha256": "bba0974a7185af88cb86cf20fe7b041cfcebba4cc1fa8c26b87f8b441f86a242"
+        }
+      ],
+      "source_snapshots_equal_within_provider": true,
+      "financial_metrics": {
+        "counts": {
+          "samples": 7,
+          "item_label_samples": 4,
+          "expected_items": 55,
+          "predicted_items": 19,
+          "matched_items": 15,
+          "description_known": 55,
+          "description_correct": 13,
+          "item_price_known": 54,
+          "item_price_correct": 15,
+          "quantity_known": 55,
+          "quantity_correct": 15,
+          "missing_items": 40,
+          "unmatched_predictions": 4,
+          "currency_known": 7,
+          "currency_unresolved": 5,
+          "selected_currency_correct": 3,
+          "currency_correct": 2,
+          "currency_dataset_context": 2,
+          "total_known": 6,
+          "total_correct": 4,
+          "subtotal_known": 3,
+          "subtotal_correct": 1,
+          "tax_known": 3,
+          "tax_correct": 1,
+          "reconciliation_unavailable": 3,
+          "trusted_reconciliation_known": 6,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 1,
+          "complete_receipt_unscorable": 6,
+          "processing_errors": 2,
+          "requires_review": 7,
+          "item_price_matched_known": 15,
+          "reconciliation_checked": 4,
+          "reconciliation_failed": 3,
+          "reconciliation_with_validation_issues": 4,
+          "untrusted_zero_discrepancy": 1,
+          "merchant_known": 5,
+          "merchant_correct": 1,
+          "item_discount_known": 21,
+          "item_discount_correct": 0,
+          "unit_price_known": 27,
+          "unit_price_correct": 9,
+          "grouping_known": 27,
+          "grouping_correct": 6,
+          "extra_items_on_complete_labels": 4,
+          "complete_receipt_correct": 0,
+          "item_discount_matched_known": 3,
+          "unit_price_matched_known": 9
+        },
+        "item_precision": {
+          "correct": 15,
+          "count": 19,
+          "rate": 0.7895
+        },
+        "item_recall": {
+          "correct": 15,
+          "count": 55,
+          "rate": 0.2727
+        },
+        "description": {
+          "correct": 13,
+          "count": 55,
+          "rate": 0.2364
+        },
+        "merchant": {
+          "correct": 1,
+          "count": 5,
+          "rate": 0.2
+        },
+        "item_price": {
+          "correct": 15,
+          "count": 54,
+          "rate": 0.2778
+        },
+        "unit_price": {
+          "correct": 9,
+          "count": 27,
+          "rate": 0.3333
+        },
+        "item_discount": {
+          "correct": 0,
+          "count": 21,
+          "rate": 0.0
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "quantity": {
+          "correct": 15,
+          "count": 55,
+          "rate": 0.2727
+        },
+        "grouping": {
+          "correct": 6,
+          "count": 27,
+          "rate": 0.2222
+        },
+        "currency": {
+          "correct": 2,
+          "count": 7,
+          "rate": 0.2857
+        },
+        "subtotal": {
+          "correct": 1,
+          "count": 3,
+          "rate": 0.3333
+        },
+        "tax": {
+          "correct": 1,
+          "count": 3,
+          "rate": 0.3333
+        },
+        "total": {
+          "correct": 4,
+          "count": 6,
+          "rate": 0.6667
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 6,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 1,
+          "rate": 0.0
+        },
+        "matched_item_price": {
+          "correct": 15,
+          "count": 15,
+          "rate": 1.0
+        },
+        "latency_ms": {
+          "samples": 7,
+          "median": 25878,
+          "mean": 26404,
+          "p95_nearest_rank": 45931,
+          "total": 184828
+        }
+      },
+      "per_financial_case": [
+        {
+          "receipt_id": "cord-v2-train-000",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 22,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "description_known": 22,
+            "description_correct": 0,
+            "item_price_known": 21,
+            "item_price_correct": 0,
+            "quantity_known": 22,
+            "quantity_correct": 0,
+            "missing_items": 22,
+            "unmatched_predictions": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 1,
+            "requires_review": 1
+          },
+          "elapsed_ms": 40145,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-1",
+              "expected": "75000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-1",
+              "expected": "Nasi Campur Bali"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-2",
+              "expected": "125000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-2",
+              "expected": "Bbk Bengil Nasi"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-3",
+              "expected": "37000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-3",
+              "expected": "MilkShake Starwb"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-4",
+              "expected": "24000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-4",
+              "expected": "Ice Lemon Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-5",
+              "expected": "70000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-5",
+              "expected": "Nasi Ayam Dewata"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-6",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-6",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-7",
+              "expected": "65000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-7",
+              "expected": "Organic Green Sa"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-8",
+              "expected": "18000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-8",
+              "expected": "Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-9",
+              "expected": "29000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-9",
+              "expected": "Ice Orange"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "85000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-10",
+              "expected": "Ayam Suir Bali"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "36000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-11",
+              "expected": "Tahu Goreng"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "36000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-12",
+              "expected": "Tempe Goreng"
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "70000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-14",
+              "expected": "Nasi Goreng Samb"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "366000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-15",
+              "expected": "Bbk Panggang Sam"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "92000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-16",
+              "expected": "Ayam Sambal Hija"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "44000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-17",
+              "expected": "Hot Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "32000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-18",
+              "expected": "Ice Kopi"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-19",
+              "expected": "40000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-19",
+              "expected": "Tahu Telor Asin"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-20",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-20",
+              "expected": "Free Ice Tea"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-21",
+              "expected": "44000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-21",
+              "expected": "Bebek Street"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-22",
+              "expected": "18000",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-22",
+              "expected": "Ice Tea Tawar"
+            },
+            {
+              "field": "grand_total",
+              "expected": "1591600",
+              "actual": null
+            }
+          ],
+          "scanner_issue_count": 0,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "cord-v2-train-001",
+          "category": "non_costco/physical",
+          "country": "ID",
+          "currency": "IDR",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 6,
+            "predicted_items": 6,
+            "matched_items": 6,
+            "description_known": 6,
+            "description_correct": 4,
+            "item_price_known": 6,
+            "item_price_matched_known": 6,
+            "item_price_correct": 6,
+            "quantity_known": 6,
+            "quantity_correct": 6,
+            "missing_items": 0,
+            "unmatched_predictions": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 1,
+            "total_known": 1,
+            "total_correct": 1,
+            "subtotal_known": 1,
+            "subtotal_correct": 1,
+            "tax_known": 1,
+            "tax_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 20116,
+          "errors": [],
+          "scanner_issue_count": 2,
+          "scanner_discrepancy_minor": "-10563000"
+        },
+        {
+          "receipt_id": "costco-tw-20121104",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 0,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 15077,
+          "errors": [],
+          "scanner_issue_count": 3,
+          "scanner_discrepancy_minor": "0"
+        },
+        {
+          "receipt_id": "costco-tw-photo-20130612",
+          "category": "costco/physical",
+          "country": "TW",
+          "currency": "TWD",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "reconciliation_unavailable": 1,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 11314,
+          "errors": [],
+          "scanner_issue_count": 3,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "supplement-user-uk-20261026-group",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 18,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "description_known": 18,
+            "description_correct": 0,
+            "item_price_known": 18,
+            "item_price_correct": 0,
+            "item_discount_known": 18,
+            "item_discount_correct": 0,
+            "unit_price_known": 18,
+            "unit_price_correct": 0,
+            "quantity_known": 18,
+            "quantity_correct": 0,
+            "grouping_known": 18,
+            "grouping_correct": 0,
+            "missing_items": 18,
+            "unmatched_predictions": 0,
+            "extra_items_on_complete_labels": 0,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 0,
+            "subtotal_known": 1,
+            "subtotal_correct": 0,
+            "tax_known": 1,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 1,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 1,
+            "complete_receipt_correct": 0,
+            "processing_errors": 1,
+            "requires_review": 1
+          },
+          "elapsed_ms": 45931,
+          "errors": [
+            {
+              "field": "item_price",
+              "item_id": "item-01",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-01",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-01",
+              "expected": "14.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-01",
+              "expected": "SPAM 6X340G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-02",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-02",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-02",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-02",
+              "expected": "JW TUN/OIL 12X145G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-03",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-03",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-03",
+              "expected": "9.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-03",
+              "expected": "MEDIUM EGGS 5 DZN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-04",
+              "expected": "9.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-04",
+              "expected": "-2.00",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-04",
+              "expected": "9.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-04",
+              "expected": "CHICKEN SKEWER 15"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-05",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-05",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-05",
+              "expected": "5.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-05",
+              "expected": "ROWSE HONEY 1.36KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-06",
+              "expected": "23.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-06",
+              "expected": "-1.60",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-06",
+              "expected": "23.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-06",
+              "expected": "BELVEDERE VOD.70CL"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-07",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-07",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-07",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-07",
+              "expected": "MEADOWCHURN 4X250G"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-08",
+              "expected": "5.29",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-08",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-08",
+              "expected": "5.29",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-08",
+              "expected": "SCOTCH SCOURER 24P"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-09",
+              "expected": "10.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-09",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-09",
+              "expected": "10.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-09",
+              "expected": "FERRERO ROCHER T48"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-10",
+              "expected": "9.79",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-10",
+              "expected": "-1.80",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-10",
+              "expected": "9.79",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-10",
+              "expected": "KINDER BUENO T20"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-11",
+              "expected": "11.59",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-11",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-11",
+              "expected": "11.59",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-11",
+              "expected": "PRAWN WONTON SOUP"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-12",
+              "expected": "19.03",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-12",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-12",
+              "expected": "19.03",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-12",
+              "expected": "PARMAREGGIO 30M"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-13",
+              "expected": "4.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-13",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-13",
+              "expected": "4.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-13",
+              "expected": "BABY PLUM TOMS 1KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-14",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-14",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-14",
+              "expected": "5.49",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-14",
+              "expected": "GARLIC 1KG"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-15",
+              "expected": "7.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-15",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-15",
+              "expected": "7.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-15",
+              "expected": "PLASTIC CONT 38OZ"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-16",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-16",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-16",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-16",
+              "expected": "KS ROTISS CHICKEN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-17",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-17",
+              "expected": "0",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-17",
+              "expected": "3.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-17",
+              "expected": "KS ROTISS CHICKEN"
+            },
+            {
+              "field": "item_price",
+              "item_id": "item-18",
+              "expected": "6.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-18",
+              "expected": "-1.50",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "unit_price",
+              "item_id": "item-18",
+              "expected": "6.99",
+              "actual": null,
+              "detected": false
+            },
+            {
+              "field": "missing_item",
+              "item_id": "item-18",
+              "expected": "SPONTEX CLOTHS 24P"
+            },
+            {
+              "field": "grand_total",
+              "expected": "176.78",
+              "actual": null
+            }
+          ],
+          "scanner_issue_count": 0,
+          "scanner_discrepancy_minor": null
+        },
+        {
+          "receipt_id": "tesco-gb-1994",
+          "category": "non_costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 0,
+            "expected_items": 0,
+            "predicted_items": 0,
+            "matched_items": 0,
+            "merchant_known": 1,
+            "merchant_correct": 1,
+            "missing_items": 0,
+            "currency_known": 1,
+            "currency_unresolved": 0,
+            "selected_currency_correct": 1,
+            "currency_correct": 1,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 26367,
+          "errors": [],
+          "scanner_issue_count": 7,
+          "scanner_discrepancy_minor": "-160"
+        },
+        {
+          "receipt_id": "user-costco-bristol-001",
+          "category": "costco/physical",
+          "country": "GB",
+          "currency": "GBP",
+          "split": "development",
+          "counts": {
+            "samples": 1,
+            "item_label_samples": 1,
+            "expected_items": 9,
+            "predicted_items": 13,
+            "matched_items": 9,
+            "merchant_known": 1,
+            "merchant_correct": 0,
+            "description_known": 9,
+            "description_correct": 9,
+            "item_price_known": 9,
+            "item_price_matched_known": 9,
+            "item_price_correct": 9,
+            "item_discount_known": 3,
+            "item_discount_matched_known": 3,
+            "item_discount_correct": 0,
+            "unit_price_known": 9,
+            "unit_price_matched_known": 9,
+            "unit_price_correct": 9,
+            "quantity_known": 9,
+            "quantity_correct": 9,
+            "grouping_known": 9,
+            "grouping_correct": 6,
+            "missing_items": 0,
+            "unmatched_predictions": 4,
+            "extra_items_on_complete_labels": 4,
+            "currency_known": 1,
+            "currency_unresolved": 1,
+            "selected_currency_correct": 1,
+            "currency_correct": 0,
+            "currency_dataset_context": 0,
+            "total_known": 1,
+            "total_correct": 1,
+            "reconciliation_checked": 1,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 1,
+            "untrusted_zero_discrepancy": 0,
+            "trusted_reconciliation_known": 1,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 1,
+            "processing_errors": 0,
+            "requires_review": 1
+          },
+          "elapsed_ms": 25878,
+          "errors": [
+            {
+              "field": "item_discount",
+              "item_id": "item-1",
+              "expected": "7.00",
+              "actual": "0",
+              "detected": true
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-3",
+              "expected": "5.00",
+              "actual": "0",
+              "detected": true
+            },
+            {
+              "field": "item_discount",
+              "item_id": "item-7",
+              "expected": "1.00",
+              "actual": "0",
+              "detected": true
+            }
+          ],
+          "scanner_issue_count": 1,
+          "scanner_discrepancy_minor": "2773"
+        }
+      ],
+      "nonfinancial_controls": []
+    }
+  },
+  "vision_process_metrics": {
+    "cases": 7,
+    "json_complete": 7,
+    "strict_application_schema_valid": 5,
+    "schema_rejections": 2,
+    "mean_ms": 26319,
+    "p95_nearest_rank_ms": 45657,
+    "peak_process_working_set_bytes": 3678150656,
+    "timing_scope": "Fresh CLI model loading, image encoding and constrained generation; excludes verified download/setup, browser preprocessing and deterministic financial validation",
+    "gpu_memory_note": "GPU offloading used Vulkan; process working set excludes dedicated GPU memory. One global GPU observation during the first synthetic smoke was 5329MiB used including other applications, not a per-model peak.",
+    "comparison_limit": "Fresh CLI startup included, GPU shader cache warm after synthetic trials. CPU OCR inference-only and old browser e2e latency scopes differ; no speedup is claimed."
+  },
+  "long_costco_raw_diagnostic": {
+    "purchase_rows": 22,
+    "expected_purchase_rows": 18,
+    "coupon_like_rows_treated_as_purchases": 3,
+    "adjustment_count": 3,
+    "schema_rate_percent_strings": true,
+    "accepted_by_application": false
+  },
+  "decision": "Do not select this exact 4B/quantization/prompt/decoder protocol as an automatic replacement. Some totals improved, but overall product/financial extraction and six-receipt reconciliation did not justify migration. Fix decoder/structured-contract limitations and retest independently before a stronger claim.",
+  "limitations": [
+    "This is a small development pilot, not a full corpus or fresh holdout result. Two format-invalid cases count as application failures, even when some raw fields appear correct.",
+    "The native JSON-schema converter reported unsupported \\d escapes and silently relaxed those patterns; strict Zod validation correctly rejected invalid tax-rate/negative-adjustment fields.",
+    "The CORD negative adjustment also exposes the shared AI contract lacking signed rounding although manual exact-money rounding exists.",
+    "The long Costco output included coupon/summary errors; fixing number formatting alone does not establish correct semantics.",
+    "Original manual labels are partial except for the supplied source-checked transaction; CORD labels can omit modifiers. Strict complete-financial denominator for the original set remains zero.",
+    "The benchmark CLI is experimental/deprecated in this runtime; no public serving, OS sandbox, consumer integration or on-phone deployment was validated."
+  ]
+}
