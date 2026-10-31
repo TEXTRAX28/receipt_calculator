@@ -4,7 +4,25 @@ import { z } from "zod";
 const amount = z
   .string()
   .max(40)
-  .regex(/^(?:\d{1,12}(?:\.\d{1,6})?)?$/);
+  .regex(/^(?:[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/);
+const signedAmount = z
+  .string()
+  .max(40)
+  .regex(/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/);
+// Disjoint kinds keep negative values exclusive to an explicitly printed rounding row.
+// A union emits anyOf, which is supported by the Gemini and local decoder schemas.
+const adjustment = z.union([
+  z.strictObject({
+    label: z.string().max(100),
+    kind: z.enum(["discount", "fee", "tip", "deposit"]),
+    amount,
+  }),
+  z.strictObject({
+    label: z.string().max(100),
+    kind: z.enum(["rounding"]),
+    amount: signedAmount,
+  }),
+]);
 const code = z.string().max(12);
 const photo = z.number().int().min(1).max(12);
 export const aiReceiptSchema = z.strictObject({
@@ -47,15 +65,7 @@ export const aiReceiptSchema = z.strictObject({
       }),
     )
     .max(300),
-  adjustments: z
-    .array(
-      z.strictObject({
-        label: z.string().max(100),
-        kind: z.enum(["discount", "fee", "tip", "deposit"]),
-        amount,
-      }),
-    )
-    .max(30),
+  adjustments: z.array(adjustment).max(30),
   warnings: z.array(z.string().max(350)).max(30),
 });
 // Keep decoding constraints small. Large nested array/numeric bounds can make
