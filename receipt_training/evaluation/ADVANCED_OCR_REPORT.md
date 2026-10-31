@@ -1,6 +1,6 @@
 # Advanced OCR investigation — work in progress
 
-Updated 2026-10-31. The full twelve-phase objective remains active. The latest investigation benchmarks GLM-OCR in both literal-text and structured modes and Qwen3.5-4B, following local PDF import, independent local comparison and bounded long-receipt work. This report records evidence gathered so far; it does not certify a finished scanner or public release.
+Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds local post-capture photo advice after the GLM-OCR and Qwen3.5 comparisons, local PDF import, independent local comparison and bounded long-receipt work. This report records evidence gathered so far; it does not certify a finished scanner or public release.
 
 ## Protected baseline
 
@@ -301,6 +301,20 @@ An additional **actual installed PaddleOCR** workflow read the scanned PDF and p
 
 Current verification: **313 unit tests, 113 standard browser tests and one duplicate-layout skip**, plus the extra actual installed-model PDF workflow; typecheck, build, formatting and a runtime dependency audit with zero reported vulnerabilities passed. Browser visual checks include a phone capture/review flow and literal source highlights. The original cohort/annotations and frozen original outputs remain unchanged; this checkpoint does not claim a fresh original-corpus accuracy gain. The synthetic workflow timings include UI/file preparation and existing caches, not a representative latency distribution or p95. Genuine retailer PDFs, Safari/physical phone performance, broader fonts/layouts, whole-app peak memory and production isolation remain open. Aggregate/source/input checks are in [advanced-pdf-integration.json](advanced-pdf-integration.json), verified with `python receipt_training/scripts/build_pdf_integration_report.py --check`.
 
+### Local capture-quality advice
+
+Photo preparation now checks original, unfiltered pixels for very low native resolution, darkness, little visible detail and likely distributed blur. A small overview assesses exposure/detail; three bounded regions retain native pixel resolution for blur checks. Empty regions abstain. Cropping recalculates the advisory using the original crop dimensions, so upscaling a small crop cannot hide its lack of source resolution. The checks add no upload or model call and do not alter the source image, OCR preparation or financial fields.
+
+Verified graph/source locations: `src/lib/image-quality.ts:L17` (pixel statistics), `src/lib/image-quality.ts:L68` (advisories), `src/lib/image-quality.ts:L117` (original-pixel sampling) and `src/PhotoGuidance.tsx:L13` (grouped upload advice).
+
+The upload screen groups suggestions by problem and current image number, follows photo reordering/removal and keeps the original preview available. The advice fits 320/390/430-pixel screens and passes the targeted accessibility checks. It remains optional: a user can retake a photo or continue to the existing editable receipt review. No “good photo” grade or legibility guarantee appears when warnings are absent. PDF pages do not receive photographic recapture advice.
+
+The first browser run exposed a real missed case: text softened by a five-pixel blur had too little gradient energy to enter the initial blur test. Original-pixel diagnostics showed the reason. The eligibility threshold was corrected, then all checks were rerun. Five unit cases cover sharp/blurred/blank/dark/small samples, immutable input pixels and bounded malformed samples. Six new desktop/phone tests cover the advice, order/removal, original-resolution crop checks and continued reading through the mocked computer-reader protocol.
+
+The full checkpoint passed **318 unit tests and 119 browser tests**, with one existing duplicate-layout skip, plus build/typecheck and formatting. Existing actual Tesseract image/crop workflows are part of that browser suite; the new advice-to-reader case uses a mock response and is not an OCR accuracy measurement. Seven unchanged representative source photos were also processed locally, including both supplied UK photos. All seven assessments were available and none produced a warning. Their repeated assessment-only times were approximately **6.3–15.5 ms** on this desktop, with at most 633,600 sampled pixels per image. This small, previously inspected set has no quality ground truth: it establishes neither a false-positive/negative rate nor physical-phone performance. The engineering thresholds are advisory heuristics, not calibrated confidence probabilities.
+
+Automatic receipt-edge detection, deskew/perspective/orientation handling, live-camera guidance and individual-area rescanning remain open. Source/input/test checksums and explicit limits are in [advanced-capture-guidance.json](advanced-capture-guidance.json), verified with `python receipt_training/scripts/build_capture_guidance_report.py --check`. The original financial corpus, annotations and frozen OCR outputs were not replaced.
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |
@@ -308,12 +322,12 @@ Current verification: **313 unit tests, 113 standard browser tests and one dupli
 | 1 — Investigation | Existing application, datasets, branches, extraction and financial paths inspected; primary changes preserved. |
 | 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. Complete original financial truth and genuine digital/PDF cases remain missing. |
 | 3 — Technology comparison | Full neural OCR comparisons, full Qwen3-VL cohort, PaddleOCR-VL component recognition, GLM text/structured pilots and Qwen3.5 protocol trial measured. Newer tested profiles did not justify replacing the current candidate. Two separately approved Gemini crop attempts returned 503, leaving real cloud accuracy unmeasured; other providers remain unconfigured. Strongest final architecture is not certified. |
-| 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF import/direct text and actual scanned-PDF OCR-to-split now work within tested limits. General document classification, genuine long-photo/PDF accuracy, overlap coverage, quality/edges/deskew/perspective, broader recovery calibration and area rescan remain open. |
+| 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF/direct text, actual scanned-PDF OCR-to-split and advisory photo-quality checks work within tested limits. General document classification, genuine long-photo/PDF accuracy, overlap coverage, calibrated quality/edges/deskew/perspective, broader recovery and area rescan remain open. |
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
 | 6 — Credentials/services | Keys remain server-only. Exactly two separately approved redacted-crop uploads were attempted and returned 503. Both permissions are consumed. No additional private upload or billing activation is authorized. |
 | 7 — Git protection | Stable baseline and separate improvement branch preserved; incremental local commits; no merge/push/deploy. |
 | 8 — Splitting | Exact allocation/property and currency/rounding regressions pass; unresolved currency now blocks calculations/confirmation until explicit selection. Full refund/negative-purchase support still needs implementation and tests. |
-| 9 — Mobile UX | Capture/reorder/crop/progress, PDF import/cancellation, responsive source review and sharing work in browser tests. Actual camera guidance/edges and item rescan remain open. |
+| 9 — Mobile UX | Capture/reorder/crop/progress, local blur/darkness/resolution advice, PDF import/cancellation, responsive source review and sharing work in browser tests. Actual live-camera guidance/edges and item rescan remain open. |
 | 10 — Public security | Local host/origin/body/rate/timeout/cleanup/secret, PDF worker-error/import and development private-file HTTP boundaries tested. Public authentication/TLS, crash recovery/OS isolation, production quotas/spend/provider privacy review remain open. |
 | 11 — Complete verification | All original cases processed locally; full original structured regression and real supplied-photo workflow tested. Whole-app peak memory, missing input types/ground truth and cloud/provider/recovery coverage remain incomplete. |
 | 12 — Final report | This is a maintained evidence report with limitations and reproduction. Final requirement-by-requirement acceptance is not yet achieved. |

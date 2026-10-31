@@ -90,6 +90,7 @@ import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
 import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
+import PhotoGuidance from "./PhotoGuidance";
 import {
   collectReceiptEvidence,
   type ItemEvidence,
@@ -1111,6 +1112,7 @@ export default function App() {
                     for a clearer result.
                   </p>
                 )}
+                <PhotoGuidance images={images} />
                 {imageError && (
                   <p className="inline-error" role="alert">
                     <AlertCircle size={17} />

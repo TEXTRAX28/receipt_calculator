@@ -1,4 +1,5 @@
 import type { PdfPageText } from "./pdf-text";
+import { inspectCapture, type CaptureQuality } from "./image-quality";
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_PIXELS = 25_000_000;
@@ -117,6 +118,7 @@ export interface ReceiptImage {
   ocrBlob?: Blob;
   panels?: Blob[];
   crop?: CropBounds;
+  quality?: CaptureQuality;
   document?: {
     kind: "pdf";
     id: string;
@@ -274,7 +276,13 @@ export async function cropImage(
       ),
     );
     const panels = await detailPanels(bitmap, x, y, width, height);
-    return { ...image, ocrBlob, panels, crop: bounds };
+    return {
+      ...image,
+      ocrBlob,
+      panels,
+      crop: bounds,
+      quality: inspectCapture(bitmap, x, y, width, height),
+    };
   } finally {
     bitmap.close();
   }
@@ -339,6 +347,7 @@ export async function prepareImage(file: File): Promise<ReceiptImage> {
       sourceBlob: file,
       sourceBytes: file.size,
       panels,
+      quality: inspectCapture(bitmap),
     };
   } catch {
     throw new Error(
