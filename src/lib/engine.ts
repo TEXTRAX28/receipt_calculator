@@ -1,6 +1,7 @@
 import type { AppState, Assignment, Item, Person, Receipt } from "./model";
 import { receiptStamp } from "./model";
 import { allocate, money, roundDiv, SCALE, weight, formatMoney } from "./money";
+import { pendingReviewIssues } from "./review-checks";
 
 export interface Issue {
   path: string;
@@ -57,7 +58,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       discrepancy: null,
       equalCharges: [],
     };
-  const issues: Issue[] = [];
+  const issues: Issue[] = pendingReviewIssues(receipt);
   const issue = (path: string, message: string) =>
     issues.push({ path, message });
   const read = (value: string, path: string, signed = false) => {

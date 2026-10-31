@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { receiptFromAi } from "./gemini";
+import { aiReceiptSchema } from "./extraction-schema.mjs";
 import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { MAX_AI_BODY_BYTES, MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 
-export async function extractWithLocalVision(
+export async function extractLocalVisionEvidence(
   images: ReceiptImage[],
   signal: AbortSignal,
   progress: (status: string) => void,
@@ -41,7 +42,7 @@ export async function extractWithLocalVision(
           ? result.error.slice(0, 500)
           : "Local vision could not finish. Your photos are still available; choose another reader.",
       );
-    return receiptFromAi(result.receipt, "Local vision");
+    return aiReceiptSchema.parse(result.receipt);
   } catch (error) {
     if (signal.aborted)
       throw new Error("Scan cancelled. Your photos are still available.");
@@ -59,4 +60,15 @@ export async function extractWithLocalVision(
       );
     throw error;
   }
+}
+
+export async function extractWithLocalVision(
+  images: ReceiptImage[],
+  signal: AbortSignal,
+  progress: (status: string) => void,
+) {
+  return receiptFromAi(
+    await extractLocalVisionEvidence(images, signal, progress),
+    "Local vision",
+  );
 }

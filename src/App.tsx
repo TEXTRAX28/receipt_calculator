@@ -67,11 +67,23 @@ import {
   localReaderConfiguration,
 } from "./lib/local-model";
 import { extractWithLocalVision } from "./lib/local-vision";
+import { extractComparedReceipt } from "./lib/compared-reader";
+import {
+  applyItemEdit,
+  applyReceiptEdit,
+  checkIsPending,
+  confirmReviewCheck,
+  receiptFieldStamp,
+  reviewFieldLabels,
+  reviewKey,
+  reviewMessage,
+} from "./lib/review-checks";
 import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
 import ReceiptSource from "./ReceiptSource";
+import ReviewChecks from "./ReviewChecks";
 import {
   collectReceiptEvidence,
   type ItemEvidence,
@@ -231,6 +243,7 @@ export default function App() {
     "local" | "computer" | "vision" | "gemini"
   >("local");
   const readerChosen = useRef(false);
+  const [compareWithVision, setCompareWithVision] = useState(false);
   const [computerConfig, setComputerConfig] = useState<{
     configured: boolean;
     name: string;
@@ -255,6 +268,7 @@ export default function App() {
     null,
   );
   const [sourceItemId, setSourceItemId] = useState<string | null>(null);
+  const [sourceCheckKey, setSourceCheckKey] = useState<string | null>(null);
   const [personName, setPersonName] = useState("");
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -274,7 +288,17 @@ export default function App() {
     scanEvidence?.receiptId === state.receipt.id && sourceItemId
       ? scanEvidence.items[sourceItemId]
       : undefined;
-  const sourceOpen = Boolean(sourceItem && selectedSource);
+  const sourceFieldCheck = state.receipt.reviewChecks.find(
+    (check) => check.scope === "receipt" && reviewKey(check) === sourceCheckKey,
+  );
+  const selectedFieldSource =
+    scanEvidence?.receiptId === state.receipt.id &&
+    sourceFieldCheck?.scope === "receipt"
+      ? scanEvidence.fields?.[sourceFieldCheck.field]
+      : undefined;
+  const sourceOpen = Boolean(
+    (sourceItem && selectedSource) || selectedFieldSource,
+  );
   const sourceError = (field: string) =>
     receiptResult.issues.find(
       (issue) => issue.path === `items.${sourceItemIndex}.${field}`,
@@ -283,6 +307,7 @@ export default function App() {
     // Editing, replacing or removing an input invalidates its old coordinate map.
     setScanEvidence(null);
     setSourceItemId(null);
+    setSourceCheckKey(null);
   }, [images]);
   useEffect(() => {
     const check = new AbortController();
@@ -366,18 +391,19 @@ export default function App() {
   const editReceipt = (change: Partial<Receipt>) =>
     setState((s) => ({
       ...s,
-      receipt: { ...s.receipt, ...change },
+      receipt: applyReceiptEdit(s.receipt, change),
       finalizedStamp: "",
     }));
   const editItem = (id: string, change: Partial<Item>) =>
     setState((s) => ({
       ...s,
-      receipt: {
-        ...s.receipt,
-        items: s.receipt.items.map((i) =>
-          i.id === id ? { ...i, ...change } : i,
-        ),
-      },
+      receipt: applyItemEdit(s.receipt, id, change),
+      finalizedStamp: "",
+    }));
+  const confirmValue = (key: string, confirmed: boolean) =>
+    setState((s) => ({
+      ...s,
+      receipt: confirmReviewCheck(s.receipt, key, confirmed),
       finalizedStamp: "",
     }));
   const replaceReceipt = (
@@ -386,6 +412,7 @@ export default function App() {
   ) => {
     setScanEvidence(evidence);
     setSourceItemId(null);
+    setSourceCheckKey(null);
     setState((s) => ({
       ...newState(),
       people: s.people,
@@ -423,6 +450,7 @@ export default function App() {
     setImages([]);
     setScanEvidence(null);
     setSourceItemId(null);
+    setSourceCheckKey(null);
     setRawText("");
     setImageError("");
     setAiConsented(false);
@@ -494,6 +522,34 @@ export default function App() {
     setImageError("");
     controller.current = new AbortController();
     try {
+      if (
+        reader === "computer" &&
+        compareWithVision &&
+        visionConfig?.configured
+      ) {
+        const compared = await extractComparedReceipt(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
+        const evidence = collectReceiptEvidence(
+          compared.receipt,
+          compared.text,
+          compared.sources,
+          compared.sourceLines,
+          compared.recognition,
+          images,
+          compared.fieldSources,
+        );
+        setRawText(compared.text);
+        replaceReceipt(compared.receipt, evidence);
+        setNotice(
+          compared.comparisonComplete
+            ? "Both local readings finished. Check the marked values and every purchase against your photos before confirming."
+            : "The computer reader finished, but the extra comparison could not. Check the whole draft against your photos.",
+        );
+        return;
+      }
       if (reader === "vision") {
         const parsed = await extractWithLocalVision(
           images,
@@ -1042,12 +1098,34 @@ export default function App() {
                       review.
                     </p>
                   ) : reader === "computer" ? (
-                    <p className="hint">
-                      Receipt photos are processed on this computer. The first
-                      scan takes longer while the reader starts. Check
-                      quantities, amounts and overlapping rows against the
-                      originals.
-                    </p>
+                    <div>
+                      <p className="hint">
+                        Receipt photos are processed on this computer. The first
+                        scan takes longer while the reader starts. Check
+                        quantities, amounts and overlapping rows against the
+                        originals.
+                      </p>
+                      {visionConfig?.configured && (
+                        <label className="check-row comparison-choice">
+                          <input
+                            type="checkbox"
+                            checked={compareWithVision}
+                            disabled={busy}
+                            onChange={(event) =>
+                              setCompareWithVision(event.target.checked)
+                            }
+                          />
+                          <span>
+                            Compare with local vision
+                            <small>
+                              Reads the photos independently and marks
+                              disagreements. Takes longer; currently up to{" "}
+                              {visionConfig.maxPanels} prepared sections.
+                            </small>
+                          </span>
+                        </label>
+                      )}
+                    </div>
                   ) : reader === "vision" ? (
                     <p className="hint">
                       Experimental vision reader on this computer. It can take a
@@ -1604,7 +1682,11 @@ export default function App() {
                               ? scanEvidence.items[item.id]
                               : undefined
                           }
-                          onViewSource={() => setSourceItemId(item.id)}
+                          onViewSource={() => {
+                            setSourceCheckKey(null);
+                            setSourceItemId(item.id);
+                          }}
+                          onConfirm={confirmValue}
                           onChange={(change) => editItem(item.id, change)}
                           onDelete={() =>
                             editReceipt({
@@ -1797,6 +1879,22 @@ export default function App() {
                         </p>
                       </details>
                     )}
+                    <ReviewChecks
+                      receipt={state.receipt}
+                      checks={state.receipt.reviewChecks.filter(
+                        (check) => check.scope === "receipt",
+                      )}
+                      onConfirm={confirmValue}
+                      canViewSource={(check) =>
+                        check.scope === "receipt" &&
+                        scanEvidence?.receiptId === state.receipt.id &&
+                        Boolean(scanEvidence.fields?.[check.field])
+                      }
+                      onViewSource={(check) => {
+                        setSourceItemId(null);
+                        setSourceCheckKey(reviewKey(check));
+                      }}
+                    />
                     <IssueBox
                       issues={receiptResult.issues.map((i) => i.message)}
                       title="Let’s get the receipt to balance"
@@ -2325,6 +2423,7 @@ export default function App() {
         ref={dialogRef}
         onCancel={() => {
           setSourceItemId(null);
+          setSourceCheckKey(null);
           setCropTarget(null);
           setPrivacy(false);
           setZoomImage(null);
@@ -2332,6 +2431,7 @@ export default function App() {
         onClick={(e) => {
           if (e.target === dialogRef.current) {
             setSourceItemId(null);
+            setSourceCheckKey(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -2340,11 +2440,13 @@ export default function App() {
         aria-label={
           cropTarget
             ? "Crop receipt image"
-            : sourceOpen
-              ? `Receipt source for purchase ${sourceItemIndex + 1}`
-              : zoomImage
-                ? "Original receipt image"
-                : "Your privacy at Gather"
+            : selectedFieldSource && sourceFieldCheck?.scope === "receipt"
+              ? `Receipt source for ${reviewFieldLabels[sourceFieldCheck.field]}`
+              : sourceOpen
+                ? `Receipt source for purchase ${sourceItemIndex + 1}`
+                : zoomImage
+                  ? "Original receipt image"
+                  : "Your privacy at Gather"
         }
       >
         <button
@@ -2352,6 +2454,7 @@ export default function App() {
           aria-label="Close dialog"
           onClick={() => {
             setSourceItemId(null);
+            setSourceCheckKey(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -2423,24 +2526,38 @@ export default function App() {
                   error={sourceError("discount")}
                   onChange={(discount) => editItem(sourceItem.id, { discount })}
                 />
-                {!state.receipt.pricesIncludeTax &&
-                  state.receipt.taxMode === "codes" && (
-                    <Field
-                      label={`Item ${sourceItemIndex + 1} tax code`}
-                      error={sourceError("taxCode")}
-                    >
-                      <input
-                        maxLength={12}
-                        value={sourceItem.taxCode}
-                        onChange={(e) =>
-                          editItem(sourceItem.id, {
-                            taxCode: e.target.value.toUpperCase(),
-                          })
-                        }
-                      />
-                    </Field>
-                  )}
+                {(!state.receipt.pricesIncludeTax &&
+                  state.receipt.taxMode === "codes") ||
+                state.receipt.reviewChecks.some(
+                  (check) =>
+                    check.scope === "item" &&
+                    check.itemId === sourceItem.id &&
+                    check.field === "taxCode",
+                ) ? (
+                  <Field
+                    label={`Item ${sourceItemIndex + 1} tax code`}
+                    error={sourceError("taxCode")}
+                  >
+                    <input
+                      maxLength={12}
+                      value={sourceItem.taxCode}
+                      onChange={(e) =>
+                        editItem(sourceItem.id, {
+                          taxCode: e.target.value.toUpperCase(),
+                        })
+                      }
+                    />
+                  </Field>
+                ) : null}
               </div>
+              <ReviewChecks
+                receipt={state.receipt}
+                checks={state.receipt.reviewChecks.filter(
+                  (check) =>
+                    check.scope === "item" && check.itemId === sourceItem.id,
+                )}
+                onConfirm={confirmValue}
+              />
               <p className="hint">
                 Changes recalculate your receipt. Confirm the whole receipt
                 after checking every purchase.
@@ -2452,6 +2569,32 @@ export default function App() {
                 Back to receipt
               </button>
             </div>
+          </ReceiptSource>
+        ) : selectedFieldSource && sourceFieldCheck?.scope === "receipt" ? (
+          <ReceiptSource
+            key={sourceCheckKey}
+            title={`Check ${reviewFieldLabels[sourceFieldCheck.field]}`}
+            currentStamp={receiptFieldStamp(
+              state.receipt,
+              sourceFieldCheck.field,
+            )}
+            evidence={selectedFieldSource}
+          >
+            <ReviewChecks
+              receipt={state.receipt}
+              checks={[sourceFieldCheck]}
+              onConfirm={confirmValue}
+            />
+            <p className="hint">
+              Use the receipt fields to correct this value. Checking it here
+              records your review of the current draft.
+            </p>
+            <button
+              className="button button-primary full-width"
+              onClick={() => setSourceCheckKey(null)}
+            >
+              Back to receipt
+            </button>
           </ReceiptSource>
         ) : zoomImage ? (
           <div className="image-dialog">
@@ -2604,6 +2747,7 @@ function ItemEditor({
   onDelete,
   evidence,
   onViewSource,
+  onConfirm,
 }: {
   item: Item;
   index: number;
@@ -2613,9 +2757,22 @@ function ItemEditor({
   onDelete: () => void;
   evidence?: ItemEvidence;
   onViewSource?: () => void;
+  onConfirm: (key: string, confirmed: boolean) => void;
 }) {
+  const checks = receipt.reviewChecks.filter(
+    (check) => check.scope === "item" && check.itemId === item.id,
+  );
+  const fieldError = (field: string) => {
+    const check = checks.find(
+      (check) => check.field === field && checkIsPending(receipt, check),
+    );
+    return check ? reviewMessage(check) : undefined;
+  };
   const [expanded, setExpanded] = useState(
-    !item.description || !item.quantity || !item.lineTotal,
+    !item.description ||
+      !item.quantity ||
+      !item.lineTotal ||
+      checks.some((check) => checkIsPending(receipt, check)),
   );
   return (
     <div className="item-editor" data-testid={`review-item-${index}`}>
@@ -2630,12 +2787,14 @@ function ItemEditor({
             value={item.description}
             maxLength={180}
             placeholder="Item description"
+            aria-invalid={Boolean(fieldError("description"))}
             onChange={(e) => onChange({ description: e.target.value })}
           />
         </div>
         <MoneyInput
           label={`Item ${index + 1} line price`}
           value={item.lineTotal}
+          error={fieldError("lineTotal")}
           onChange={(lineTotal) => onChange({ lineTotal })}
         />
         <strong className="item-cost">
@@ -2678,20 +2837,27 @@ function ItemEditor({
             <MoneyInput
               label={`Item ${index + 1} purchased quantity`}
               value={item.quantity}
+              error={fieldError("quantity")}
               onChange={(quantity) => onChange({ quantity })}
             />
             <MoneyInput
               label={`Item ${index + 1} unit price (optional)`}
               value={item.unitPrice}
+              error={fieldError("unitPrice")}
               onChange={(unitPrice) => onChange({ unitPrice })}
             />
             <MoneyInput
               label={`Item ${index + 1} discount`}
               value={item.discount}
+              error={fieldError("discount")}
               onChange={(discount) => onChange({ discount })}
             />
-            {!receipt.pricesIncludeTax && receipt.taxMode === "codes" && (
-              <Field label={`Item ${index + 1} tax code`}>
+            {((!receipt.pricesIncludeTax && receipt.taxMode === "codes") ||
+              checks.some((check) => check.field === "taxCode")) && (
+              <Field
+                label={`Item ${index + 1} tax code`}
+                error={fieldError("taxCode")}
+              >
                 <select
                   value={item.taxCode}
                   onChange={(e) => onChange({ taxCode: e.target.value })}
@@ -2722,6 +2888,7 @@ function ItemEditor({
           </button>
         </div>
       )}
+      <ReviewChecks receipt={receipt} checks={checks} onConfirm={onConfirm} />
     </div>
   );
 }

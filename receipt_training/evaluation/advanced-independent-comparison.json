@@ -1,0 +1,463 @@
+{
+  "scope": "Optional independent local comparison checkpoint, not production certification or a new blind holdout",
+  "cached_replay": {
+    "original_financial_receipts": 50,
+    "supplemental_diagnostics": 4,
+    "supplemental_truth_cases": 1,
+    "original_metrics": {
+      "counts": {
+        "samples": 50,
+        "item_label_samples": 45,
+        "expected_items": 130,
+        "predicted_items": 136,
+        "matched_items": 129,
+        "description_known": 130,
+        "description_correct": 118,
+        "item_price_known": 129,
+        "item_price_matched_known": 128,
+        "item_price_correct": 99,
+        "quantity_known": 117,
+        "quantity_correct": 117,
+        "missing_items": 1,
+        "unmatched_predictions": 7,
+        "currency_known": 50,
+        "currency_unresolved": 40,
+        "selected_currency_correct": 9,
+        "currency_correct": 8,
+        "currency_dataset_context": 44,
+        "total_known": 49,
+        "total_correct": 33,
+        "subtotal_known": 34,
+        "subtotal_correct": 25,
+        "tax_known": 22,
+        "tax_correct": 12,
+        "reconciliation_unavailable": 40,
+        "trusted_reconciliation_known": 49,
+        "trusted_reconciliation_correct": 0,
+        "complete_receipt_known": 0,
+        "complete_receipt_unscorable": 50,
+        "processing_errors": 0,
+        "requires_review": 50,
+        "receipt_discount_known": 4,
+        "receipt_discount_correct": 2,
+        "unit_price_known": 31,
+        "unit_price_matched_known": 31,
+        "unit_price_correct": 22,
+        "reconciliation_checked": 10,
+        "reconciliation_failed": 5,
+        "reconciliation_with_validation_issues": 10,
+        "untrusted_zero_discrepancy": 5,
+        "item_discount_known": 7,
+        "item_discount_matched_known": 7,
+        "item_discount_correct": 5,
+        "grouping_known": 14,
+        "grouping_correct": 11,
+        "merchant_known": 6,
+        "merchant_correct": 1,
+        "extra_items_on_complete_labels": 3
+      },
+      "item_precision": {
+        "correct": 129,
+        "count": 136,
+        "rate": 0.9485
+      },
+      "item_recall": {
+        "correct": 129,
+        "count": 130,
+        "rate": 0.9923
+      },
+      "description": {
+        "correct": 118,
+        "count": 130,
+        "rate": 0.9077
+      },
+      "merchant": {
+        "correct": 1,
+        "count": 6,
+        "rate": 0.1667
+      },
+      "item_price": {
+        "correct": 99,
+        "count": 129,
+        "rate": 0.7674
+      },
+      "unit_price": {
+        "correct": 22,
+        "count": 31,
+        "rate": 0.7097
+      },
+      "item_discount": {
+        "correct": 5,
+        "count": 7,
+        "rate": 0.7143
+      },
+      "receipt_discount": {
+        "correct": 2,
+        "count": 4,
+        "rate": 0.5
+      },
+      "quantity": {
+        "correct": 117,
+        "count": 117,
+        "rate": 1.0
+      },
+      "grouping": {
+        "correct": 11,
+        "count": 14,
+        "rate": 0.7857
+      },
+      "currency": {
+        "correct": 8,
+        "count": 50,
+        "rate": 0.16
+      },
+      "subtotal": {
+        "correct": 25,
+        "count": 34,
+        "rate": 0.7353
+      },
+      "tax": {
+        "correct": 12,
+        "count": 22,
+        "rate": 0.5455
+      },
+      "total": {
+        "correct": 33,
+        "count": 49,
+        "rate": 0.6735
+      },
+      "trusted_reconciliation": {
+        "correct": 0,
+        "count": 49,
+        "rate": 0.0
+      },
+      "complete_receipt": {
+        "correct": 0,
+        "count": 0,
+        "rate": null
+      },
+      "matched_item_price": {
+        "correct": 99,
+        "count": 128,
+        "rate": 0.7734
+      }
+    },
+    "grouped_supplement_metrics": {
+      "counts": {
+        "samples": 1,
+        "item_label_samples": 1,
+        "expected_items": 18,
+        "predicted_items": 18,
+        "matched_items": 18,
+        "merchant_known": 1,
+        "merchant_correct": 0,
+        "description_known": 18,
+        "description_correct": 17,
+        "item_price_known": 18,
+        "item_price_matched_known": 18,
+        "item_price_correct": 18,
+        "item_discount_known": 18,
+        "item_discount_matched_known": 18,
+        "item_discount_correct": 18,
+        "unit_price_known": 18,
+        "unit_price_matched_known": 18,
+        "unit_price_correct": 18,
+        "quantity_known": 18,
+        "quantity_correct": 18,
+        "grouping_known": 18,
+        "grouping_correct": 18,
+        "missing_items": 0,
+        "unmatched_predictions": 0,
+        "extra_items_on_complete_labels": 0,
+        "currency_known": 1,
+        "currency_unresolved": 0,
+        "selected_currency_correct": 1,
+        "currency_correct": 1,
+        "currency_dataset_context": 0,
+        "total_known": 1,
+        "total_correct": 1,
+        "subtotal_known": 1,
+        "subtotal_correct": 1,
+        "tax_known": 1,
+        "tax_correct": 1,
+        "reconciliation_checked": 1,
+        "reconciliation_failed": 0,
+        "reconciliation_with_validation_issues": 1,
+        "untrusted_zero_discrepancy": 1,
+        "trusted_reconciliation_known": 1,
+        "trusted_reconciliation_correct": 0,
+        "complete_receipt_known": 1,
+        "complete_receipt_correct": 0,
+        "processing_errors": 0,
+        "requires_review": 1
+      },
+      "item_precision": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "item_recall": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "description": {
+        "correct": 17,
+        "count": 18,
+        "rate": 0.9444
+      },
+      "merchant": {
+        "correct": 0,
+        "count": 1,
+        "rate": 0.0
+      },
+      "item_price": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "unit_price": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "item_discount": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "receipt_discount": {
+        "correct": 0,
+        "count": 0,
+        "rate": null
+      },
+      "quantity": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "grouping": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      },
+      "currency": {
+        "correct": 1,
+        "count": 1,
+        "rate": 1.0
+      },
+      "subtotal": {
+        "correct": 1,
+        "count": 1,
+        "rate": 1.0
+      },
+      "tax": {
+        "correct": 1,
+        "count": 1,
+        "rate": 1.0
+      },
+      "total": {
+        "correct": 1,
+        "count": 1,
+        "rate": 1.0
+      },
+      "trusted_reconciliation": {
+        "correct": 0,
+        "count": 1,
+        "rate": 0.0
+      },
+      "complete_receipt": {
+        "correct": 0,
+        "count": 1,
+        "rate": 0.0
+      },
+      "matched_item_price": {
+        "correct": 18,
+        "count": 18,
+        "rate": 1.0
+      }
+    },
+    "original_receipts_with_pending_checks": 50,
+    "timing_scope": "No new model calls. Comparison-only times excluded from public scanner-latency metrics.",
+    "api_calls": 0,
+    "api_cost_usd": "0",
+    "limits": [
+      "Original differing panel preparation and some panels beyond today's API pixel/section limits",
+      "Evaluation has already been inspected; no fresh holdout claim",
+      "Complete original financial truth denominator remains zero"
+    ]
+  },
+  "real_development_workflow": {
+    "unique_receipts": 1,
+    "scan_to_review_ms": 111446,
+    "timing_scope": "Scan button through both local models, preparation, independent comparison and editable review; excludes manual review and sharing",
+    "native_purchases": 22,
+    "combined_purchases": 18,
+    "combined_coupons": 4,
+    "financial_row_vector_match": true,
+    "final_minor": "17678",
+    "pending_checks_before_review": 8,
+    "issue_paths_before_review": [
+      "items.3.discount",
+      "items.5.discount",
+      "items.9.discount",
+      "items.17.discount",
+      "items.5.description",
+      "adjustments",
+      "printedTotal",
+      "merchant"
+    ],
+    "review_controls_exercised": 8,
+    "split": [
+      "58.93",
+      "58.93",
+      "58.92"
+    ],
+    "no_financial_edits": true,
+    "external_browser_requests": 0,
+    "accuracy_scope": "Source-informed development receipt; complete-receipt correctness is not claimed",
+    "p95_estimated": false,
+    "whole_app_peak_memory_measured": false
+  },
+  "tests": {
+    "unit_passes": 256,
+    "standard_browser_passes": 91,
+    "standard_browser_skips": 1,
+    "fresh_real_model_workflow_passes": 1,
+    "typecheck_build_format_passed": true,
+    "python_scope": "Backend unchanged; no new Python inference-code changes. Previous 35-test checkpoint remains separate."
+  },
+  "remaining": [
+    "Long local vision receipts",
+    "Efficient recovery/uncertainty calibration on broader ground truth",
+    "Digital/PDF text and image-quality/edge/perspective processing",
+    "Item rescan",
+    "Refunds",
+    "Public authentication/TLS/OS isolation and all other full-objective requirements"
+  ],
+  "source_commit_before_checkpoint": "412bbc8e565238423cc7d30bd3df4545fb938813",
+  "git_protection_audit": {
+    "primary_head": "29a187af7347be94c0728f4785be674500833748",
+    "primary_dirty_diff_sha256": "72fe803bf341a3052a441b7144838d06e7f4cbea5b59d612feb649368442e31b",
+    "stable_reference": "ee725ba45e799bee8501d3de034e0302c0127afd",
+    "improvement_branch": "feature/advanced-ocr-vision-ai",
+    "remaining_feature_runtime_jobs": 0
+  },
+  "source_sha256": {
+    ".env.example": "6530849b62811989f77333260c6129486ae4f6e163b9920d2274109cf34b36a0",
+    ".gitignore": "b9047c0d220f25f5e928152226260dbc3df23caeec696f16de9f93a2225a67d1",
+    "package-lock.json": "eff788d02a4fef21324b2a9e2b8ac46bba4fa9f35053c9a76db83e23b1b450f4",
+    "package.json": "8ff6ef2a93c42df53ec82e508a78953a702a77e791544a9748d598a3180c34b8",
+    "playwright.config.ts": "79cf88717f5a9e13dd428836a728df3bee9a09f8385603c9399df867f1143512",
+    "README.md": "39b24b09d3cfc3ddc024310bde237457915c996c2ef263c0e95083c8d4379773",
+    "receipt_training/evaluation/ADVANCED_OCR_REPORT.md": "4010efd5d9e91339061a3315bbf8aaca3d5d323cc5b7734c903908f9c95924e6",
+    "receipt_training/scripts/build_independent_comparison_report.py": "1d049ffacbb5b588b258c47c12c02f41e2d2cbcbe52051dd20ffabe3cfcd64fb",
+    "receipt_training/scripts/replay_independent_readings.mjs": "2bd874f573889bb0e30a2ae2b5089c2ecac4edd5ff77500a90d27ea514ba49e7",
+    "receipt_training/scripts/score.py": "fe05ead24bb1664304c4ae2b13c90413340da4b6e7f98cd8d85f52b1b1a86d3a",
+    "server/extraction-instructions.mjs": "08d325eae5d084426d747356ca99c677e6d342b226fae077762bd7cfa4ec8454",
+    "server/graphify-out/cache/13edfc299aacca73ecdc1aba12f17a21a2d7b4461f7766b82f92590d95653312.json": "9d35d27daf64a098ad91bc12fd299c9bc192aefe86934874a2f79cee1a522c9e",
+    "server/graphify-out/cache/b889c8d2e4c75a1d16e4524cb48949d3109fab886ba34232ff4a20adaf239d4f.json": "c103ea7bf999b243db7e65038793e2a7dd1078eabe5e437dae7f6f9acf0f81bb",
+    "server/graphify-out/cache/ff49c0018305202e4eed7df23c68a862207f7abce1f651825d295e5054833e8c.json": "3997519903424b80529d40b09dff03284e726c115efe4aa58871f9e7a6cf5d1d",
+    "server/local-model-manifest.json": "8fd28b7ca92c28b1a2acd7d4a79b1ca5f3a4ff96fe9df7e972459fd0138e71f0",
+    "server/local-ocr.mjs": "9b19c8324db6597a053dab8d2b8069bee42e9eed2fc92f073afcd96bdd72bdda",
+    "server/local-vision.mjs": "43dc2451dd291fa7d1238ea28c457e97591c2e243dab0823630032f3c38219ea",
+    "server/local_image_guard.py": "b9ec1565a274993a6f0da00db313bf75dca93acb5b9463bc5163ccc61b112300",
+    "server/local_ocr_models.py": "fbfa4219fe787e472bb601f3ea656d341d4448d4f653fa3fff1db28f3c97ceea",
+    "server/local_ocr_worker.py": "ef4dcd6260b531d240f4d14135b00d02a305933b8d09ee046d8c32e6e5abb54d",
+    "server/private-paths.mjs": "025ecb074fce43c7d0fe557686fd2532c165adb3a06bc932960e50fb79ec4395",
+    "server/private-process.mjs": "cb2bc1ac03abc6e83993c6b9545fafdbc5988b7fbf6b509caefc95c2558f1200",
+    "server/receipt-api.mjs": "634d84d2d6842905dff236a1bce2af6201ae92140ee2542ecdc8f0c9a4906b38",
+    "src/App.tsx": "61576b1bc6ccc19035cc7c60124894ec8cef44a3756703081c6bf82d90185467",
+    "src/ImageCropper.tsx": "94e1ad4ad00c30791900f5bed106867f68ee62ac475e4757b8ef74e014929fee",
+    "src/lib/compared-reader.ts": "a9d78e97c26e4a9a87c4399270ca7f2d483b1718f38d2eb99bec042cf01d7a3f",
+    "src/lib/costco-row.ts": "0b84a3dcceb8d83f5b8dd85553798a11ac57f65f79c6b913cac5644235249fef",
+    "src/lib/demo.ts": "b70d2182c6a8659db19d853e026855412c813a5cf8d0909043c8f04b88cb2dbd",
+    "src/lib/engine.ts": "921a73364fad8ff914f53bcb677e07f79d1ba0ca2b00c311f2971117de8135a1",
+    "src/lib/extraction-schema.mjs": "ef3b2d6e323f5ba8f249884956b43c755b6c6928e2995a3cc204a146826ad2dc",
+    "src/lib/gemini.ts": "e2fc5a22b3cb9e6bf76e8a628b7574ece3313b4ebbec40639482977359f64b5b",
+    "src/lib/images.ts": "137b841b33932d05b8c36c10f147e4a5feaa287ffcde10e3f3f43137fe6e271d",
+    "src/lib/local-model.ts": "b04b959ee888c0c7c7a3af5f90b7f10f844f78c2ccdfdb158ca371f1d11e2158",
+    "src/lib/local-vision.ts": "eae4d42e4b874a64f92736bd0c1a026e1ecc8bd46693bba5107b0a6b58e8f954",
+    "src/lib/model.ts": "41c3d7b02b407f626711d4b65ee6e44580438d8029dda17118843960219b7193",
+    "src/lib/money.ts": "8003358751be960d81227dd92551471dfdd1675d25608e8839616919d604d04f",
+    "src/lib/ocr.ts": "a61aff67e5f83585a4cdd1af54d893ca26ffe53cc20080f611737ad575036f50",
+    "src/lib/panel-transport.ts": "7bec9ab43b23a18b2b4928fc351854e2c8bfaf9dfb3dad48a5e26e94321d43d2",
+    "src/lib/parser.ts": "81f52558244994a56f0f3a6a2eb4b965c6e55109af4e45ec0efce0d371847e81",
+    "src/lib/printed-amount.ts": "d9a03eb8bbd0e9f95bf0ceae46a6ead158319015f2a9fbd535e25a88af125887",
+    "src/lib/receipt-date.ts": "ef62e655f455dbf99e760a1042db073d85347596987450591b9d5983c90408b2",
+    "src/lib/receipt-evidence.ts": "4ea945a56f37c23523e9073949aa2bad5e112e4d9290c4a5040d6bf385ffe8c4",
+    "src/lib/receipt-layout.ts": "3ed15aec744feb3b1a73b783c4dd5cd72bc96c46c55898a46a519f55a23654cb",
+    "src/lib/receipt-summaries.ts": "b8954370e9acf1c41401458d856a228a754dd88e269408c845193511cab5d9a7",
+    "src/lib/recognition-schema.mjs": "55650f2f8fa66df2f52c0a7c7328d9f451d369a13621c79b2a91f095ba748e60",
+    "src/lib/review-checks.ts": "04393594554cc2b941d728e57cf35742e9d4284d84045a81535a92b511199c04",
+    "src/lib/scan-limits.mjs": "7fb43ae151410231b6df70ea05f97803462be8be48a19a1bc3e9803099015d41",
+    "src/lib/storage.ts": "ab81c6319255215c651f3ea26d4a754b3b7f88ad20fb75fec2fee9800407c026",
+    "src/lib/summary.ts": "e513f4614029738143cb5ce79bd34482e4263c4e1b4c8102039735ee1164d2ba",
+    "src/lib/verify-readings.ts": "ba5e61b3b81eac22816d865c06c51a7321ae97e8ec28451da4eef8c7d25dd9cd",
+    "src/main.tsx": "2aaeeb12a0b159223d76fb9567b16c105c90e2e79b0d4d2b6191d22b68b2a5ab",
+    "src/ReceiptSource.tsx": "50087068e80070af5ceed53cf043e4a68d11c09f2145ebd2a7dbe19ed8ec583b",
+    "src/ReviewChecks.tsx": "c6fbdbddb25c10bdea4e0f484fba5ba70819c07607c6e596b79d7ee846e09485",
+    "src/styles.css": "297f6ceec133ffb774b8d7dcbe4efccd45bf11500806f41b88c36f53ff14293c",
+    "src/theme.css": "37e74a1360e27ccba7df1aaf2c32b221b05959dcc51794e1b450123809d5c3ef",
+    "tests/ai.test.ts": "6cf56fb73c051f656886d3bc03a388efd0c06808cfdd436383b64cd04de7116f",
+    "tests/currency-evidence.test.ts": "e9d2152f4f5baa0df8912033fbedf34f99ce32aadeb0505daae5f2f175369d98",
+    "tests/e2e/compared-reader-real.spec.ts": "d1eedba0e159d6023cdc79486d2d0b59ad258f63d4790e163e840d11b98cbb3f",
+    "tests/e2e/compared-reader.spec.ts": "f51684e06462fce60c641d3574d01e78f89f7606f929a970fa210ba586f0348a",
+    "tests/e2e/computer-reader-real.spec.ts": "59fb0a31571a089482abb4d9e13609dbad87f819b9122d03390e8dbaf8259321",
+    "tests/e2e/computer-reader.spec.ts": "22266f1ae84abdad10ae066700f6e4356e906ad8887f17fe08c35afe4fb1354c",
+    "tests/e2e/journeys.spec.ts": "9337726e2e36ec1aaa436bf6d5d00c20f14ef1fd97b6c2f2549d26e268fae3a1",
+    "tests/e2e/local-vision-real.spec.ts": "265a9b3326c3e47841e9adcc4b91c52ff4d1e5f74595791af6b1cb48cf1dd005",
+    "tests/e2e/local-vision.spec.ts": "057a332aa18645ec330b4cd6a57ac1247e563d92e8ac0e323bfc2b68f242878e",
+    "tests/e2e/long-receipts.spec.ts": "fb5f8f58cfbfec6f6c4d95d92f04233c2eb8e856f1ac1b8c4a3c8362b7085b20",
+    "tests/e2e/ocr.spec.ts": "23a4bb987b7182a55e41b7eb077c3da5d425a68f486b73c56328cbd63d3e9e05",
+    "tests/e2e/phone-layout.spec.ts": "4a1d9379f60c6544df4f202238eb51a7482ecfe4772a6e5c10fd8424e95b26b4",
+    "tests/e2e/real-receipt.spec.ts": "339233f99b2e0895215afcfe209a835dfe648187bc4e7c7bc22f3b0db4b5abb1",
+    "tests/e2e/visual-and-robustness.spec.ts": "cfca897474e672e31d889a54a9f86b12a04722cbb9452d0bc6f6c4a37ba7673c",
+    "tests/engine.test.ts": "4013a85a5fc08a608a089ebaba75dcd7c4adc5df7ba880cada99d6bb17742a23",
+    "tests/fixtures/ai-receipt.ts": "8794690148ec58857b9d104617c3502ee712f44e07fcad54229f2bf4e17428dc",
+    "tests/fixtures/compared-receipt.ts": "34dc0482737a3aa9516509ceef17ac58d24adb2a5012febbd7639ea36a5c6c8f",
+    "tests/fixtures/local-vision-process.mjs": "029999ec2fe6a7f51a0fa6f9ef0be707c30a95fbcc948431bcd1bd7b8eb617c5",
+    "tests/fixtures/local-worker.mjs": "868ba084b5a597211700d61986a592988bb8e66e195f02c8d3ddd7a4df949eb7",
+    "tests/helpers.ts": "68e33dcae6dda5a903259c27195ac7ab846412f4dca9d0bed1b9a55ebc6dd54a",
+    "tests/image-budget.test.ts": "09c660f5945f85bba71a906e264c93d86dae9c423aeced1de9543029db08d251",
+    "tests/local-reader.test.ts": "dd86a49aca9eacdcd8d337ebfd467a3d54c686cc0ec596fc2a2a29f2ee32625b",
+    "tests/local-vision.test.ts": "c80be0c666be84f4767d4a7021b01c3fa76884e572199bc02c651af1747dd381",
+    "tests/money.test.ts": "c989dcc526e6e9af3716b56a0bc428ac1e91d2e032f152d725dcb895a46c6df2",
+    "tests/ocr.test.ts": "f90ad306b93a2ab11c81ada8fd50d1a5acf7cf0ec06d34e6fe96cd707470433c",
+    "tests/parser.test.ts": "63334a8b0c1dfd07668a0929cd5995744ddfd1dbb3824bbdf30cc00b4a46f6f5",
+    "tests/printed-amount.test.ts": "52589e4b497954285fdd24a418e77c5b2ea85957e60d64c53288046bb213627b",
+    "tests/private-paths.test.ts": "e2d7689f343ce33a2cc37013c4812011587dae3e1f63592c983b1b6af7305d9e",
+    "tests/receipt-date.test.ts": "6169b37758e90defd3ab2fc50ff222acadd3c2090ef638e6c4ca8c20daffa287",
+    "tests/receipt-evidence.test.ts": "85fded1562df728f2f2142fce89b0bb8b9a253529c4f4cb4c05ecfcd08c54817",
+    "tests/receipt-layout.test.ts": "95a7c2cf0cb27c946c4001ceefeb8516874f87a4838ed9bb3c4b0a9003476ff3",
+    "tests/review-checks.test.ts": "ea1ac8f54e5f4bb1fa5a8d34bbf272f1d2b778678e662e55a62cf89b59efe80d",
+    "tests/security.test.ts": "e2bb74fb2d5a380708cadad46aebdd873e8b18fc9717cddc03f1825234abfb0e",
+    "tests/structured-rounding.test.ts": "8c49d1188baf6d2cfbb9e883e1b1519db75dd2fa8a533cc0a34963beb2674d05",
+    "tests/summary.test.ts": "1ad27bacb4049e326fe19fe3055114707450b10872e9816f924fdabc3100ab9c",
+    "tests/verify-readings.test.ts": "f3e2ff9c1dfeff9e97009e8025c089ee4203bb8113e4852e85b156321c367cf2",
+    "vite.config.ts": "65b557e68d41ae0f6afbf96a3fec42c114695eaf8872a7895a1efe217cc02403"
+  },
+  "evidence_sha256": {
+    "receipt_training/evaluation/runs/independent-compare-v2-development/metadata.json": "84fe206dc7f5203ecf08e90e1f94cc23ee15138240cd4916c6ced74cb8059c78",
+    "receipt_training/evaluation/runs/independent-compare-v2-development/predictions.jsonl": "11c71c48797134fee0de31eea83df53c5a4ba2084bc2b48dc647240fe3f8420a",
+    "receipt_training/evaluation/runs/independent-compare-v2-development/replay-runner.mjs": "716caa23fd949e1c7782ab24059948f4be2f12db237ffc10996fc6f9c7e6628f",
+    "receipt_training/evaluation/runs/independent-compare-v2-evaluation/metadata.json": "4ba590eae021ce49df51b225584d14d2305d9e13323fbeb489e9de5a0d106371",
+    "receipt_training/evaluation/runs/independent-compare-v2-evaluation/predictions.jsonl": "a8b7e89f501545e75cf66fbd3141e5a7da58796823c409d44766f38e94f48f0d",
+    "receipt_training/evaluation/runs/independent-compare-v2-evaluation/replay-runner.mjs": "716caa23fd949e1c7782ab24059948f4be2f12db237ffc10996fc6f9c7e6628f",
+    "receipt_training/evaluation/runs/independent-compare-v2-supplement/metadata.json": "e46b00b42b70e79bd2d8252faae7c64429308717281da2274e95cb0d93dcf8f3",
+    "receipt_training/evaluation/runs/independent-compare-v2-supplement/predictions.jsonl": "05dcb2a7478ead337e172a474fe4399d7242db2f3d4916516b940ec0f12c9897",
+    "receipt_training/evaluation/runs/independent-compare-v2-supplement/replay-runner.mjs": "716caa23fd949e1c7782ab24059948f4be2f12db237ffc10996fc6f9c7e6628f",
+    "receipt_training/evaluation/runs/independent-compare-v2-development/original-score.json": "56617bdbf7a52bff11fefb3286354f359a9beb065708ee0d9e30e00d533f2132",
+    "receipt_training/annotations/private/supplement-labels.jsonl": "d81abf83edfb6a1bdc167cca359dabf14c3b2f20a84b4dcce7e54dad7e69430c",
+    "receipt_training/annotations/private/supplement-manifest.jsonl": "0db26f2a263479a28dd3c67258b885104bea3d5254a76ddde978f8915de44594",
+    "qa-artifacts/advanced-ocr/independent-real-costco-desktop.json": "9552ef3d0e457c20192ecf103cfd87bb7d8256e2ef6d4553e53bc747f97f252d",
+    "qa-artifacts/advanced-ocr/independent-real-costco-split-desktop.json": "7fb6f97cd01938bf1bd823e10c6d6ef09d230d5bfba08dd1ffe64e2255290d87",
+    "qa-artifacts/advanced-ocr/independent-protection-audit.json": "e31ef9436e1fbc0afba5a5bf227c8f81299ab0422b52a7e0f4a1da8b5437ac96",
+    "qa-artifacts/advanced-ocr/independent-unit-final.log": "93b9516ef4870745d097851f3537b9de6ed201490ce1f09a36c62a4083e930e9",
+    "qa-artifacts/advanced-ocr/independent-browser-final.log": "a57be9019fa0c011ae5023adefc91c88b77121e3e5e5bf633d530e3636e97007",
+    "qa-artifacts/advanced-ocr/independent-build-final.log": "fc8bb6efd7397bb5cebfdea1441b85aa7b4d1a2707d3677d851292e387cec7c0",
+    "qa-artifacts/advanced-ocr/independent-format-final.log": "d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41",
+    "qa-artifacts/advanced-ocr/verification-current-costco-replay.json": "75a1d138b213e51a27964d6b405f365442eb0ad1f8ff037e5accc3f1707ccf61",
+    "qa-artifacts/advanced-ocr/independent-real-costco-review-desktop.png": "488904071366d1abde4fe0c282174684a0d6077ad38ebcae1307e4d67f752fe9"
+  }
+}

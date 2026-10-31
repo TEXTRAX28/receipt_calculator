@@ -2019,6 +2019,61 @@ dialog::backdrop {
 .source-edit-fields .form-grid {
   margin-top: 12px;
 }
+.comparison-choice {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--sage-light);
+  align-items: flex-start;
+  font-size: 16px;
+}
+.comparison-choice small {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.verification-checks {
+  margin: 20px 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.verification-checks h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.verification-check {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid #dfc7a8;
+  border-radius: 10px;
+  background: var(--warning-bg);
+}
+.verification-check.checked {
+  border-color: var(--border-strong);
+  background: var(--sage-light);
+}
+.verification-check p,
+.verification-check ul {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.verification-check ul {
+  padding-left: 20px;
+}
+.verification-confirm {
+  padding: 8px 0;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.verification-confirm input,
+.comparison-choice input {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
 .field .field-error {
   color: var(--danger);
   overflow-wrap: anywhere;

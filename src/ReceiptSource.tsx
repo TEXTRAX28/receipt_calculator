@@ -21,7 +21,7 @@ function SourceImage({ panel }: { panel: SourcePanel }) {
     <svg
       className="receipt-source-image"
       role="img"
-      aria-label={`Highlighted purchase area in photo ${panel.photo}, section ${panel.part}`}
+      aria-label={`Highlighted receipt area in photo ${panel.photo}, section ${panel.part}`}
       width={frame.width}
       height={frame.height}
       viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
@@ -46,29 +46,34 @@ function SourceImage({ panel }: { panel: SourcePanel }) {
 export default function ReceiptSource({
   item,
   index,
+  title,
+  currentStamp,
   evidence,
   children,
 }: {
-  item: Item;
-  index: number;
+  item?: Item;
+  index?: number;
+  title?: string;
+  currentStamp?: string;
   evidence: ItemEvidence;
   children: ReactNode;
 }) {
   const [active, setActive] = useState(0);
   const panel = evidence.panels[active];
-  const edited = itemReadStamp(item) !== evidence.fieldsStamp;
+  const edited =
+    (item ? itemReadStamp(item) : currentStamp) !== evidence.fieldsStamp;
   return (
     <div className="receipt-source">
       <span className="eyebrow">CHECK THE RECEIPT</span>
-      <h2>Purchase {index + 1}</h2>
+      <h2>{title || `Purchase ${(index ?? 0) + 1}`}</h2>
       <p>
-        Compare the highlighted rows with the editable details below. Every
-        value still needs checking against the photo.
+        Compare the highlighted rows with your draft. Every value still needs
+        checking against the photo.
       </p>
       {evidence.panels.length > 1 && (
         <div
           className="source-section-picker"
-          aria-label="Receipt sections for this purchase"
+          aria-label="Receipt source sections"
         >
           {evidence.panels.map((section, i) => (
             <button

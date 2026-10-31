@@ -51,6 +51,56 @@ export const adjustmentSchema = z.object({
   allocation: z.enum(["proportional", "equal-people"]),
 });
 export type Adjustment = z.infer<typeof adjustmentSchema>;
+export const itemReviewFields = [
+  "description",
+  "quantity",
+  "unitPrice",
+  "lineTotal",
+  "discount",
+  "taxCode",
+] as const;
+export const receiptReviewFields = [
+  "merchant",
+  "date",
+  "currency",
+  "subtotal",
+  "printedTotal",
+  "printedTax",
+  "pricesIncludeTax",
+  "taxCodes",
+  "adjustments",
+  "items",
+] as const;
+export type ReceiptReviewField = (typeof receiptReviewFields)[number];
+const reviewDetails = {
+  reason: z.enum([
+    "different",
+    "unsupported",
+    "unclear",
+    "recovered",
+    "coverage",
+  ]),
+  other: z.string().max(180).default(""),
+  confirmedValue: z.string().max(250000).default(""),
+  details: z
+    .array(z.object({ label: z.string().max(100), value: z.string().max(80) }))
+    .max(30)
+    .optional(),
+};
+export const reviewCheckSchema = z.discriminatedUnion("scope", [
+  z.object({
+    scope: z.literal("item"),
+    itemId: id,
+    field: z.enum(itemReviewFields),
+    ...reviewDetails,
+  }),
+  z.object({
+    scope: z.literal("receipt"),
+    field: z.enum(receiptReviewFields),
+    ...reviewDetails,
+  }),
+]);
+export type ReviewCheck = z.infer<typeof reviewCheckSchema>;
 export const receiptSchema = z.object({
   id,
   merchant: z.string().max(100),
@@ -70,6 +120,7 @@ export const receiptSchema = z.object({
   source: z.enum(["manual", "ocr", "ai", "text", "demo"]),
   rawText: z.string().max(60000),
   warnings: z.array(z.string().max(400)).max(60),
+  reviewChecks: z.array(reviewCheckSchema).max(2100).default([]),
 });
 export type Receipt = z.infer<typeof receiptSchema>;
 export const personSchema = z.object({ id, name: z.string().min(1).max(50) });
@@ -138,6 +189,7 @@ export function newReceipt(): Receipt {
     source: "manual",
     rawText: "",
     warnings: [],
+    reviewChecks: [],
   };
 }
 export function newState(): AppState {
@@ -153,7 +205,11 @@ export function newState(): AppState {
   };
 }
 export const receiptStamp = (receipt: Receipt) => {
-  const { currencyUnresolved, ...fields } = receipt;
+  const {
+    currencyUnresolved,
+    reviewChecks: _reviewChecks,
+    ...fields
+  } = receipt;
   return JSON.stringify({
     ...fields,
     // Preserve valid review fingerprints from drafts saved before this flag existed.

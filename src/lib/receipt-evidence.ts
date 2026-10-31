@@ -1,4 +1,10 @@
-import type { Item, Receipt } from "./model";
+import {
+  receiptReviewFields,
+  type Item,
+  type Receipt,
+  type ReceiptReviewField,
+} from "./model";
+import { receiptFieldStamp } from "./review-checks";
 import { readingBlobs, type ReceiptImage } from "./images";
 import { PHOTO_SEPARATOR } from "./parser";
 import type { EvidenceLine, Recognition } from "./receipt-layout";
@@ -16,6 +22,7 @@ export type ItemEvidence = { fieldsStamp: string; panels: SourcePanel[] };
 export type ReceiptEvidence = {
   receiptId: string;
   items: Record<string, ItemEvidence>;
+  fields?: Partial<Record<ReceiptReviewField, ItemEvidence>>;
 };
 
 export const itemReadStamp = (item: Item) =>
@@ -36,6 +43,7 @@ export function collectReceiptEvidence(
   sourceLines: (EvidenceLine | null)[],
   recognition: Recognition,
   images: ReceiptImage[],
+  fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {},
 ): ReceiptEvidence | null {
   const normalized = text
     .replace(/\r/g, "")
@@ -49,10 +57,12 @@ export function collectReceiptEvidence(
     )
   )
     return null;
-  const items: ReceiptEvidence["items"] = {};
-  for (const item of receipt.items) {
+  const collect = (
+    indices: number[],
+    fieldsStamp: string,
+  ): ItemEvidence | null => {
     const panels = new Map<string, SourcePanel>();
-    for (const index of new Set(sources[item.id] || [])) {
+    for (const index of new Set(indices)) {
       const region = sourceLines[index];
       if (!region) continue;
       const input = recognition.panels.find(
@@ -87,13 +97,26 @@ export function collectReceiptEvidence(
           );
         });
     }
-    if (panels.size)
-      items[item.id] = {
-        fieldsStamp: itemReadStamp(item),
-        panels: [...panels.values()],
-      };
+    return panels.size ? { fieldsStamp, panels: [...panels.values()] } : null;
+  };
+  const items: ReceiptEvidence["items"] = {};
+  for (const item of receipt.items) {
+    const evidence = collect(sources[item.id] || [], itemReadStamp(item));
+    if (evidence) items[item.id] = evidence;
   }
-  return { receiptId: receipt.id, items };
+  const fields: NonNullable<ReceiptEvidence["fields"]> = {};
+  for (const field of receiptReviewFields) {
+    const evidence = collect(
+      fieldSources[field] || [],
+      receiptFieldStamp(receipt, field),
+    );
+    if (evidence) fields[field] = evidence;
+  }
+  return {
+    receiptId: receipt.id,
+    items,
+    ...(Object.keys(fields).length ? { fields } : {}),
+  };
 }
 
 /** A little context around the literal source rows, within the validated panel. */

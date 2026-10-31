@@ -217,7 +217,7 @@ test("source rows support phone review, edits, keyboard return and private refre
   await expect(dialog).toBeVisible();
   await expect(
     dialog.getByRole("img", {
-      name: /Highlighted purchase area in photo 1, section 1/,
+      name: /Highlighted receipt area in photo 1, section 1/,
     }),
   ).toBeVisible();
   await expect(dialog.getByTestId("source-region")).toHaveCount(1);

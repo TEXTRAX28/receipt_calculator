@@ -351,7 +351,11 @@ export function parseReceiptWithSources(output: unknown): {
         const quantity = description.match(
           /(?:^|\s)(\d+(?:[.,]\d+)?)\s*[x×@]\s*(\d[\d,.]*[.,]\d{2,3})?\s*$/i,
         );
-        item.description = description.slice(0, 180);
+        item.description = (
+          quantity && quantity.index
+            ? description.slice(0, quantity.index).trim()
+            : description
+        ).slice(0, 180);
         item.quantity = quantity ? quantity[1].replace(",", ".") : "";
         item.unitPrice = quantity?.[2] ? normalize(quantity[2]) : "";
         item.lineTotal = amount;
