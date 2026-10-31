@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "predev": "npm run prepare:ocr",
@@ -19,12 +19,13 @@
     "test:e2e": "playwright test",
     "format": "prettier --write src server tests scripts *.ts *.json *.html",
     "format:check": "prettier --check src server tests scripts *.ts *.json *.html",
-    "prepare:ocr": "node scripts/prepare-ocr.mjs",
+    "prepare:ocr": "node scripts/prepare-ocr.mjs && node scripts/prepare-pdf.mjs",
     "postinstall": "node scripts/prepare-ocr.mjs"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "^1.0.0",
     "lucide-react": "^0.468.0",
+    "pdfjs-dist": "6.4.299",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tesseract.js": "^6.0.1",

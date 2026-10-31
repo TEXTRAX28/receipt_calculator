@@ -96,6 +96,8 @@ export function checkIsPending(receipt: Receipt, check: ReviewCheck): boolean {
 }
 
 export function reviewMessage(check: ReviewCheck): string {
+  if (check.reason === "document")
+    return "PDF text may omit purchases stored as images or differ from the visible page. Compare every purchase and amount with the page previews.";
   const label = reviewFieldLabels[check.field];
   const reason =
     check.reason === "different"

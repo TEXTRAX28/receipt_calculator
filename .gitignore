@@ -3,6 +3,7 @@ dist/
 .vite/
 .cache/
 public/ocr/
+public/pdf-assets/
 .env
 .env.*
 !.env.example

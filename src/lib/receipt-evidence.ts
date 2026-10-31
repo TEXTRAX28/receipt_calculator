@@ -41,7 +41,10 @@ export function collectReceiptEvidence(
   text: string,
   sources: Record<string, number[]>,
   sourceLines: (EvidenceLine | null)[],
-  recognition: Recognition,
+  recognition: {
+    engine: Recognition["engine"] | "pdf-embedded-text";
+    panels: Recognition["panels"];
+  },
   images: ReceiptImage[],
   fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {},
 ): ReceiptEvidence | null {
@@ -69,7 +72,11 @@ export function collectReceiptEvidence(
         (p) => p.photo === region.photo && p.part === region.part,
       );
       const image = images[region.photo - 1];
-      const blob = image && readingBlobs(image)[region.part - 1];
+      const blob =
+        image &&
+        (recognition.engine === "pdf-embedded-text"
+          ? image.blob
+          : readingBlobs(image)[region.part - 1]);
       if (!input || !blob) continue;
       const key = `${input.photo}:${input.part}`;
       let panel = panels.get(key);

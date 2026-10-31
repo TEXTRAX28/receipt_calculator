@@ -4,7 +4,7 @@ A receipt scanner and bill splitter built on React, TypeScript and Vite. Choose 
 
 ## Run locally
 
-Use Node.js 24 LTS (22.12+ supported) and npm.
+Use Node.js 24 LTS (22.13+ supported) and npm.
 
 ```sh
 npm ci
@@ -15,7 +15,7 @@ Open the Local URL printed by Vite, normally `http://127.0.0.1:5173/`.
 
 In VS Code, open the folder containing `package.json`, choose **Terminal → New Terminal**, and run the commands above. Subsequent starts only need `npm run dev`; keep its terminal open. Stop it with **Ctrl+C** before reinstalling dependencies, since a running Vite process can lock native files on Windows. If the port is occupied, choose another explicitly, for example `npm run dev -- --port 5175`, and open the printed URL.
 
-The install, development and build scripts copy the OCR worker, English language data and WASM cores from installed packages to ignored `public/ocr/`. If those generated assets are missing:
+The install, development and build scripts copy the OCR worker, English language data and WASM cores to ignored `public/ocr/`, and PDF fonts, character maps and image decoders to ignored `public/pdf-assets/`. Both come from the installed packages and are served from this app's own origin. If those generated assets are missing:
 
 ```sh
 npm run prepare:ocr
@@ -29,6 +29,14 @@ npm run preview -- --port 4173
 ```
 
 On-device OCR needs no API key, paid service, database or account. Keep the local server running while using the app: an already-loaded page still needs it to download the OCR files. Nothing has been deployed or published.
+
+## PDF receipts
+
+Upload a PDF alongside supported images. Every PDF page gets a preview and counts toward the twelve-image/page receipt limit. If all selected pages contain usable embedded text, **PDF text** reads it directly on this device; it is selected automatically unless you already chose a reader. No OCR model or cloud request is needed for that path. Scanned pages, documents containing a page without usable text, forms and unsupported text layouts use the existing image readers after local rendering. Applying a crop disables the original text layer so excluded text cannot enter the draft.
+
+Embedded text can omit purchases stored as pictures or disagree with the visible page. A mandatory purchase-list check blocks confirmation until you compare the rows and amounts with the previews. Genuine repeated purchases remain separate, and source highlights use their original page coordinates. Original PDFs, text layers and page previews remain in memory and disappear on refresh/reset; saved drafts contain the reviewed fields.
+
+PDF import is limited to 12 MiB per file, twelve pages across the receipt, a sixty-second deadline, bounded rendering and the existing total/section budgets. Oversized, password-protected and malformed documents fail without removing earlier uploads. Cancel import stops its owned worker. The pinned PDF.js module and worker load only when a PDF is selected. Gather renders pages without running document actions or following links. Tests cover synthetic digital/scanned/mixed/rotated PDFs, long-page source areas, rejection/cancellation and a complete checked split; genuine retailer PDF accuracy and physical-phone performance still need evidence.
 
 ## Optional computer reader
 
@@ -133,11 +141,11 @@ Computer mode sends prepared JPEG sections to the local computer server. The ser
 
 Gemini mode forwards photos through the local server to Google **only after the user explicitly agrees and starts that scan**. Changing photos, order or crops clears that agreement. The local adapter does not log or save images, prompts, results or keys. It requests stateless provider processing, which is separate from Google's own data-use/abuse-monitoring terms. Crop out private footer details first. Google's terms depend on region and account tier. Participant names are not included in extraction requests.
 
-Extracted draft fields and participant names are saved in this origin's browser local storage. Raw OCR text and photos are not persisted and disappear on refresh/close. Anyone with access to that browser profile can read its stored draft; there is no account authentication. Delete/reset removes this app's saved receipt and its in-memory previews. Exported/downloaded copies remain where you saved or sent them.
+Extracted draft fields and participant names are saved in this origin's browser local storage. Raw OCR/PDF text, photos and original PDFs are not persisted and disappear on refresh/close. Anyone with access to that browser profile can read its stored draft; there is no account authentication. Delete/reset removes this app's saved receipt and its in-memory previews. Exported/downloaded copies remain where you saved or sent them.
 
 On-device OCR runs in English. Blur, creases, shadows, abbreviated names and unfamiliar receipt formats can cause mistakes with every reader. Review is required. Missing values stay editable; absent data is not filled merely to make a receipt balance. Gemini also flags a disagreement between its purchase count and a legible printed item count. A balanced total alone does not prove every item is correct.
 
-Upload limits: twelve photos, 12 MiB each, 48 MiB of original photos per receipt, 20,000 pixels per side and 25 megapixels per photo. Full previews are limited to 3,200 pixels/four megapixels. Tall-image windows are up to 1,400×2,200 pixels with at least 18% overlap; at most 24 reading panels are accepted per scan. Computer/Gemini requests are limited to 18 MiB of encoded JSON and responses to 1 MiB. Decode is bounded to ten seconds; reading has a 120-second server/worker deadline plus a small client allowance. All readers support cancellation and have no automatic retries. Calculation changes never scan again.
+Upload limits: twelve images/PDF pages, 12 MiB per file and 48 MiB across original files plus prepared PDF page previews, 20,000 pixels per side and 25 megapixels per photo. Full previews are limited to 3,200 pixels/four megapixels. Tall-image windows are up to 1,400×2,200 pixels with at least 18% overlap; at most 24 reading panels are accepted per scan. Computer/Gemini requests are limited to 18 MiB of encoded JSON and responses to 1 MiB. Image decode is bounded to ten seconds; PDF import to sixty seconds. Ordinary reading has a 120-second server/worker deadline plus a small client allowance; long local vision batches share a fifteen-minute job deadline. All readers support cancellation and have no automatic retries. Calculation changes never scan again.
 
 Local OCR text passes `extractionOutputSchema` before parsing. Gemini uses the shared strict `aiReceiptSchema` on server and client, then the normal receipt schema and exact financial validation. Neither reader can execute instructions from a receipt. Gemini has no tools, links to fetch or receipt-controlled destinations. Only the server can access its API credential.
 

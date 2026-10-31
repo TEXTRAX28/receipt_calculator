@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => {
     };
   };
   return {
+    // Avoid a first-PDF dependency optimization reload discarding selected files.
+    optimizeDeps: { include: ["pdfjs-dist"] },
     plugins: [
       react(),
       {

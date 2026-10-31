@@ -59,7 +59,9 @@ import {
 import { formatReceiptMoney } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
 import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
-import { prepareImage, readingBlobs, type ReceiptImage } from "./lib/images";
+import { readingBlobs, type ReceiptImage } from "./lib/images";
+import { prepareReceiptFile } from "./lib/receipt-files";
+import { canReadPdfText, readPdfText } from "./lib/pdf-text";
 import { localOcrProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import {
@@ -78,7 +80,11 @@ import {
   reviewKey,
   reviewMessage,
 } from "./lib/review-checks";
-import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
+import {
+  MAX_RECEIPT_IMAGES,
+  MAX_BATCH_BYTES,
+  MAX_READING_PANELS,
+} from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
@@ -237,12 +243,14 @@ export default function App() {
   const imageRef = useRef<ReceiptImage[]>([]);
   const [imageError, setImageError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
   const [reader, setReader] = useState<
-    "local" | "computer" | "vision" | "gemini"
+    "local" | "computer" | "vision" | "gemini" | "pdf"
   >("local");
   const readerChosen = useRef(false);
+  const pdfTextAvailable = canReadPdfText(images);
   const [compareWithVision, setCompareWithVision] = useState(false);
   const [computerConfig, setComputerConfig] = useState<{
     configured: boolean;
@@ -345,6 +353,10 @@ export default function App() {
   useEffect(() => {
     imageRef.current = images;
   }, [images]);
+  useEffect(() => {
+    if (reader === "pdf" && !pdfTextAvailable)
+      setReader(computerConfig?.configured ? "computer" : "local");
+  }, [reader, pdfTextAvailable, computerConfig]);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -468,7 +480,7 @@ export default function App() {
     if (!files || busyRef.current) return;
     if (files.length + images.length > MAX_RECEIPT_IMAGES) {
       setImageError(
-        `Choose at most ${MAX_RECEIPT_IMAGES} photos for one receipt. Photograph it from top to bottom, overlapping a few rows between photos.`,
+        `Choose at most ${MAX_RECEIPT_IMAGES} images or PDF pages for one receipt. Photograph long receipts from top to bottom, overlapping a few rows.`,
       );
       return;
     }
@@ -481,17 +493,50 @@ export default function App() {
       MAX_BATCH_BYTES
     ) {
       setImageError(
-        "Choose up to 48 MB of photos for one receipt. Crop or resize larger photos first.",
+        "Choose up to 48 MB of receipt files for one receipt. Crop images or import a smaller PDF first.",
       );
       return;
     }
     busyRef.current = true;
     setBusy(true);
     setImageError("");
+    setImporting(true);
+    setScanStatus("Preparing receipt files…");
+    controller.current = new AbortController();
     const prepared: ReceiptImage[] = [];
     try {
-      for (const file of Array.from(files))
-        prepared.push(await prepareImage(file));
+      for (const file of Array.from(files)) {
+        prepared.push(
+          ...(await prepareReceiptFile(file, {
+            remaining: MAX_RECEIPT_IMAGES - images.length - prepared.length,
+            signal: controller.current.signal,
+            progress: setScanStatus,
+          })),
+        );
+        controller.current.signal.throwIfAborted();
+        if (
+          [...images, ...prepared].reduce(
+            (sum, image) => sum + readingBlobs(image).length,
+            0,
+          ) > MAX_READING_PANELS
+        )
+          throw new Error(
+            "This receipt has more than 24 detail sections. Import fewer pages or crop the images first.",
+          );
+        if (
+          [...images, ...prepared].reduce(
+            (sum, image) => sum + (image.sourceBytes || image.blob.size),
+            0,
+          ) > MAX_BATCH_BYTES
+        )
+          throw new Error(
+            "The prepared receipt exceeds 48 MB. Import fewer pages or smaller images.",
+          );
+      }
+      if (canReadPdfText([...images, ...prepared]) && !readerChosen.current) {
+        readerChosen.current = true;
+        setReader("pdf");
+      }
       setImages((previous) => [...previous, ...prepared]);
       setAiConsented(false);
     } catch (e) {
@@ -500,6 +545,9 @@ export default function App() {
     } finally {
       busyRef.current = false;
       setBusy(false);
+      setImporting(false);
+      setScanStatus("");
+      controller.current = null;
       if (uploadRef.current) uploadRef.current.value = "";
       if (cameraRef.current) cameraRef.current.value = "";
     }
@@ -524,6 +572,23 @@ export default function App() {
     setImageError("");
     controller.current = new AbortController();
     try {
+      if (reader === "pdf") {
+        const output = readPdfText(images);
+        const evidence = collectReceiptEvidence(
+          output.receipt,
+          output.text,
+          output.sources,
+          output.sourceLines,
+          output.recognition,
+          images,
+        );
+        setRawText(output.text);
+        replaceReceipt(output.receipt, evidence);
+        setNotice(
+          "PDF text read on this device. Check every purchase against the page previews; scanned content may be missing from a text layer.",
+        );
+        return;
+      }
       if (
         (reader === "computer" &&
           compareWithVision &&
@@ -904,7 +969,7 @@ export default function App() {
                   </div>
                   <h2>One shop. Every section.</h2>
                   <p>
-                    Drop your receipt here, or pick a photo.
+                    Drop your receipt here, or choose photos or a PDF.
                     <br />
                     Long receipt? Add up to {MAX_RECEIPT_IMAGES} overlapping
                     photos.
@@ -928,12 +993,12 @@ export default function App() {
                     </button>
                   </div>
                   <span className="file-help">
-                    JPEG, PNG or WebP · up to 12 MB each
+                    JPEG, PNG, WebP or PDF · up to 12 MB each
                   </span>
                   <input
                     ref={uploadRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
                     multiple
                     className="visually-hidden"
                     aria-label="Upload receipt images"
@@ -984,10 +1049,17 @@ export default function App() {
                           />
                         </button>
                         <span>
-                          Image {i + 1}
+                          {image.document
+                            ? `PDF page ${image.document.page}`
+                            : `Image ${i + 1}`}
                           {image.crop ? " · cropped" : ""}
                           {image.panels
                             ? ` · ${image.panels.length} sections`
+                            : ""}
+                          {image.document
+                            ? image.document.text && !image.crop
+                              ? " · text available"
+                              : " · image reader"
                             : ""}
                         </span>
                         <div className="image-order">
@@ -1034,9 +1106,9 @@ export default function App() {
                 )}
                 {images.length > 0 && (
                   <p className="hint">
-                    {images.length} of {MAX_RECEIPT_IMAGES} photos · Keep them
-                    in top-to-bottom order. Crop away the background for a
-                    clearer result.
+                    {images.length} of {MAX_RECEIPT_IMAGES} images or pages ·
+                    Keep them in top-to-bottom order. Crop away the background
+                    for a clearer result.
                   </p>
                 )}
                 {imageError && (
@@ -1048,6 +1120,20 @@ export default function App() {
                 <fieldset className="reader-choice" disabled={busy}>
                   <legend>How should we read it?</legend>
                   <div className="reader-buttons">
+                    {pdfTextAvailable && (
+                      <button
+                        type="button"
+                        className={`button ${reader === "pdf" ? "button-primary" : "button-outline"}`}
+                        aria-pressed={reader === "pdf"}
+                        onClick={() => {
+                          readerChosen.current = true;
+                          setReader("pdf");
+                          setAiConsented(false);
+                        }}
+                      >
+                        <FileText size={17} /> PDF text
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`button ${reader === "local" ? "button-primary" : "button-outline"}`}
@@ -1138,6 +1224,13 @@ export default function App() {
                         </label>
                       )}
                     </div>
+                  ) : reader === "pdf" ? (
+                    <p className="hint">
+                      Reads selectable text from every PDF page on this device.
+                      Check the previews for purchases stored as images or
+                      missing text. Choose an image reader if the text layer is
+                      incomplete.
+                    </p>
                   ) : reader === "vision" ? (
                     <p className="hint">
                       Experimental vision reader on this computer. Longer
@@ -1216,7 +1309,7 @@ export default function App() {
                     </div>
                   )}
                 </fieldset>
-                {images.length > 0 && (
+                {(images.length > 0 || importing) && (
                   <div className="scan-controls">
                     <button
                       className="button button-primary full-width"
@@ -1235,13 +1328,15 @@ export default function App() {
                       )}
                       {busy
                         ? scanStatus || "Preparing images…"
-                        : reader === "gemini"
-                          ? "Read receipt with Gemini"
-                          : reader === "computer"
-                            ? "Read receipt on this computer"
-                            : reader === "vision"
-                              ? "Read receipt with local vision"
-                              : "Read receipt on this device"}
+                        : reader === "pdf"
+                          ? "Read PDF text on this device"
+                          : reader === "gemini"
+                            ? "Read receipt with Gemini"
+                            : reader === "computer"
+                              ? "Read receipt on this computer"
+                              : reader === "vision"
+                                ? "Read receipt with local vision"
+                                : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -1249,7 +1344,7 @@ export default function App() {
                         className="text-button"
                         onClick={() => controller.current?.abort()}
                       >
-                        Cancel scan
+                        {importing ? "Cancel import" : "Cancel scan"}
                       </button>
                     )}
                   </div>

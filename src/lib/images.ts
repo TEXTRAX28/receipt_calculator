@@ -1,3 +1,5 @@
+import type { PdfPageText } from "./pdf-text";
+
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_PIXELS = 25_000_000;
 export interface ImageHeader {
@@ -115,6 +117,14 @@ export interface ReceiptImage {
   ocrBlob?: Blob;
   panels?: Blob[];
   crop?: CropBounds;
+  document?: {
+    kind: "pdf";
+    id: string;
+    page: number;
+    pages: number;
+    original: File;
+    text?: PdfPageText;
+  };
 }
 export const readingBlobs = (image: ReceiptImage): Blob[] =>
   image.panels || [image.ocrBlob || image.blob];

@@ -1,0 +1,29 @@
+{
+  "scope": "Wholly synthetic PDF integration/security fixtures, not real-receipt accuracy truth or part of the original receipt cohort",
+  "digital_two_page": {
+    "purchases": [
+      ["Milk", "2", "1.25", "2.50"],
+      ["Milk", "2", "1.25", "2.50"],
+      ["Bread", "1", "1.50", "1.50"]
+    ],
+    "currency": "GBP",
+    "total_minor": "650",
+    "equal_three_minor": ["217", "217", "216"]
+  },
+  "long_digital": {
+    "purchases": 60,
+    "total_minor": "6000"
+  },
+  "password": "fixture-password",
+  "pdf_sha256": {
+    "digital-two-page.pdf": "977fabdf6c09c651d094147ff7c0cdac97965a612b2a12d9a6c64ea9ad51d9fd",
+    "long-digital.pdf": "daad7096d2f26378f424e51faf4e1259ea1c8b12c24cad0c07927073c6417a92",
+    "mixed-two-page.pdf": "d03a4bf89dad023172c0fde34bbdb4ee5043974dcd5e8ec23721b59caf7a00b4",
+    "oversized-image.pdf": "044c107f2b6e9d80035fe884d765bdff34e456eafa84e9f2ff2abc053f11d760",
+    "oversized-page.pdf": "d67522fcce99bfb5adfd3910a071c1a224abf80a39a90075f9e319ebb70cbf4e",
+    "password-protected.pdf": "58609ae71822f2aa45b6ea584ce09c4d1fe9448bb5111b9390bc02544902f26b",
+    "rotated-page.pdf": "cf9917cbdb2694cac04e51dd91b9e3d80cdca4478f1abcaddf1afc38631b2000",
+    "scanned-one-page.pdf": "ece0e4439b8cf52a31c6a6856bb9d29da5b6d9e346f535412396ff40f876d19b",
+    "thirteen-pages.pdf": "60975c09ed8f46e34bdb60f2267a7a6f96ea7ee2a85d662fe0c21da1786c55fd"
+  }
+}

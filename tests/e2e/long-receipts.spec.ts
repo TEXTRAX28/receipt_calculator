@@ -229,7 +229,9 @@ test("twelve photos are accepted, a thirteenth is rejected, and consent resets a
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles({ ...file, name: "one-too-many.png" });
-  await expect(page.getByRole("alert")).toContainText("at most 12 photos");
+  await expect(page.getByRole("alert")).toContainText(
+    "at most 12 images or PDF pages",
+  );
   await expect(page.locator(".selected-image")).toHaveCount(12);
 });
 

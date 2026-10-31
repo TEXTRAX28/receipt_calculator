@@ -1,4 +1,164 @@
 import { test, expect } from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+test("real scanned PDF → installed computer OCR → exact split", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  const base = process.env.GATHER_LOCAL_MODEL_URL;
+  if (!base || !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base))
+    throw new Error(
+      "Supply a loopback GATHER_LOCAL_MODEL_URL with the installed model enabled",
+    );
+  const requests = { posts: [] as string[], external: [] as string[] };
+  await page.route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (
+      url.origin === new URL(base).origin &&
+      (request.method() !== "POST" ||
+        url.pathname === "/api/receipts/recognize")
+    )
+      return route.continue();
+    if (["data:", "blob:"].includes(url.protocol)) return route.continue();
+    requests.external.push(url.origin + url.pathname);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      requests.posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await expect(
+    page.getByRole("button", { name: "This computer", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const started = Date.now();
+  await page
+    .getByLabel("Upload receipt images")
+    .setInputFiles(path.resolve("tests/fixtures/pdfs/scanned-one-page.pdf"));
+  await expect(page.locator(".selected-image")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "PDF text", exact: true }),
+  ).toHaveCount(0);
+  const response = page.waitForResponse(
+    (value) =>
+      value.request().method() === "POST" &&
+      new URL(value.url()).pathname === "/api/receipts/recognize",
+    { timeout: 130000 },
+  );
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  const result = await response;
+  const recognized = await result.json();
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 130000 });
+  const elapsedMs = Date.now() - started;
+  const items = [];
+  const cards = page.locator('[data-testid^="review-item-"]');
+  for (let index = 1; index <= (await cards.count()); index++) {
+    const more = page.getByRole("button", {
+      name: `Edit details for item ${index}`,
+      exact: true,
+    });
+    if (await more.count()) await more.click();
+    items.push({
+      description: await page
+        .getByLabel(`Item ${index} description`, { exact: true })
+        .inputValue(),
+      quantity: await page
+        .getByLabel(`Item ${index} purchased quantity`, { exact: true })
+        .inputValue(),
+      unitPrice: await page
+        .getByLabel(`Item ${index} unit price (optional)`, { exact: true })
+        .inputValue(),
+      lineTotal: await page
+        .getByLabel(`Item ${index} line price`, { exact: true })
+        .inputValue(),
+    });
+  }
+  const printedTotal = await page
+    .getByLabel("Printed total", { exact: true })
+    .inputValue();
+  const expected = [
+    {
+      description: "Milk",
+      quantity: "2",
+      unitPrice: "1.25",
+      lineTotal: "2.50",
+    },
+    {
+      description: "Milk",
+      quantity: "2",
+      unitPrice: "1.25",
+      lineTotal: "2.50",
+    },
+    {
+      description: "Bread",
+      quantity: "1",
+      unitPrice: "1.50",
+      lineTotal: "1.50",
+    },
+  ];
+  const moneyMatches =
+    JSON.stringify(items) === JSON.stringify(expected) &&
+    printedTotal === "6.50";
+  await mkdir("qa-artifacts/advanced-ocr", { recursive: true });
+  const output = {
+    synthetic: true,
+    actualInstalledModel: true,
+    mocked: false,
+    financialEdits: 0,
+    elapsedMs,
+    httpStatus: result.status(),
+    recognized,
+    items,
+    printedTotal,
+    moneyMatches,
+    requests,
+    finalSplitVerified: false,
+  };
+  await writeFile(
+    "qa-artifacts/advanced-ocr/pdf-real-scan-desktop.json",
+    JSON.stringify(output, null, 2),
+  );
+  expect(result.status()).toBe(200);
+  expect(moneyMatches).toBe(true);
+  expect(requests).toEqual({
+    posts: ["/api/receipts/recognize"],
+    external: [],
+  });
+  await page
+    .getByRole("button", { name: "Confirm receipt & add people" })
+    .click();
+  for (const name of ["Alice", "Bob"]) {
+    await page
+      .getByRole("textbox", { name: "Person’s name", exact: true })
+      .fill(name);
+    await page.getByRole("button", { name: "Add person", exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Let’s share it" }).click();
+  await page
+    .getByRole("button", { name: "Whole receipt", exact: true })
+    .click();
+  for (const checkbox of await page
+    .getByTestId("whole-assignment")
+    .getByRole("checkbox")
+    .all())
+    await checkbox.check();
+  await page
+    .getByRole("button", { name: "Finalize split", exact: true })
+    .click();
+  for (const index of [0, 1])
+    await expect(page.getByTestId(`person-total-${index}`)).toHaveText("£3.25");
+  output.finalSplitVerified = true;
+  await writeFile(
+    "qa-artifacts/advanced-ocr/pdf-real-scan-desktop.json",
+    JSON.stringify(output, null, 2),
+  );
+});
 
 /** Opt-in real installed model, local HTTP only; synthetic source, no cloud. */
 test("real computer reader → review → people → exact split", async ({
