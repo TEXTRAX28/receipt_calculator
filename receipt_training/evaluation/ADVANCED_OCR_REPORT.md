@@ -1,6 +1,6 @@
 # Advanced OCR investigation — work in progress
 
-Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds local post-capture photo advice after the GLM-OCR and Qwen3.5 comparisons, local PDF import, independent local comparison and bounded long-receipt work. This report records evidence gathered so far; it does not certify a finished scanner or public release.
+Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint completes the approved one-use Veryfi comparison and rejects a separate local raw-print VLM profile. Veryfi's structured fields match only 16/18 purchase prices, but its unchanged OCR text through the current parser matches all 18 purchases, four coupons and VAT codes, calculating £176.78 on the two approved redacted crops. Gemini returned no draft in its two approved HTTP 503 attempts. This is one source-informed development transaction, not a broad provider selection. See [Veryfi live results](VERYFI_LIVE_RESULT.md), [raw-print pilot](RAW_PRINTED_PILOT.md) and [683-file evidence checkpoint](advanced-printed-provider-checkpoint-v1.json). Application/default-reader sources are unchanged; 364 unit tests, nine transport tests, ten offline-review tests and TypeScript checking passed. This report records evidence gathered so far; it does not certify a finished scanner or public release.
 
 ## Protected baseline
 

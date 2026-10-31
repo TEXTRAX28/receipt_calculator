@@ -1,5 +1,9 @@
 # Offline review of the one-use Veryfi comparison
 
+**Later result:** the user confirmed Free quota and configuration, and the one
+approved probe has now completed. See [Veryfi live results](VERYFI_LIVE_RESULT.md).
+The preparation checkpoint below is retained as history.
+
 At the 2026-10-31 preparation checkpoint, both server-side credential settings
 were present and passed the local syntax checks. This does not verify account
 permissions, credential validity or unused Free quota. The user's one-test upload

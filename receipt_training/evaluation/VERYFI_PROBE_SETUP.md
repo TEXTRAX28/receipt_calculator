@@ -1,5 +1,10 @@
 # Veryfi receipt API comparison: prepared, not uploaded
 
+**Later result:** this prepared one-use probe has now been consumed after the
+user confirmed Free quota and configuration. See [Veryfi live results](VERYFI_LIVE_RESULT.md).
+Do not repeat the live command. The setup and original approval scope below
+describe the preparation checkpoint.
+
 The dedicated Receipt/Invoice API is worth a measured comparison because it returns line items, quantities, prices, discounts and tax fields directly. That capability is not evidence that it beats the existing reader. The first test is one previously inspected development receipt, not a blind holdout or a public-release decision. [API reference](https://docs.veryfi.com/api/receipts-invoices/process-a-document/)
 
 The prepared ZIP contains only the existing identifier-removed [item crop](../../qa-artifacts/advanced-ocr/cloud-review/user-uk-items.jpg) and [VAT/total crop](../../qa-artifacts/advanced-ocr/cloud-review/user-uk-vat-totals.jpg), in that order. Both JPEGs retain exactly their original bytes. Generic archive names provide no extra merchant, currency, labels or OCR text. Veryfi documents processing related ZIP members as one document. [ZIP behavior](https://faq.veryfi.com/en/articles/6243055-processing-zip-files)
