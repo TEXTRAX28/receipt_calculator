@@ -20,7 +20,7 @@ export function normalizeAmount(token: string, currency?: Currency): string {
 const valuesIn = (line: string) =>
   [...line.matchAll(amountPattern)].map((m) => m[0]);
 export const isFinalTotal = (line: string) =>
-  /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|total\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[£$€]?\s*\d)/i.test(
+  /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|(?:total(?:\s+refund)?|refund total|amount refunded)\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[-−]?\s*[£$€]?\s*[-−]?\s*\d)/i.test(
     line,
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
 
@@ -101,11 +101,12 @@ export function parseReceiptWithSources(output: unknown): {
     }
   };
   const lastAmount = (line: string) => {
+    const amountLine = line.replace(/([-−])\s*([£$€])\s*(?=\d)/g, "$2$1");
     const values =
       currencyIdentified &&
       ["IDR", "TWD", "JPY", "KRW"].includes(receipt.currency)
-        ? [...line.matchAll(/[-−]?\d[\d,.]*-?/g)].map((m) => m[0])
-        : valuesIn(line);
+        ? [...amountLine.matchAll(/[-−]?\d[\d,.]*-?/g)].map((m) => m[0])
+        : valuesIn(amountLine);
     return values.length ? normalize(values.at(-1)!) : "";
   };
   const isoDate = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
@@ -144,7 +145,7 @@ export function parseReceiptWithSources(output: unknown): {
     if (/\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line))
       receipt.subtotal = lastAmount(line) || receipt.subtotal;
     if (
-      /^(?:vat amount|tax amount|sales tax|vat|tax)\s*[:£$€]?\s*\d/i.test(
+      /^(?:vat amount|tax amount|sales tax|vat|tax)\s*[:£$€]?\s*[-−]?\s*\d/i.test(
         line,
       ) &&
       !/%/.test(line)
@@ -330,27 +331,56 @@ export function parseReceiptWithSources(output: unknown): {
       )
     ) {
       const description = generic[1].trim();
-      const amount = normalize(generic[2]).replace(/^-/, "");
-      const negative =
-        /[-−]/.test(generic[2]) ||
-        /\b(discount|coupon|saving|rebate)\b/i.test(description);
-      if (negative) {
-        receipt.adjustments.push({
+      const amount = normalize(generic[2]);
+      // A trailing purchase expression is context; pack notation inside a name is not.
+      const quantity = description.match(
+        /(?:^|\s)(\d+(?:[.,]\d+)?)\s*[x×@]\s*(\d[\d,.]*[.,]\d{2,3})?\s*$/i,
+      );
+      const percentDeduction =
+        /^(?:amount|amt)\b/i.test(description) &&
+        /^DISC(?:OUNT)?\b.*%/i.test(lines[lineIndex - 1] || "");
+      const deduction =
+        /\b(discount|coupon|saving|rebate)\b/i.test(description) ||
+        (isCostco && /^(?:\d{1,12}\s+)?IRC\b/i.test(description)) ||
+        percentDeduction;
+      const printedNegative = /[-−]/.test(generic[2]);
+      const ambiguous =
+        printedNegative &&
+        !deduction &&
+        !quantity &&
+        !/\b(?:return(?:ed)?|refund(?:ed)?)\b/i.test(description);
+      if (deduction || ambiguous) {
+        const adjustment = {
           id: crypto.randomUUID(),
           label: description.slice(0, 100),
-          kind: "discount",
-          amount,
-          allocation: "proportional",
-        });
+          kind: "discount" as const,
+          amount: amount.replace(/^-/, ""),
+          allocation: "proportional" as const,
+        };
+        receipt.adjustments.push(adjustment);
+        sources[adjustment.id] = percentDeduction
+          ? [lineIndex - 1, lineIndex]
+          : [lineIndex];
         receipt.warnings.push(
           `Confirm whether “${description.slice(0, 80)}” applies to the whole receipt or a particular item.`,
         );
+        if (
+          ambiguous &&
+          !receipt.reviewChecks.some(
+            (check) =>
+              check.scope === "receipt" && check.field === "adjustments",
+          )
+        )
+          receipt.reviewChecks.push({
+            scope: "receipt",
+            field: "adjustments",
+            reason: "classification",
+            other:
+              "A negative row may be a discount or a returned item. Confirm its type and ownership.",
+            confirmedValue: "",
+          });
       } else {
         const item = newItem();
-        // Only a trailing purchase expression counts. "6x340g" inside a product name is a multipack, not six purchased packs.
-        const quantity = description.match(
-          /(?:^|\s)(\d+(?:[.,]\d+)?)\s*[x×@]\s*(\d[\d,.]*[.,]\d{2,3})?\s*$/i,
-        );
         item.description = (
           quantity && quantity.index
             ? description.slice(0, quantity.index).trim()
@@ -363,6 +393,23 @@ export function parseReceiptWithSources(output: unknown): {
         item.note = quantity
           ? "Check the extracted quantity and line total."
           : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
+        if (printedNegative) {
+          item.note =
+            "Signed credit line. Confirm this is a returned item, its positive quantity and any coupon or tax reversal.";
+          receipt.warnings.push(
+            "A negative product amount was kept as a refund credit. Check its direction and who receives that credit.",
+          );
+          if (!amount)
+            receipt.reviewChecks.push({
+              scope: "item",
+              itemId: item.id,
+              field: "lineTotal",
+              reason: "unclear",
+              other:
+                "The printed credit amount was not readable. Check its sign and the unit-price calculation.",
+              confirmedValue: "",
+            });
+        }
         receipt.items.push(item);
         sources[item.id] = [lineIndex];
       }

@@ -6,7 +6,8 @@ import {
   extractWithGemini as serverExtract,
 } from "../server/receipt-api.mjs";
 import { receiptFromAi, extractWithGemini } from "../src/lib/gemini";
-import { calculateReceipt } from "../src/lib/engine";
+import { calculateReceipt, calculateSplit } from "../src/lib/engine";
+import { newState } from "../src/lib/model";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { planReadingPanels } from "../src/lib/images";
 import { joinDetailText } from "../src/lib/ocr";
@@ -103,15 +104,72 @@ describe("Gemini receipts are evidence for the exact engine", () => {
     expect(receipt.warnings.join(" ")).toMatch(/could not determine/);
     expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
   });
-  it("rejects numeric prices, executable actions, negative purchases and unbounded output", () => {
+  it("rejects numeric prices, executable actions and unbounded output", () => {
     const draft = aiCostcoDraft();
     for (const invalid of [
       { ...draft, execute: "send secrets" },
       { ...draft, items: [{ ...draft.items[0], lineTotal: 9.49 }] },
-      { ...draft, items: [{ ...draft.items[0], lineTotal: "-1.00" }] },
       { ...draft, items: Array.from({ length: 301 }, () => draft.items[0]) },
     ])
       expect(() => receiptFromAi(invalid)).toThrow();
+  });
+  it("preserves explicit signed refund evidence while the normal financial review is still required", () => {
+    const draft = aiCostcoDraft();
+    draft.items = [
+      {
+        ...draft.items[0],
+        unitPrice: "9.49",
+        lineTotal: "-9.49",
+        discount: "0",
+        taxCode: "",
+      },
+    ];
+    Object.assign(draft, {
+      printedItemCount: 1,
+      taxCodes: [],
+      pricesIncludeTax: true,
+      subtotal: "-9.49",
+      printedTotal: "-9.49",
+      printedTax: "0.00",
+      adjustments: [],
+    });
+    const receipt = receiptFromAi(draft);
+    expect(receipt.items[0].lineTotal).toBe("-9.49");
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+    expect(calculateReceipt(receipt).total).toBe(-949n);
+    const state = newState();
+    state.receipt = receipt;
+    expect(calculateSplit(state).issues).toContainEqual(
+      expect.objectContaining({ path: "review" }),
+    );
+  });
+  it("requires an explicit nonzero return before accepting negative ordinary adjustments", () => {
+    const draft = aiCostcoDraft();
+    draft.items = [
+      {
+        ...draft.items[0],
+        unitPrice: "9.49",
+        lineTotal: "-9.49",
+        discount: "0",
+        taxCode: "",
+      },
+    ];
+    Object.assign(draft, {
+      printedItemCount: 1,
+      taxCodes: [],
+      pricesIncludeTax: true,
+      subtotal: "-9.49",
+      printedTotal: "-10.49",
+      printedTax: "0.00",
+      adjustments: [
+        { label: "Refunded delivery", kind: "fee", amount: "-1.00" },
+      ],
+    });
+    expect(calculateReceipt(receiptFromAi(draft)).issues).toEqual([]);
+    draft.items[0].lineTotal = "0.00";
+    expect(() => receiptFromAi(draft)).toThrow();
+    draft.items[0].lineTotal = "-0.00";
+    expect(() => receiptFromAi(draft)).toThrow();
   });
   it("accepts a blank unreadable amount and lets the engine block confirmation", () => {
     const draft = aiCostcoDraft();

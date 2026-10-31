@@ -80,6 +80,7 @@ const reviewDetails = {
     "recovered",
     "coverage",
     "document",
+    "classification",
   ]),
   other: z.string().max(180).default(""),
   confirmedValue: z.string().max(250000).default(""),

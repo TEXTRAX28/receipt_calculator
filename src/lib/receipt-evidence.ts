@@ -114,7 +114,12 @@ export function collectReceiptEvidence(
   const fields: NonNullable<ReceiptEvidence["fields"]> = {};
   for (const field of receiptReviewFields) {
     const evidence = collect(
-      fieldSources[field] || [],
+      fieldSources[field] ||
+        (field === "adjustments"
+          ? receipt.adjustments.flatMap(
+              (adjustment) => sources[adjustment.id] || [],
+            )
+          : []),
       receiptFieldStamp(receipt, field),
     );
     if (evidence) fields[field] = evidence;

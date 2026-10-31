@@ -2037,6 +2037,23 @@ dialog::backdrop {
 .source-edit-fields {
   margin-top: 20px;
 }
+.refund-control .text-button {
+  min-height: 44px;
+}
+.field-control {
+  display: flex;
+  gap: 8px;
+}
+.field-control input {
+  flex: 1;
+  min-width: 0;
+}
+.field-control .amount-sign {
+  width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+}
 .receipt-area-reader {
   border-top: 1px solid var(--border);
   padding-top: 16px;

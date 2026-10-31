@@ -94,6 +94,36 @@ function costco() {
 }
 
 describe("independent original-image readings are grounded without labels or balance repairs", () => {
+  it("keeps a source classification check even when both readers' provisional deduction and total agree", () => {
+    const raw = {
+      ...draft([item("Groceries", "10.00")], "8.00"),
+      adjustments: [
+        { label: "CP Club Card", kind: "discount", amount: "2.00" },
+      ],
+    };
+    const result = verifyIndependentReadings(
+      raw,
+      recognition([
+        "Little Market",
+        "Groceries 1x 10.00 10.00",
+        "CP Club Card -2.00",
+        "TOTAL GBP 8.00",
+      ]),
+    );
+    expect(result.ocrPurchases).toBe(1);
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        scope: "receipt",
+        field: "adjustments",
+        reason: "classification",
+      }),
+    );
+    expect(result.fieldSources.adjustments).toContain(2);
+    expect(calculateReceipt(result.receipt).total).toBe(800n);
+    expect(calculateReceipt(result.receipt).issues).toContainEqual(
+      expect.objectContaining({ path: "adjustments" }),
+    );
+  });
   it.each(["legible", "unclear", "multiple", "bare-dollar"])(
     "uses only explicit reliable currency evidence: %s",
     (variant) => {

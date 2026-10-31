@@ -69,6 +69,32 @@ function read(recognition = input(), photos = images()) {
 }
 
 describe("source areas for parsed purchases", () => {
+  it("maps a pending negative-row classification to its literal adjustment region", () => {
+    const { evidence } = read({
+      engine: "paddle-ppocrv6-medium-onnx",
+      panels: [
+        panel(
+          1,
+          [
+            "Synthetic market",
+            "Groceries 1x 10.00 10.00",
+            "CP Club Card -2.00",
+            "TOTAL GBP 8.00",
+            `Tran ID: ${reference}`,
+          ],
+          0.1,
+        ),
+      ],
+    });
+    expect(
+      evidence.fields?.adjustments?.panels[0].regions.map(
+        (region) => region.text,
+      ),
+    ).toEqual(["CP Club Card -2.00"]);
+    expect(JSON.stringify(evidence.fields?.adjustments)).not.toContain(
+      reference,
+    );
+  });
   it("keeps separate source positions for identical purchased chickens", () => {
     const { receipt, evidence } = read();
     expect(receipt.items).toHaveLength(3);

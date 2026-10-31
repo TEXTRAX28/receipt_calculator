@@ -8,6 +8,15 @@ import {
   reviewMessage,
 } from "./lib/review-checks";
 
+const adjustmentKinds = {
+  discount: "Receipt discount",
+  tax: "Tax",
+  fee: "Fee",
+  tip: "Tip",
+  deposit: "Deposit",
+  rounding: "Rounding",
+};
+
 function currentValue(receipt: Receipt, check: ReviewCheck) {
   if (check.scope === "item")
     return (
@@ -24,7 +33,10 @@ function currentValue(receipt: Receipt, check: ReviewCheck) {
   if (check.field === "adjustments")
     return (
       receipt.adjustments
-        .map((entry) => `${entry.label}: ${entry.amount}`)
+        .map(
+          (entry) =>
+            `${entry.label}: ${entry.amount} (${adjustmentKinds[entry.kind]}; ${entry.kind === "discount" || entry.allocation === "proportional" ? "by item cost" : "equally per person"})`,
+        )
         .join("; ") || "No receipt adjustments"
     );
   if (check.field === "pricesIncludeTax")

@@ -22,8 +22,8 @@ async function openPurchaseSource(page: Page) {
     .click();
   return page.getByRole("dialog", { name: "Receipt source for purchase 1" });
 }
-async function picture(page: Page) {
-  const data = await page.evaluate(() => {
+async function picture(page: Page, receiptLines?: string[]) {
+  const data = await page.evaluate((receiptLines) => {
     const canvas = document.createElement("canvas");
     canvas.width = 700;
     canvas.height = 700;
@@ -34,27 +34,31 @@ async function picture(page: Page) {
     ctx.font = "14px monospace";
     ctx.fillText("SYNTHETIC PROTOCOL FIXTURE", 40, 28);
     ctx.font = "30px monospace";
-    [
-      "LITTLE MARKET",
-      "Milk 1x 2.00 2.00",
-      "Bread 1x 1.50 1.50",
-      "TOTAL GBP 3.50",
-    ].forEach((text, i) => ctx.fillText(text, 70, 100 + i * 70));
+    (
+      receiptLines || [
+        "LITTLE MARKET",
+        "Milk 1x 2.00 2.00",
+        "Bread 1x 1.50 1.50",
+        "TOTAL GBP 3.50",
+      ]
+    ).forEach((text, i) => ctx.fillText(text, 70, 100 + i * 70));
     return canvas.toDataURL("image/png").split(",")[1];
-  });
+  }, receiptLines);
   return {
     name: "protocol-fixture.png",
     mimeType: "image/png",
     buffer: Buffer.from(data, "base64"),
   };
 }
-function responseFor(panels: { photo: number; part: number }[]) {
-  const texts = [
+function responseFor(
+  panels: { photo: number; part: number }[],
+  texts = [
     "LITTLE MARKET",
     "Milk 1x 2.00 2.00",
     "Bread 1x 1.50 1.50",
     "TOTAL GBP 3.50",
-  ];
+  ],
+) {
   return {
     recognition: {
       engine: "paddle-ppocrv6-medium-onnx",
@@ -573,3 +577,75 @@ for (const failure of ["unavailable", "empty"]) {
     expect(calls).toBe(2);
   });
 }
+
+test("a balanced bare negative row needs a classification check with literal source evidence (mock protocol)", async ({
+  page,
+}, info) => {
+  await configure(page);
+  const texts = [
+    "LITTLE MARKET",
+    "Groceries 1x 10.00 10.00",
+    "CP Club Card -2.00",
+    "TOTAL GBP 8.00",
+  ];
+  await page.route("**/api/receipts/recognize", (route) =>
+    route.fulfill({
+      json: responseFor(route.request().postDataJSON().panels, texts),
+    }),
+  );
+  await page.goto("/");
+  await page
+    .getByLabel("Upload receipt images")
+    .setInputFiles(await picture(page, texts));
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(1);
+  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
+    "8.00",
+  );
+  const confirm = page.getByRole("button", {
+    name: "Confirm receipt & add people",
+    exact: true,
+  });
+  await expect(confirm).toBeDisabled();
+  await page
+    .getByRole("button", {
+      name: "View source for receipt adjustments",
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Receipt source for receipt adjustments",
+    exact: true,
+  });
+  await expect(dialog.getByTestId("source-region")).toHaveCount(1);
+  await dialog
+    .getByText("Recognized text in this area", { exact: true })
+    .click();
+  await expect(dialog.locator("pre")).toHaveText("CP Club Card -2.00");
+  await expect(dialog.locator(".verification-current")).toContainText(
+    "Receipt discount; by item cost",
+  );
+  await expect(
+    dialog.getByText(/The negative row could be a discount or a refund/),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText(/The source text was difficult to read/),
+  ).toHaveCount(0);
+  await dialog.locator(".verification-current").scrollIntoViewIfNeeded();
+  await mkdir("qa-artifacts", { recursive: true });
+  await dialog.screenshot({
+    path: `qa-artifacts/refund-ambiguous-source-${info.project.name}.png`,
+  });
+  await dialog
+    .getByRole("checkbox", {
+      name: "I checked receipt adjustments against the original",
+      exact: true,
+    })
+    .check();
+  await dialog
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  await expect(confirm).toBeEnabled();
+});

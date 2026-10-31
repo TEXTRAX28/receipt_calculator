@@ -863,6 +863,27 @@ export function verifyIndependentReadings(
     );
   }
   receipt.reviewChecks = checks;
+  const ambiguousAdjustments = ocr.reviewChecks.some(
+    (check) =>
+      check.scope === "receipt" &&
+      check.field === "adjustments" &&
+      check.reason === "classification",
+  );
+  if (ambiguousAdjustments) {
+    globalCheck(
+      "adjustments",
+      "classification",
+      "A negative source row may be a discount or a returned item. Confirm its type and ownership.",
+    );
+    fieldSources.adjustments = [
+      ...new Set([
+        ...(fieldSources.adjustments || []),
+        ...ocr.adjustments.flatMap(
+          (adjustment) => parsed.sources[adjustment.id] || [],
+        ),
+      ]),
+    ];
+  }
   receipt.warnings = receipt.warnings.filter(
     (warning) => !warning.startsWith("Local vision read an item count of"),
   );

@@ -16,6 +16,7 @@ export interface ItemCost {
   total: bigint;
 }
 export interface ReceiptResult {
+  hasRefunds: boolean;
   issues: Issue[];
   items: ItemCost[];
   subtotal: bigint;
@@ -28,10 +29,33 @@ export interface ReceiptResult {
   equalCharges: { label: string; amount: bigint; kind: "tax" | "other" }[];
 }
 const sum = (values: bigint[]) => values.reduce((a, b) => a + b, 0n);
+const absolute = (value: bigint) => (value < 0n ? -value : value);
+
+/** Mixed sale/return VAT keeps each signed contribution and the rounded group total. */
+function mixedTaxParts(costs: bigint[], rate: bigint): bigint[] {
+  const divisor = 100n * SCALE;
+  const numerators = costs.map((cost) => cost * rate);
+  const parts = numerators.map((value) => value / divisor);
+  const residual = roundDiv(sum(numerators), divisor) - sum(parts);
+  const sign = residual < 0n ? -1n : 1n;
+  const order = numerators
+    .map((value, index) => ({ index, remainder: (value % divisor) * sign }))
+    .sort((a, b) =>
+      a.remainder === b.remainder
+        ? a.index - b.index
+        : a.remainder > b.remainder
+          ? -1
+          : 1,
+    );
+  for (let i = 0; BigInt(i) < absolute(residual); i++)
+    parts[order[i].index] += sign;
+  return parts;
+}
 
 export function calculateReceipt(receipt: Receipt): ReceiptResult {
   if (receipt.currencyUnresolved)
     return {
+      hasRefunds: false,
       issues: [
         {
           path: "currency",
@@ -86,6 +110,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     );
   if (new Set(receipt.items.map((i) => i.id)).size !== receipt.items.length)
     issue("items", "Item identifiers must be unique.");
+  let hasRefunds = false;
   const items: ItemCost[] = receipt.items.map((item, index) => {
     const path = `items.${index}`;
     if (!item.description.trim())
@@ -103,10 +128,10 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     }
     let amount = 0n;
     if (item.lineTotal !== "")
-      amount = read(item.lineTotal, `${path}.lineTotal`);
+      amount = read(item.lineTotal, `${path}.lineTotal`, true);
     else if (item.unitPrice !== "")
       amount = roundDiv(
-        read(item.unitPrice, `${path}.unitPrice`) * quantity,
+        read(item.unitPrice, `${path}.unitPrice`, true) * quantity,
         SCALE,
       );
     else
@@ -116,24 +141,33 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       );
     if (item.unitPrice !== "" && item.lineTotal !== "") {
       const expected = roundDiv(
-        read(item.unitPrice, `${path}.unitPrice`) * quantity,
+        read(item.unitPrice, `${path}.unitPrice`, true) * quantity,
         SCALE,
       );
-      if (expected !== amount)
+      // Return prices may print an unsigned unit price beside a signed line credit.
+      if (
+        amount < 0n
+          ? absolute(expected) !== absolute(amount)
+          : expected !== amount
+      )
         issue(
           `${path}.unitPrice`,
           `${item.description}: quantity × unit price differs from the line total. Correct either field, or clear the optional unit price.`,
         );
     }
+    hasRefunds ||= amount < 0n;
     const discount = read(item.discount || "0", `${path}.discount`);
-    if (discount > amount)
+    if (discount > absolute(amount))
       issue(
         `${path}.discount`,
         `${item.description}: discount exceeds the item price.`,
       );
     return {
       id: item.id,
-      net: amount >= discount ? amount - discount : 0n,
+      net:
+        absolute(amount) >= discount
+          ? (amount < 0n ? -1n : 1n) * (absolute(amount) - discount)
+          : 0n,
       receiptDiscount: 0n,
       tax: 0n,
       charges: 0n,
@@ -143,32 +177,41 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
   const subtotal = sum(items.map((i) => i.net));
   if (
     receipt.subtotal !== "" &&
-    read(receipt.subtotal, "subtotal") !== subtotal
+    read(receipt.subtotal, "subtotal", true) !== subtotal
   )
     issue(
       "subtotal",
       "Printed subtotal differs from the item total after item discounts. Check the items or correct this optional subtotal.",
     );
-  const receiptDiscount = sum(
-    receipt.adjustments
-      .filter((a) => a.kind === "discount")
-      .map((a) => {
-        if (!a.label.trim())
-          issue(`adjustments.${a.id}`, "Give every adjustment a clear label.");
-        return read(a.amount, `adjustments.${a.id}`);
-      }),
-  );
-  if (receiptDiscount > subtotal)
-    issue("adjustments", "Receipt-wide discounts exceed the item subtotal.");
-  if (subtotal > 0n) {
-    const shares = allocate(
-      receiptDiscount <= subtotal ? receiptDiscount : subtotal,
-      items.map((i) => i.net),
-    );
-    items.forEach((item, i) => {
-      item.receiptDiscount = shares[i];
+  const discounts = receipt.adjustments
+    .filter((a) => a.kind === "discount")
+    .map((a) => {
+      if (!a.label.trim())
+        issue(`adjustments.${a.id}`, "Give every adjustment a clear label.");
+      return read(a.amount, `adjustments.${a.id}`, hasRefunds);
     });
-  }
+  const purchaseDiscount = sum(discounts.filter((amount) => amount > 0n));
+  const returnReversal = -sum(discounts.filter((amount) => amount < 0n));
+  const receiptDiscount = purchaseDiscount - returnReversal;
+  const purchaseWeights = items.map((item) => (item.net > 0n ? item.net : 0n));
+  const returnWeights = items.map((item) => (item.net < 0n ? -item.net : 0n));
+  const purchases = sum(purchaseWeights),
+    returns = sum(returnWeights);
+  if (purchaseDiscount > purchases)
+    issue("adjustments", "Receipt-wide discounts exceed the item subtotal.");
+  if (returnReversal > returns)
+    issue("adjustments", "Coupon reversals exceed the returned item subtotal.");
+  const purchaseShares = allocate(
+    purchaseDiscount <= purchases ? purchaseDiscount : purchases,
+    purchaseWeights,
+  );
+  const returnShares = allocate(
+    -(returnReversal <= returns ? returnReversal : returns),
+    returnWeights,
+  );
+  items.forEach((item, i) => {
+    item.receiptDiscount = purchaseShares[i] + returnShares[i];
+  });
   const afterDiscount = items.map((i) => i.net - i.receiptDiscount);
   if (!receipt.pricesIncludeTax && receipt.taxMode === "codes") {
     const groups = new Map<string, { rate: bigint; indexes: number[] }>();
@@ -198,7 +241,10 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     for (const group of groups.values()) {
       const costs = group.indexes.map((i) => afterDiscount[i]);
       const tax = roundDiv(sum(costs) * group.rate, 100n * SCALE);
-      const taxes = allocate(tax, costs);
+      const taxes =
+        costs.some((cost) => cost > 0n) && costs.some((cost) => cost < 0n)
+          ? mixedTaxParts(costs, group.rate)
+          : allocate(tax, costs.map(absolute));
       group.indexes.forEach((index, j) => {
         items[index].tax = taxes[j];
       });
@@ -226,7 +272,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     const amount = read(
       adjustment.amount,
       `adjustments.${adjustment.id}`,
-      adjustment.kind === "rounding",
+      adjustment.kind === "rounding" || hasRefunds,
     );
     if (
       adjustment.kind === "tax" &&
@@ -241,8 +287,17 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
         amount,
         kind: adjustment.kind === "tax" ? "tax" : "other",
       });
-    else if (sum(allocationWeights) > 0n) {
-      const shares = allocate(amount, allocationWeights);
+    else if (
+      amount &&
+      allocationWeights.some((weight) => weight > 0n) &&
+      allocationWeights.some((weight) => weight < 0n)
+    )
+      issue(
+        `adjustments.${adjustment.id}`,
+        "This receipt mixes purchases and returns. Choose equal per person for this shared charge, use the printed tax codes, or enter separate signed item charges; proportional ownership is unclear.",
+      );
+    else if (sum(allocationWeights.map(absolute)) > 0n) {
+      const shares = allocate(amount, allocationWeights.map(absolute));
       items.forEach((item, i) => {
         if (adjustment.kind === "tax") item.tax += shares[i];
         else item.charges += shares[i];
@@ -250,15 +305,15 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     } else if (amount)
       issue(
         `adjustments.${adjustment.id}`,
-        "A proportional adjustment needs a positive item subtotal. Choose equal per person or add priced items.",
+        "A proportional adjustment needs nonzero item amounts. Choose equal per person or add priced items.",
       );
   }
   items.forEach((i) => {
     i.total = i.net - i.receiptDiscount + i.tax + i.charges;
-    if (i.total < 0n)
+    if ((i.net >= 0n && i.total < 0n) || (i.net < 0n && i.total > 0n))
       issue(
         `items.${i.id}`,
-        "An adjustment makes an item cost negative. Review its amount or allocation.",
+        "An adjustment reverses an item's purchase or refund direction. Review its amount or allocation, or enter the charge separately.",
       );
   });
   const tax =
@@ -266,7 +321,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       ? sum(items.map((i) => i.tax))
       : printedTax;
   if (receipt.printedTax) {
-    const statedTax = read(receipt.printedTax, "printedTax");
+    const statedTax = read(receipt.printedTax, "printedTax", true);
     if (!receipt.pricesIncludeTax && statedTax !== tax)
       issue(
         "printedTax",
@@ -274,14 +329,18 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       );
   }
   const total = subtotal - receiptDiscount + tax + otherCharges;
-  if (total < 0n) issue("total", "The receipt total cannot be negative.");
+  if (total < 0n && !hasRefunds)
+    issue(
+      "total",
+      "A negative receipt total needs an explicit refunded item. Review the adjustment amounts.",
+    );
   let printed: bigint | null = null;
   if (receipt.printedTotal === "")
     issue(
       "printedTotal",
       "Enter the printed receipt total to check the arithmetic.",
     );
-  else printed = read(receipt.printedTotal, "printedTotal");
+  else printed = read(receipt.printedTotal, "printedTotal", true);
   const discrepancy = printed === null ? null : total - printed;
   if (discrepancy !== null && discrepancy !== 0n)
     issue(
@@ -289,6 +348,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       `Calculated total ${formatMoney(total, receipt.currency)} differs from the printed total by ${formatMoney(discrepancy, receipt.currency)}. Correct the items, tax or adjustments before continuing.`,
     );
   return {
+    hasRefunds,
     issues,
     items,
     subtotal,
@@ -550,7 +610,7 @@ export function calculateSplit(state: AppState) {
       );
   }
   const assignedTotal = sum(totals.map((p) => p.total));
-  if (totals.some((p) => p.total < 0n))
+  if (totals.some((p) => p.total < 0n) && !receipt.hasRefunds)
     issues.push({
       path: "assignments",
       message:

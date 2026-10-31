@@ -361,7 +361,7 @@ describe("financial and allocation journeys", () => {
       ),
     ).toBe(true);
   });
-  it("rejects extreme quantities, negative prices and excessive discounts", () => {
+  it("rejects extreme quantities, unreconciled signed prices and excessive discounts", () => {
     const s = shop();
     s.receipt.items[0].quantity = "100000000000";
     expect(calculateReceipt(s.receipt).issues.length).toBeGreaterThan(0);

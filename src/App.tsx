@@ -91,6 +91,7 @@ import ImageCropper from "./ImageCropper";
 import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
 import PhotoGuidance from "./PhotoGuidance";
+import RefundControl from "./RefundControl";
 import {
   collectReceiptEvidence,
   type ItemEvidence,
@@ -113,11 +114,13 @@ function Field({
   children,
   hint,
   error,
+  action,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
   error?: string;
+  action?: ReactNode;
 }) {
   const controlId = useId();
   const control = isValidElement(children)
@@ -140,7 +143,14 @@ function Field({
   return (
     <div className="field">
       <label htmlFor={controlId}>{label}</label>
-      {control}
+      {action ? (
+        <div className="field-control">
+          {control}
+          {action}
+        </div>
+      ) : (
+        control
+      )}
       {hint && <small id={`${controlId}-hint`}>{hint}</small>}
       {error && (
         <small className="field-error" id={`${controlId}-error`}>
@@ -156,6 +166,7 @@ function MoneyInput({
   onChange,
   hint,
   error,
+  signed = false,
   ...rest
 }: {
   label: string;
@@ -164,9 +175,34 @@ function MoneyInput({
   hint?: string;
   error?: string;
   required?: boolean;
+  signed?: boolean;
 }) {
   return (
-    <Field label={label} hint={hint} error={error}>
+    <Field
+      label={label}
+      hint={hint}
+      error={error}
+      action={
+        signed ? (
+          <button
+            type="button"
+            className="button button-outline amount-sign"
+            aria-label={`Change sign (+/−) for ${label}`}
+            title="Switch between a positive amount and a credit"
+            disabled={!/^-?\d{1,12}(?:\.\d{1,6})?$/.test(value.trim())}
+            onClick={() =>
+              onChange(
+                value.trim().startsWith("-")
+                  ? value.trim().slice(1)
+                  : `-${value.trim()}`,
+              )
+            }
+          >
+            +/−
+          </button>
+        ) : undefined
+      }
+    >
       <input
         {...rest}
         aria-label={label}
@@ -1607,6 +1643,7 @@ export default function App() {
                         </Field>
                         <MoneyInput
                           label="Printed total"
+                          signed
                           value={state.receipt.printedTotal}
                           onChange={(printedTotal) =>
                             editReceipt({ printedTotal })
@@ -1614,11 +1651,13 @@ export default function App() {
                         />
                         <MoneyInput
                           label="Subtotal after item discounts (optional)"
+                          signed
                           value={state.receipt.subtotal}
                           onChange={(subtotal) => editReceipt({ subtotal })}
                         />
                         <MoneyInput
                           label="Printed tax (optional check)"
+                          signed
                           value={state.receipt.printedTax}
                           onChange={(printedTax) => editReceipt({ printedTax })}
                           hint="A check against the receipt. When prices exclude tax, add tax using codes or a tax adjustment below."
@@ -1829,11 +1868,12 @@ export default function App() {
                         <h2>Discounts & little extras</h2>
                       </div>
                       <p className="hint">
-                        Receipt discounts reduce item costs proportionally
-                        before added tax. Other proportional charges follow item
-                        ownership; equal-per-person charges are shared by
-                        everyone. An item discount belongs in that item’s
-                        details.
+                        Purchase discounts reduce purchase costs before added
+                        tax. Negative coupon reversals reduce refund credits. An
+                        item discount belongs in that item’s details. Shared
+                        charges on mixed purchases and returns need an explicit
+                        choice: use equal per person, printed tax codes or
+                        separate item charges.
                       </p>
                       {state.receipt.adjustments.map((a, index) => (
                         <div className="adjustment-row" key={a.id}>
@@ -1883,6 +1923,7 @@ export default function App() {
                           </Field>
                           <MoneyInput
                             label={`Adjustment ${index + 1} amount`}
+                            signed
                             value={a.amount}
                             onChange={(amount) =>
                               editReceipt({
@@ -2395,6 +2436,7 @@ export default function App() {
                             <span className="person-heading">
                               <strong>{entry.person.name}</strong>
                               <small>
+                                {entry.total < 0n && "Credit share · "}
                                 Person {i + 1} · {entry.lines.length} allocated{" "}
                                 {entry.lines.length === 1 ? "line" : "lines"}
                               </small>
@@ -2477,12 +2519,12 @@ export default function App() {
                           and allocated back to items.
                         </p>
                         <p>
-                          Receipt discounts are proportional to item costs
-                          before added tax. Proportional charges follow item
-                          assignments. Equal-per-person charges are shared by
-                          everyone. Whole-receipt mode ignores item assignments
-                          and applies the whole-receipt shares to every
-                          component.
+                          Purchase discounts apply proportionally to purchases;
+                          negative coupon reversals apply to returns. Shared
+                          charges on mixed purchases and returns need an
+                          explicit allocation. Equal-per-person charges are
+                          shared by everyone. Whole-receipt mode applies the
+                          whole-receipt shares to every component.
                         </p>
                         <p>
                           Physical quantities must match purchased packs ×
@@ -2490,8 +2532,8 @@ export default function App() {
                           Percentages must total 100%.
                         </p>
                         <p>
-                          This is an amount-owed breakdown. No original payer or
-                          reimbursement direction has been assumed.
+                          Negative shares are refund credits. No original payer
+                          or reimbursement direction has been assumed.
                         </p>
                       </details>
                     </section>
@@ -2677,6 +2719,12 @@ export default function App() {
                 Changes recalculate your receipt. Confirm the whole receipt
                 after checking every purchase.
               </p>
+              <RefundControl
+                item={sourceItem}
+                index={sourceItemIndex}
+                receipt={state.receipt}
+                onChange={(patch) => editItem(sourceItem.id, patch)}
+              />
               <button
                 className="button button-primary full-width"
                 onClick={() => setSourceItemId(null)}
@@ -2997,6 +3045,12 @@ function ItemEditor({
             Line price is the full purchased quantity before its separate
             discount. For example, two packs at £3.99 have a £7.98 line price.
           </p>
+          <RefundControl
+            item={item}
+            index={index}
+            receipt={receipt}
+            onChange={onChange}
+          />
           <button className="text-button danger" onClick={onDelete}>
             <Trash2 size={15} />
             Remove this purchase line

@@ -23,6 +23,116 @@ Z 0.00% 7.49 0.00
 **** TOTAL(EXCL VAT) 29.88
 VAT Amount 4.48`;
 describe("merchant-independent, editable extraction", () => {
+  it("keeps an unreadable credit amount uncertain even when its unsigned unit price is legible", () => {
+    const receipt = parseReceiptText(
+      "Little Market\nReturned bread 1x 5.00 -2,500\nTOTAL -2,500",
+    );
+    expect(receipt.items[0]).toMatchObject({
+      quantity: "1",
+      unitPrice: "5.00",
+      lineTotal: "",
+    });
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        scope: "item",
+        itemId: receipt.items[0].id,
+        field: "lineTotal",
+        reason: "unclear",
+      }),
+    );
+  });
+  it("keeps a collapsed Costco IRC negative-code row as a coupon", () => {
+    const receipt = parseReceiptText(
+      "COSTCO GBP\nGroceries 1x 10.00 10.00 Z\n689100 IRC MEMBER OFFER 1x 2.00 2.00-Z\nTOTAL GBP 8.00\nZ 0.00% 8.00 0.00",
+    );
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.adjustments[0]).toMatchObject({
+      kind: "discount",
+      amount: "2.00",
+    });
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+  });
+  it("uses a directly preceding DISC ITEM percentage to interpret its AMOUNT row", () => {
+    const receipt = parseReceiptText(
+      "Synthetic market\nGroceries 1x 10.00 10.00\nDISC ITEM -20.00%\nAMOUNT -2.00\nTOTAL GBP 8.00",
+    );
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.adjustments[0]).toMatchObject({
+      kind: "discount",
+      amount: "2.00",
+    });
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+  });
+  it("requires a classification check for a bare negative row without product or coupon context", () => {
+    const receipt = parseReceiptText(
+      "Synthetic market\nGroceries 1x 10.00 10.00\nCP Club Card -2.00\nTOTAL GBP 8.00",
+    );
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        scope: "receipt",
+        field: "adjustments",
+        reason: "classification",
+      }),
+    );
+    expect(calculateReceipt(receipt).issues).toContainEqual(
+      expect.objectContaining({ path: "adjustments" }),
+    );
+  });
+  it("does not mistake a refund-policy heading for the transaction total", () => {
+    const receipt = parseReceiptText(
+      "Little Market GBP\nTOTAL REFUND POLICY\nReturned milk 1x 5.00 -5.00\nTOTAL GBP -5.00",
+    );
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.printedTotal).toBe("-5.00");
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+  });
+  it.each(["-5.00", "5.00-", "−5.00"])(
+    "preserves a product credit %s as a separate return rather than a whole-receipt coupon",
+    (price) => {
+      const receipt = parseReceiptText(
+        `Little Market\nMilk 1x 10.00 10.00\nReturned bread 1x 5.00 ${price}\nTOTAL GBP 5.00`,
+      );
+      expect(receipt.items).toHaveLength(2);
+      expect(receipt.items[1]).toMatchObject({
+        description: "Returned bread",
+        quantity: "1",
+        unitPrice: "5.00",
+        lineTotal: "-5.00",
+        discount: "0",
+      });
+      expect(receipt.adjustments).toEqual([]);
+      expect(calculateReceipt(receipt).issues).toEqual([]);
+      expect(receipt.warnings.join(" ")).toMatch(/refund credit/);
+    },
+  );
+  it.each([
+    "TOTAL GBP -5.00",
+    "TOTAL -£5.00",
+    "TOTAL REFUND -5.00",
+    "Refund total -5.00",
+  ])("recognizes the literal sign of a final credit: %s", (total) => {
+    const receipt = parseReceiptText(
+      `Little Market GBP\nReturned bread 1x 5.00 -5.00\n${total}`,
+    );
+    expect(receipt.printedTotal).toBe("-5.00");
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+  });
+  it("keeps explicit named coupons distinct from returns and does not infer a missing refund sign", () => {
+    const receipt = parseReceiptText(
+      "Little Market\nMilk 1x 10.00 10.00\nCoupon -2.00\nTOTAL GBP 8.00",
+    );
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.adjustments[0]).toMatchObject({
+      kind: "discount",
+      amount: "2.00",
+    });
+    const positive = parseReceiptText(
+      "Little Market\nReturned milk 1x 5.00 5.00\nTOTAL REFUND GBP 5.00",
+    );
+    expect(positive.items[0].lineTotal).toBe("5.00");
+    expect(positive.printedTotal).toBe("5.00");
+  });
   it("does not accept a stray background symbol or percentage as a currency or tax legend", () => {
     const r = parseReceiptText(
       "COSTCO\n¥ noise\nANT 30% background\nSPAM\n45660 1x 14.99 14.99 Z\nTOTAL 14.99",
