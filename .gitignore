@@ -37,8 +37,9 @@ receipt_training/evaluation/runs/**
 receipt_training/evaluation/contact-sheets/**
 receipt_training/.cache/**
 receipt_training/scripts/__pycache__/
+**/__pycache__/
 
 # Generated local Graphify graph, caches and scratch files
-/graphify-out/
+graphify-out/
 /.graphify/
 /.graphify_*

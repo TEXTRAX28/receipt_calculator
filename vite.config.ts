@@ -41,7 +41,17 @@ export default defineConfig(({ mode }) => {
       },
     ],
     build: { target: "es2022" },
-    server: { host: "127.0.0.1", strictPort: true },
+    server: {
+      host: "127.0.0.1",
+      strictPort: true,
+      watch: {
+        ignored: [
+          "**/receipt_training/.cache/**",
+          "**/receipt_training/evaluation/runs/**",
+          "**/qa-artifacts/**",
+        ],
+      },
+    },
     preview: { host: "127.0.0.1", strictPort: true },
     test: { include: ["tests/**/*.test.ts"], testTimeout: 15000 },
   };

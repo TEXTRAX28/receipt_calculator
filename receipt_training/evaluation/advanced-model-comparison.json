@@ -1,0 +1,1317 @@
+{
+  "date": "2026-10-31",
+  "scope": "Original 50 financial receipts with frozen original parser, image panels, original labels and matching threshold. No engine is selected for public release by this comparison. Complete-receipt truth is insufficient on the original cohort.",
+  "engines": {
+    "tesseract": {
+      "overall": {
+        "counts": {
+          "samples": 50,
+          "item_label_samples": 45,
+          "expected_items": 130,
+          "predicted_items": 72,
+          "matched_items": 33,
+          "description_known": 130,
+          "description_correct": 20,
+          "item_price_known": 129,
+          "item_price_correct": 3,
+          "quantity_known": 117,
+          "quantity_correct": 3,
+          "missing_items": 97,
+          "unmatched_predictions": 39,
+          "currency_known": 50,
+          "currency_unresolved": 42,
+          "selected_currency_correct": 2,
+          "currency_correct": 2,
+          "currency_dataset_context": 44,
+          "total_known": 49,
+          "total_correct": 0,
+          "subtotal_known": 34,
+          "subtotal_correct": 0,
+          "tax_known": 22,
+          "tax_correct": 0,
+          "reconciliation_unavailable": 38,
+          "trusted_reconciliation_known": 49,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 0,
+          "complete_receipt_unscorable": 50,
+          "processing_errors": 1,
+          "requires_review": 50,
+          "item_price_matched_known": 33,
+          "reconciliation_checked": 12,
+          "reconciliation_failed": 2,
+          "reconciliation_with_validation_issues": 12,
+          "untrusted_zero_discrepancy": 10,
+          "receipt_discount_known": 4,
+          "receipt_discount_correct": 0,
+          "unit_price_known": 31,
+          "unit_price_correct": 3,
+          "item_discount_known": 7,
+          "item_discount_matched_known": 3,
+          "item_discount_correct": 0,
+          "grouping_known": 14,
+          "grouping_correct": 3,
+          "merchant_known": 6,
+          "merchant_correct": 1,
+          "unit_price_matched_known": 4,
+          "extra_items_on_complete_labels": 3
+        },
+        "item_precision": {
+          "correct": 33,
+          "count": 72,
+          "rate": 0.4583
+        },
+        "item_recall": {
+          "correct": 33,
+          "count": 130,
+          "rate": 0.2538
+        },
+        "description": {
+          "correct": 20,
+          "count": 130,
+          "rate": 0.1538
+        },
+        "merchant": {
+          "correct": 1,
+          "count": 6,
+          "rate": 0.1667
+        },
+        "item_price": {
+          "correct": 3,
+          "count": 129,
+          "rate": 0.0233
+        },
+        "unit_price": {
+          "correct": 3,
+          "count": 31,
+          "rate": 0.0968
+        },
+        "item_discount": {
+          "correct": 0,
+          "count": 7,
+          "rate": 0.0
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 4,
+          "rate": 0.0
+        },
+        "quantity": {
+          "correct": 3,
+          "count": 117,
+          "rate": 0.0256
+        },
+        "grouping": {
+          "correct": 3,
+          "count": 14,
+          "rate": 0.2143
+        },
+        "currency": {
+          "correct": 2,
+          "count": 50,
+          "rate": 0.04
+        },
+        "subtotal": {
+          "correct": 0,
+          "count": 34,
+          "rate": 0.0
+        },
+        "tax": {
+          "correct": 0,
+          "count": 22,
+          "rate": 0.0
+        },
+        "total": {
+          "correct": 0,
+          "count": 49,
+          "rate": 0.0
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 49,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "matched_item_price": {
+          "correct": 3,
+          "count": 33,
+          "rate": 0.0909
+        },
+        "latency_ms": {
+          "samples": 50,
+          "median": 852.5,
+          "mean": 1283.68,
+          "p95_nearest_rank": 3709,
+          "total": 64184
+        }
+      },
+      "by_split": {
+        "development": {
+          "counts": {
+            "samples": 38,
+            "item_label_samples": 33,
+            "expected_items": 112,
+            "predicted_items": 56,
+            "matched_items": 31,
+            "description_known": 112,
+            "description_correct": 18,
+            "item_price_known": 111,
+            "item_price_correct": 3,
+            "quantity_known": 105,
+            "quantity_correct": 3,
+            "missing_items": 81,
+            "unmatched_predictions": 25,
+            "currency_known": 38,
+            "currency_unresolved": 31,
+            "selected_currency_correct": 2,
+            "currency_correct": 2,
+            "currency_dataset_context": 32,
+            "total_known": 38,
+            "total_correct": 0,
+            "subtotal_known": 25,
+            "subtotal_correct": 0,
+            "tax_known": 18,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 29,
+            "trusted_reconciliation_known": 38,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 38,
+            "processing_errors": 1,
+            "requires_review": 38,
+            "item_price_matched_known": 31,
+            "reconciliation_checked": 9,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 9,
+            "untrusted_zero_discrepancy": 8,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "unit_price_known": 28,
+            "unit_price_correct": 3,
+            "item_discount_known": 7,
+            "item_discount_matched_known": 3,
+            "item_discount_correct": 0,
+            "grouping_known": 14,
+            "grouping_correct": 3,
+            "merchant_known": 6,
+            "merchant_correct": 1,
+            "unit_price_matched_known": 3,
+            "extra_items_on_complete_labels": 3
+          },
+          "item_precision": {
+            "correct": 31,
+            "count": 56,
+            "rate": 0.5536
+          },
+          "item_recall": {
+            "correct": 31,
+            "count": 112,
+            "rate": 0.2768
+          },
+          "description": {
+            "correct": 18,
+            "count": 112,
+            "rate": 0.1607
+          },
+          "merchant": {
+            "correct": 1,
+            "count": 6,
+            "rate": 0.1667
+          },
+          "item_price": {
+            "correct": 3,
+            "count": 111,
+            "rate": 0.027
+          },
+          "unit_price": {
+            "correct": 3,
+            "count": 28,
+            "rate": 0.1071
+          },
+          "item_discount": {
+            "correct": 0,
+            "count": 7,
+            "rate": 0.0
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 3,
+            "count": 105,
+            "rate": 0.0286
+          },
+          "grouping": {
+            "correct": 3,
+            "count": 14,
+            "rate": 0.2143
+          },
+          "currency": {
+            "correct": 2,
+            "count": 38,
+            "rate": 0.0526
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 25,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 3,
+            "count": 31,
+            "rate": 0.0968
+          },
+          "latency_ms": {
+            "samples": 38,
+            "median": 1001.0,
+            "mean": 1367.3684210526317,
+            "p95_nearest_rank": 4161,
+            "total": 51960
+          }
+        },
+        "evaluation": {
+          "counts": {
+            "samples": 12,
+            "item_label_samples": 12,
+            "expected_items": 18,
+            "predicted_items": 16,
+            "matched_items": 2,
+            "description_known": 18,
+            "description_correct": 2,
+            "item_price_known": 18,
+            "item_price_correct": 0,
+            "quantity_known": 12,
+            "quantity_correct": 0,
+            "missing_items": 16,
+            "unmatched_predictions": 14,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "currency_known": 12,
+            "currency_unresolved": 11,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 12,
+            "total_known": 11,
+            "total_correct": 0,
+            "subtotal_known": 9,
+            "subtotal_correct": 0,
+            "tax_known": 4,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 9,
+            "trusted_reconciliation_known": 11,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 12,
+            "processing_errors": 0,
+            "requires_review": 12,
+            "item_price_matched_known": 2,
+            "unit_price_known": 3,
+            "unit_price_matched_known": 1,
+            "unit_price_correct": 0,
+            "reconciliation_checked": 3,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 3,
+            "untrusted_zero_discrepancy": 2
+          },
+          "item_precision": {
+            "correct": 2,
+            "count": 16,
+            "rate": 0.125
+          },
+          "item_recall": {
+            "correct": 2,
+            "count": 18,
+            "rate": 0.1111
+          },
+          "description": {
+            "correct": 2,
+            "count": 18,
+            "rate": 0.1111
+          },
+          "merchant": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "item_price": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "unit_price": {
+            "correct": 0,
+            "count": 3,
+            "rate": 0.0
+          },
+          "item_discount": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "grouping": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "currency": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 9,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 4,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "latency_ms": {
+            "samples": 12,
+            "median": 793.5,
+            "mean": 1018.6666666666666,
+            "p95_nearest_rank": 3424,
+            "total": 12224
+          }
+        }
+      },
+      "api_cost_usd": "0",
+      "external_receipt_requests": 0
+    },
+    "paddle-v6": {
+      "overall": {
+        "counts": {
+          "samples": 50,
+          "item_label_samples": 45,
+          "expected_items": 130,
+          "predicted_items": 114,
+          "matched_items": 77,
+          "description_known": 130,
+          "description_correct": 61,
+          "item_price_known": 129,
+          "item_price_correct": 7,
+          "quantity_known": 117,
+          "quantity_correct": 6,
+          "missing_items": 53,
+          "unmatched_predictions": 37,
+          "currency_known": 50,
+          "currency_unresolved": 50,
+          "selected_currency_correct": 2,
+          "currency_correct": 0,
+          "currency_dataset_context": 44,
+          "total_known": 49,
+          "total_correct": 1,
+          "subtotal_known": 34,
+          "subtotal_correct": 0,
+          "tax_known": 22,
+          "tax_correct": 0,
+          "reconciliation_unavailable": 21,
+          "trusted_reconciliation_known": 49,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 0,
+          "complete_receipt_unscorable": 50,
+          "processing_errors": 2,
+          "requires_review": 50,
+          "item_price_matched_known": 77,
+          "reconciliation_checked": 29,
+          "reconciliation_failed": 2,
+          "reconciliation_with_validation_issues": 29,
+          "untrusted_zero_discrepancy": 27,
+          "receipt_discount_known": 4,
+          "receipt_discount_correct": 0,
+          "unit_price_known": 31,
+          "unit_price_matched_known": 12,
+          "unit_price_correct": 6,
+          "item_discount_known": 7,
+          "item_discount_matched_known": 7,
+          "item_discount_correct": 1,
+          "grouping_known": 14,
+          "grouping_correct": 5,
+          "merchant_known": 6,
+          "merchant_correct": 3,
+          "extra_items_on_complete_labels": 4
+        },
+        "item_precision": {
+          "correct": 77,
+          "count": 114,
+          "rate": 0.6754
+        },
+        "item_recall": {
+          "correct": 77,
+          "count": 130,
+          "rate": 0.5923
+        },
+        "description": {
+          "correct": 61,
+          "count": 130,
+          "rate": 0.4692
+        },
+        "merchant": {
+          "correct": 3,
+          "count": 6,
+          "rate": 0.5
+        },
+        "item_price": {
+          "correct": 7,
+          "count": 129,
+          "rate": 0.0543
+        },
+        "unit_price": {
+          "correct": 6,
+          "count": 31,
+          "rate": 0.1935
+        },
+        "item_discount": {
+          "correct": 1,
+          "count": 7,
+          "rate": 0.1429
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 4,
+          "rate": 0.0
+        },
+        "quantity": {
+          "correct": 6,
+          "count": 117,
+          "rate": 0.0513
+        },
+        "grouping": {
+          "correct": 5,
+          "count": 14,
+          "rate": 0.3571
+        },
+        "currency": {
+          "correct": 0,
+          "count": 50,
+          "rate": 0.0
+        },
+        "subtotal": {
+          "correct": 0,
+          "count": 34,
+          "rate": 0.0
+        },
+        "tax": {
+          "correct": 0,
+          "count": 22,
+          "rate": 0.0
+        },
+        "total": {
+          "correct": 1,
+          "count": 49,
+          "rate": 0.0204
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 49,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "matched_item_price": {
+          "correct": 7,
+          "count": 77,
+          "rate": 0.0909
+        },
+        "latency_ms": {
+          "samples": 50,
+          "median": 1769.0,
+          "mean": 2723.5,
+          "p95_nearest_rank": 6041,
+          "total": 136175
+        }
+      },
+      "by_split": {
+        "development": {
+          "counts": {
+            "samples": 38,
+            "item_label_samples": 33,
+            "expected_items": 112,
+            "predicted_items": 93,
+            "matched_items": 65,
+            "description_known": 112,
+            "description_correct": 52,
+            "item_price_known": 111,
+            "item_price_correct": 7,
+            "quantity_known": 105,
+            "quantity_correct": 6,
+            "missing_items": 47,
+            "unmatched_predictions": 28,
+            "currency_known": 38,
+            "currency_unresolved": 38,
+            "selected_currency_correct": 2,
+            "currency_correct": 0,
+            "currency_dataset_context": 32,
+            "total_known": 38,
+            "total_correct": 1,
+            "subtotal_known": 25,
+            "subtotal_correct": 0,
+            "tax_known": 18,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 16,
+            "trusted_reconciliation_known": 38,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 38,
+            "processing_errors": 2,
+            "requires_review": 38,
+            "item_price_matched_known": 65,
+            "reconciliation_checked": 22,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 22,
+            "untrusted_zero_discrepancy": 21,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "unit_price_known": 28,
+            "unit_price_matched_known": 11,
+            "unit_price_correct": 6,
+            "item_discount_known": 7,
+            "item_discount_matched_known": 7,
+            "item_discount_correct": 1,
+            "grouping_known": 14,
+            "grouping_correct": 5,
+            "merchant_known": 6,
+            "merchant_correct": 3,
+            "extra_items_on_complete_labels": 4
+          },
+          "item_precision": {
+            "correct": 65,
+            "count": 93,
+            "rate": 0.6989
+          },
+          "item_recall": {
+            "correct": 65,
+            "count": 112,
+            "rate": 0.5804
+          },
+          "description": {
+            "correct": 52,
+            "count": 112,
+            "rate": 0.4643
+          },
+          "merchant": {
+            "correct": 3,
+            "count": 6,
+            "rate": 0.5
+          },
+          "item_price": {
+            "correct": 7,
+            "count": 111,
+            "rate": 0.0631
+          },
+          "unit_price": {
+            "correct": 6,
+            "count": 28,
+            "rate": 0.2143
+          },
+          "item_discount": {
+            "correct": 1,
+            "count": 7,
+            "rate": 0.1429
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 6,
+            "count": 105,
+            "rate": 0.0571
+          },
+          "grouping": {
+            "correct": 5,
+            "count": 14,
+            "rate": 0.3571
+          },
+          "currency": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 25,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 1,
+            "count": 38,
+            "rate": 0.0263
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 7,
+            "count": 65,
+            "rate": 0.1077
+          },
+          "latency_ms": {
+            "samples": 38,
+            "median": 2097.5,
+            "mean": 3049.0263157894738,
+            "p95_nearest_rank": 8374,
+            "total": 115863
+          }
+        },
+        "evaluation": {
+          "counts": {
+            "samples": 12,
+            "item_label_samples": 12,
+            "expected_items": 18,
+            "predicted_items": 21,
+            "matched_items": 12,
+            "description_known": 18,
+            "description_correct": 9,
+            "item_price_known": 18,
+            "item_price_correct": 0,
+            "quantity_known": 12,
+            "quantity_correct": 0,
+            "missing_items": 6,
+            "unmatched_predictions": 9,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "currency_known": 12,
+            "currency_unresolved": 12,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 12,
+            "total_known": 11,
+            "total_correct": 0,
+            "subtotal_known": 9,
+            "subtotal_correct": 0,
+            "tax_known": 4,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 5,
+            "trusted_reconciliation_known": 11,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 12,
+            "processing_errors": 0,
+            "requires_review": 12,
+            "item_price_matched_known": 12,
+            "unit_price_known": 3,
+            "unit_price_matched_known": 1,
+            "unit_price_correct": 0,
+            "reconciliation_checked": 7,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 7,
+            "untrusted_zero_discrepancy": 6
+          },
+          "item_precision": {
+            "correct": 12,
+            "count": 21,
+            "rate": 0.5714
+          },
+          "item_recall": {
+            "correct": 12,
+            "count": 18,
+            "rate": 0.6667
+          },
+          "description": {
+            "correct": 9,
+            "count": 18,
+            "rate": 0.5
+          },
+          "merchant": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "item_price": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "unit_price": {
+            "correct": 0,
+            "count": 3,
+            "rate": 0.0
+          },
+          "item_discount": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "grouping": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "currency": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 9,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 4,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "latency_ms": {
+            "samples": 12,
+            "median": 1553.5,
+            "mean": 1692.6666666666667,
+            "p95_nearest_rank": 4429,
+            "total": 20312
+          }
+        }
+      },
+      "api_cost_usd": "0",
+      "external_receipt_requests": 0,
+      "inference_ms": {
+        "mean": 2701.5,
+        "p95_nearest_rank": 6021,
+        "samples": 50
+      },
+      "peak_working_set_bytes": 2717712384
+    },
+    "doctr": {
+      "overall": {
+        "counts": {
+          "samples": 50,
+          "item_label_samples": 45,
+          "expected_items": 130,
+          "predicted_items": 106,
+          "matched_items": 71,
+          "description_known": 130,
+          "description_correct": 54,
+          "item_price_known": 129,
+          "item_price_correct": 6,
+          "quantity_known": 117,
+          "quantity_correct": 6,
+          "missing_items": 59,
+          "unmatched_predictions": 35,
+          "currency_known": 50,
+          "currency_unresolved": 49,
+          "selected_currency_correct": 2,
+          "currency_correct": 0,
+          "currency_dataset_context": 44,
+          "total_known": 49,
+          "total_correct": 1,
+          "subtotal_known": 34,
+          "subtotal_correct": 0,
+          "tax_known": 22,
+          "tax_correct": 0,
+          "reconciliation_unavailable": 21,
+          "trusted_reconciliation_known": 49,
+          "trusted_reconciliation_correct": 0,
+          "complete_receipt_known": 0,
+          "complete_receipt_unscorable": 50,
+          "processing_errors": 2,
+          "requires_review": 50,
+          "item_price_matched_known": 71,
+          "reconciliation_checked": 29,
+          "reconciliation_failed": 2,
+          "reconciliation_with_validation_issues": 29,
+          "untrusted_zero_discrepancy": 27,
+          "receipt_discount_known": 4,
+          "receipt_discount_correct": 0,
+          "unit_price_known": 31,
+          "unit_price_matched_known": 10,
+          "unit_price_correct": 6,
+          "item_discount_known": 7,
+          "item_discount_matched_known": 5,
+          "item_discount_correct": 2,
+          "grouping_known": 14,
+          "grouping_correct": 6,
+          "merchant_known": 6,
+          "merchant_correct": 5,
+          "extra_items_on_complete_labels": 1
+        },
+        "item_precision": {
+          "correct": 71,
+          "count": 106,
+          "rate": 0.6698
+        },
+        "item_recall": {
+          "correct": 71,
+          "count": 130,
+          "rate": 0.5462
+        },
+        "description": {
+          "correct": 54,
+          "count": 130,
+          "rate": 0.4154
+        },
+        "merchant": {
+          "correct": 5,
+          "count": 6,
+          "rate": 0.8333
+        },
+        "item_price": {
+          "correct": 6,
+          "count": 129,
+          "rate": 0.0465
+        },
+        "unit_price": {
+          "correct": 6,
+          "count": 31,
+          "rate": 0.1935
+        },
+        "item_discount": {
+          "correct": 2,
+          "count": 7,
+          "rate": 0.2857
+        },
+        "receipt_discount": {
+          "correct": 0,
+          "count": 4,
+          "rate": 0.0
+        },
+        "quantity": {
+          "correct": 6,
+          "count": 117,
+          "rate": 0.0513
+        },
+        "grouping": {
+          "correct": 6,
+          "count": 14,
+          "rate": 0.4286
+        },
+        "currency": {
+          "correct": 0,
+          "count": 50,
+          "rate": 0.0
+        },
+        "subtotal": {
+          "correct": 0,
+          "count": 34,
+          "rate": 0.0
+        },
+        "tax": {
+          "correct": 0,
+          "count": 22,
+          "rate": 0.0
+        },
+        "total": {
+          "correct": 1,
+          "count": 49,
+          "rate": 0.0204
+        },
+        "trusted_reconciliation": {
+          "correct": 0,
+          "count": 49,
+          "rate": 0.0
+        },
+        "complete_receipt": {
+          "correct": 0,
+          "count": 0,
+          "rate": null
+        },
+        "matched_item_price": {
+          "correct": 6,
+          "count": 71,
+          "rate": 0.0845
+        },
+        "latency_ms": {
+          "samples": 50,
+          "median": 3405.0,
+          "mean": 4112.86,
+          "p95_nearest_rank": 9950,
+          "total": 205643
+        }
+      },
+      "by_split": {
+        "development": {
+          "counts": {
+            "samples": 38,
+            "item_label_samples": 33,
+            "expected_items": 112,
+            "predicted_items": 87,
+            "matched_items": 61,
+            "description_known": 112,
+            "description_correct": 48,
+            "item_price_known": 111,
+            "item_price_correct": 6,
+            "quantity_known": 105,
+            "quantity_correct": 6,
+            "missing_items": 51,
+            "unmatched_predictions": 26,
+            "currency_known": 38,
+            "currency_unresolved": 37,
+            "selected_currency_correct": 2,
+            "currency_correct": 0,
+            "currency_dataset_context": 32,
+            "total_known": 38,
+            "total_correct": 1,
+            "subtotal_known": 25,
+            "subtotal_correct": 0,
+            "tax_known": 18,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 16,
+            "trusted_reconciliation_known": 38,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 38,
+            "processing_errors": 2,
+            "requires_review": 38,
+            "item_price_matched_known": 61,
+            "reconciliation_checked": 22,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 22,
+            "untrusted_zero_discrepancy": 21,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "unit_price_known": 28,
+            "unit_price_matched_known": 10,
+            "unit_price_correct": 6,
+            "item_discount_known": 7,
+            "item_discount_matched_known": 5,
+            "item_discount_correct": 2,
+            "grouping_known": 14,
+            "grouping_correct": 6,
+            "merchant_known": 6,
+            "merchant_correct": 5,
+            "extra_items_on_complete_labels": 1
+          },
+          "item_precision": {
+            "correct": 61,
+            "count": 87,
+            "rate": 0.7011
+          },
+          "item_recall": {
+            "correct": 61,
+            "count": 112,
+            "rate": 0.5446
+          },
+          "description": {
+            "correct": 48,
+            "count": 112,
+            "rate": 0.4286
+          },
+          "merchant": {
+            "correct": 5,
+            "count": 6,
+            "rate": 0.8333
+          },
+          "item_price": {
+            "correct": 6,
+            "count": 111,
+            "rate": 0.0541
+          },
+          "unit_price": {
+            "correct": 6,
+            "count": 28,
+            "rate": 0.2143
+          },
+          "item_discount": {
+            "correct": 2,
+            "count": 7,
+            "rate": 0.2857
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 6,
+            "count": 105,
+            "rate": 0.0571
+          },
+          "grouping": {
+            "correct": 6,
+            "count": 14,
+            "rate": 0.4286
+          },
+          "currency": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 25,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 1,
+            "count": 38,
+            "rate": 0.0263
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 38,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 6,
+            "count": 61,
+            "rate": 0.0984
+          },
+          "latency_ms": {
+            "samples": 38,
+            "median": 3573.5,
+            "mean": 4343.4473684210525,
+            "p95_nearest_rank": 11214,
+            "total": 165051
+          }
+        },
+        "evaluation": {
+          "counts": {
+            "samples": 12,
+            "item_label_samples": 12,
+            "expected_items": 18,
+            "predicted_items": 19,
+            "matched_items": 10,
+            "description_known": 18,
+            "description_correct": 6,
+            "item_price_known": 18,
+            "item_price_correct": 0,
+            "quantity_known": 12,
+            "quantity_correct": 0,
+            "missing_items": 8,
+            "unmatched_predictions": 9,
+            "receipt_discount_known": 2,
+            "receipt_discount_correct": 0,
+            "currency_known": 12,
+            "currency_unresolved": 12,
+            "selected_currency_correct": 0,
+            "currency_correct": 0,
+            "currency_dataset_context": 12,
+            "total_known": 11,
+            "total_correct": 0,
+            "subtotal_known": 9,
+            "subtotal_correct": 0,
+            "tax_known": 4,
+            "tax_correct": 0,
+            "reconciliation_unavailable": 5,
+            "trusted_reconciliation_known": 11,
+            "trusted_reconciliation_correct": 0,
+            "complete_receipt_known": 0,
+            "complete_receipt_unscorable": 12,
+            "processing_errors": 0,
+            "requires_review": 12,
+            "item_price_matched_known": 10,
+            "unit_price_known": 3,
+            "unit_price_correct": 0,
+            "reconciliation_checked": 7,
+            "reconciliation_failed": 1,
+            "reconciliation_with_validation_issues": 7,
+            "untrusted_zero_discrepancy": 6
+          },
+          "item_precision": {
+            "correct": 10,
+            "count": 19,
+            "rate": 0.5263
+          },
+          "item_recall": {
+            "correct": 10,
+            "count": 18,
+            "rate": 0.5556
+          },
+          "description": {
+            "correct": 6,
+            "count": 18,
+            "rate": 0.3333
+          },
+          "merchant": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "item_price": {
+            "correct": 0,
+            "count": 18,
+            "rate": 0.0
+          },
+          "unit_price": {
+            "correct": 0,
+            "count": 3,
+            "rate": 0.0
+          },
+          "item_discount": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "receipt_discount": {
+            "correct": 0,
+            "count": 2,
+            "rate": 0.0
+          },
+          "quantity": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "grouping": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "currency": {
+            "correct": 0,
+            "count": 12,
+            "rate": 0.0
+          },
+          "subtotal": {
+            "correct": 0,
+            "count": 9,
+            "rate": 0.0
+          },
+          "tax": {
+            "correct": 0,
+            "count": 4,
+            "rate": 0.0
+          },
+          "total": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "trusted_reconciliation": {
+            "correct": 0,
+            "count": 11,
+            "rate": 0.0
+          },
+          "complete_receipt": {
+            "correct": 0,
+            "count": 0,
+            "rate": null
+          },
+          "matched_item_price": {
+            "correct": 0,
+            "count": 10,
+            "rate": 0.0
+          },
+          "latency_ms": {
+            "samples": 12,
+            "median": 3372.5,
+            "mean": 3382.6666666666665,
+            "p95_nearest_rank": 4180,
+            "total": 40592
+          }
+        }
+      },
+      "api_cost_usd": "0",
+      "external_receipt_requests": 0,
+      "inference_ms": {
+        "mean": 4089.88,
+        "p95_nearest_rank": 9922,
+        "samples": 50
+      },
+      "peak_working_set_bytes": 1542283264
+    }
+  },
+  "latency_warning": "Baseline includes browser preparation/new worker/OCR/parser/calculation. Other model times are inference only, and parser-run elapsed adds RPC; no end-to-end speed comparison is valid yet."
+}
