@@ -12,6 +12,12 @@ import {
   validateRecognition,
 } from "../src/lib/recognition-schema.mjs";
 import { LocalOcrError } from "./local-ocr.mjs";
+import { once } from "node:events";
+import {
+  LOCAL_VISION_JOB_TIMEOUT_MS,
+  planVisionBatches,
+} from "../src/lib/vision-plan.mjs";
+import { MAX_READING_PANELS } from "../src/lib/scan-limits.mjs";
 
 const requestSchema = z.strictObject({
   consent: z.literal(true),
@@ -146,13 +152,14 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}}} [options]
+ * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
   model = DEFAULT_GEMINI_MODEL,
   fetcher = globalThis.fetch,
   timeoutMs = 120000,
+  visionJobTimeoutMs = LOCAL_VISION_JOB_TIMEOUT_MS,
   localReader,
   localVision,
 } = {}) {
@@ -161,8 +168,20 @@ export function createReceiptApi({
   return async (req, res, next) => {
     const pathname = (req.url || "").split("?")[0];
     if (!pathname.startsWith("/api/receipts/")) return next();
+    let streaming = false;
     const send = (status, data) => {
       if (res.destroyed || res.writableEnded) return;
+      if (streaming) {
+        res.end(
+          JSON.stringify({
+            type: "error",
+            error: String(
+              data.error || "The long receipt could not finish.",
+            ).slice(0, 500),
+          }) + "\n",
+        );
+        return;
+      }
       res.writeHead(status, {
         "content-type": "application/json",
         "cache-control": "no-store",
@@ -200,9 +219,12 @@ export function createReceiptApi({
           configured: !!localVision?.configured,
           name: localVision?.name || "Qwen3-VL 4B",
           maxPanels: localVision?.maxPanels || 3,
+          maxReceiptPanels: MAX_READING_PANELS,
+          supportsBatches: true,
         },
       });
-    const isVision = pathname === "/api/receipts/vision";
+    const isBatchedVision = pathname === "/api/receipts/vision-batches";
+    const isVision = isBatchedVision || pathname === "/api/receipts/vision";
     const isLocal = isVision || pathname === "/api/receipts/recognize";
     if (
       (!isLocal && pathname !== "/api/receipts/extract") ||
@@ -240,7 +262,7 @@ export function createReceiptApi({
     const disconnected = () => abort.abort();
     req.on("aborted", disconnected);
     res.on("close", disconnected);
-    const deadline = setTimeout(() => {
+    let deadline = setTimeout(() => {
       abort.abort();
       // A stalled request body must not hold a local connection open indefinitely.
       if (!req.complete) req.destroy();
@@ -290,9 +312,71 @@ export function createReceiptApi({
       active = true;
       ownsActive = true;
       attempts.push(Date.now());
+      if (isBatchedVision) {
+        clearTimeout(deadline);
+        deadline = setTimeout(() => abort.abort(), visionJobTimeoutMs);
+      }
       if (isVision) {
         // Release the idle CPU model before loading the GPU vision model on this host.
         await localReader?.release?.();
+        if (isBatchedVision) {
+          const sections = parsed.data.panels;
+          const plan = planVisionBatches(sections.length);
+          let sentBytes = 0;
+          const event = async (value) => {
+            if (abort.signal.aborted)
+              throw new ScanError(
+                504,
+                "Long receipt reading was cancelled or timed out.",
+              );
+            const line = JSON.stringify(value) + "\n";
+            sentBytes += Buffer.byteLength(line);
+            if (sentBytes > 1024 * 1024)
+              throw new ScanError(
+                502,
+                "The long receipt returned too much data. Choose fewer sections.",
+              );
+            if (!res.write(line))
+              await once(res, "drain", { signal: abort.signal });
+          };
+          res.writeHead(200, {
+            "content-type": "application/x-ndjson",
+            "cache-control": "no-store",
+            "x-content-type-options": "nosniff",
+          });
+          streaming = true;
+          await event({
+            type: "start",
+            batches: plan.length,
+            sections: sections.length,
+          });
+          for (const [index, indices] of plan.entries()) {
+            await event({ type: "reading", index: index + 1, indices });
+            const inputs = indices.map((i) => sections[i]);
+            const draft = aiReceiptSchema.parse(
+              await localVision.extract(inputs, { signal: abort.signal }),
+            );
+            const supplied = new Set(inputs.map((panel) => panel.photo));
+            if (
+              draft.items.some((item) =>
+                item.sourcePhotos.some((photo) => !supplied.has(photo)),
+              )
+            )
+              throw new ScanError(
+                502,
+                "Local vision returned an invalid photo reference. The whole receipt remains unverified.",
+              );
+            await event({
+              type: "batch",
+              index: index + 1,
+              indices,
+              receipt: draft,
+            });
+          }
+          await event({ type: "done", batches: plan.length });
+          res.end();
+          return;
+        }
         const draft = aiReceiptSchema.parse(
           await localVision.extract(parsed.data.panels, {
             signal: abort.signal,
@@ -331,8 +415,9 @@ export function createReceiptApi({
     } catch (error) {
       if (abort.signal.aborted)
         send(504, {
-          error:
-            "The scan was cancelled or took longer than two minutes. Your photos are still available.",
+          error: isBatchedVision
+            ? "The long receipt was cancelled or took too long. Your photos are still available; no partial result was accepted."
+            : "The scan was cancelled or took longer than two minutes. Your photos are still available.",
         });
       else if (error instanceof ScanError || error instanceof LocalOcrError)
         send(error.status, { error: error.message });

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { appSchema } from "../../src/lib/model";
 import { calculateReceipt } from "../../src/lib/engine";
 import { costcoDemo } from "../../src/lib/demo";
+import { longRows } from "../fixtures/long-local-receipt";
 
 // Opt-in local development evidence, not a blind receipt-accuracy benchmark.
 test("real independent readers → original two-photo review → exact checked split", async ({
@@ -176,4 +177,192 @@ test("real independent readers → original two-photo review → exact checked s
       2,
     ) + "\n",
   );
+});
+
+test("real four-section local vision completes bounded batches and retains actual repeated purchases", async ({
+  page,
+}, info) => {
+  test.setTimeout(420000);
+  const base = process.env.GATHER_LOCAL_COMPARISON_URL;
+  if (!base || !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base))
+    throw new Error("Supply a loopback GATHER_LOCAL_COMPARISON_URL");
+  const external: string[] = [],
+    posts: string[] = [];
+  await page.route("**/*", (route) => {
+    const url = route.request().url();
+    if (url.startsWith(new URL(base).origin) || /^(data:|blob:)/.test(url))
+      return route.continue();
+    external.push(url);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await page.evaluate(() => {
+    const target = window as typeof window & {
+      __longVisionProbe?: { text: string; done: boolean; error: string };
+    };
+    const probe = { text: "", done: false, error: "" };
+    target.__longVisionProbe = probe;
+    const original = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await original(...args),
+        input = args[0];
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      if (url.endsWith("/api/receipts/vision-batches")) {
+        const copy = response.clone();
+        void (async () => {
+          if (!copy.body) throw new Error("Missing stream body");
+          const reader = copy.body.getReader(),
+            decoder = new TextDecoder();
+          let bytes = 0;
+          while (true) {
+            const next = await reader.read();
+            if (next.done) break;
+            bytes += next.value.length;
+            if (bytes > 1024 * 1024)
+              throw new Error("Stream exceeded observer limit");
+            probe.text += decoder.decode(next.value, { stream: true });
+          }
+          probe.text += decoder.decode();
+          probe.done = true;
+        })().catch((error) => {
+          probe.error = String(error);
+          probe.done = true;
+        });
+      }
+      return response;
+    };
+  });
+  const photos = await page.evaluate(
+    (rows) =>
+      rows.map((texts) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1000;
+        canvas.height = 750;
+        const context = canvas.getContext("2d")!;
+        context.fillStyle = "white";
+        context.fillRect(0, 0, 1000, 750);
+        context.fillStyle = "black";
+        context.font = "18px monospace";
+        context.fillText("SYNTHETIC LONG RECEIPT / LOCAL MODEL CHECK", 40, 35);
+        context.font = "bold 38px monospace";
+        texts.forEach((text, index) =>
+          context.fillText(text, 60, 130 + index * 150),
+        );
+        return canvas.toDataURL("image/png").split(",")[1];
+      }),
+    longRows,
+  );
+  await page.getByLabel("Upload receipt images").setInputFiles(
+    photos.map((image, index) => ({
+      name: `long-synthetic-${index + 1}.png`,
+      mimeType: "image/png",
+      buffer: Buffer.from(image, "base64"),
+    })),
+  );
+  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  const response = page.waitForResponse(
+    (result) => result.url().endsWith("/api/receipts/vision-batches"),
+    { timeout: 400000 },
+  );
+  const started = Date.now();
+  await page
+    .getByRole("button", {
+      name: "Read receipt with local vision",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 400000 });
+  const elapsedMs = Date.now() - started;
+  const state = appSchema.parse(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+    ),
+  );
+  const result = await response;
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as typeof window & { __longVisionProbe?: { done: boolean } })
+            .__longVisionProbe?.done,
+      ),
+    )
+    .toBe(true);
+  const probe = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __longVisionProbe: { text: string; done: boolean; error: string };
+        }
+      ).__longVisionProbe,
+  );
+  const body = probe.text;
+  const events = body
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const calculation = calculateReceipt(state.receipt),
+    expected = [2, 1.5, 3, 4, 4, 5];
+  const moneyRowsMatch =
+    state.receipt.items.length === expected.length &&
+    state.receipt.items.every(
+      (item, index) =>
+        Number(item.quantity) === 1 &&
+        Number(item.unitPrice) === expected[index] &&
+        Number(item.lineTotal) === expected[index] &&
+        Number(item.discount) === 0,
+    );
+  const evidence = {
+    synthetic: true,
+    uniqueReceipts: 1,
+    sourcePhotos: 4,
+    elapsedMs,
+    timingScope:
+      "All preparation, actual primary OCR, two fresh native model contexts, complete stream, source joining and editable review; excludes manual checks and sharing",
+    httpStatus: result.status(),
+    bodyObserverError: probe.error,
+    batchCount: events.filter((event) => event.type === "batch").length,
+    completeStream: events.at(-1)?.type === "done",
+    moneyRowsMatch,
+    receipt: state.receipt,
+    events,
+    finalMinor: String(calculation.total),
+    issuePaths: calculation.issues.map((issue) => issue.path),
+    externalBrowserRequests: external.length,
+    postEndpoints: posts,
+    noEdits: true,
+    accuracyScope:
+      "One predeclared synthetic receipt; not original-cohort or complete-receipt accuracy",
+  };
+  await mkdir("qa-artifacts/advanced-ocr", { recursive: true });
+  await writeFile(
+    `qa-artifacts/advanced-ocr/long-vision-real-four-${info.project.name}.json`,
+    JSON.stringify(evidence, null, 2) + "\n",
+  );
+  expect(evidence.completeStream).toBe(true);
+  expect(evidence.batchCount).toBe(2);
+  expect(moneyRowsMatch).toBe(true);
+  expect(String(calculation.total)).toBe("1950");
+  expect(
+    state.receipt.items.filter((item) => /chicken/i.test(item.description)),
+  ).toHaveLength(2);
+  await expect(
+    page.getByRole("button", { name: "Confirm receipt & add people" }),
+  ).toBeDisabled();
+  expect(external).toEqual([]);
+  expect(posts).toEqual([
+    "/api/receipts/recognize",
+    "/api/receipts/vision-batches",
+  ]);
 });

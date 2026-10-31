@@ -222,6 +222,8 @@ describe("local vision shares the existing private API boundary", () => {
       configured: false,
       name: "Qwen3-VL 4B",
       maxPanels: 3,
+      maxReceiptPanels: 24,
+      supportsBatches: true,
     });
     expect(JSON.stringify(config)).not.toMatch(/python|\.exe|api.key/i);
     expect((await post()).status).toBe(503);

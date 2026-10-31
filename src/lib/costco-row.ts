@@ -2,7 +2,7 @@
 export function matchCostcoRow(line: string) {
   if (line.length > 1000) return null;
   const match = line.match(
-    /(?:^|\s)(\d{1,12})[\s©|]+(\d+(?:[.,]\d+)?|[Il])\s*[x×]\s+([\d,.]+)\s+([\d,.]+)\s*(-)?\s*([A-Z0-9]{1,6})?\s*[^A-Z\d.,-]{0,5}$/i,
+    /^\s*(?:[©|*]\s*)*(\d{1,12})[\s©|]+(\d+(?:[.,]\d+)?|[Il])\s*[x×]\s+([\d,.]+)\s+([\d,.]+)\s*(-)?\s*([A-Z0-9]{1,6})?\s*[^A-Z\d.,-]{0,5}$/i,
   );
   return match
     ? {

@@ -118,6 +118,22 @@ TOTAL INCL VAT £9.58`);
     expect(r.items).toHaveLength(2);
     expect(r.printedTotal).toBe("5.50");
   });
+  it("preserves a generic name ending in a number instead of treating its suffix as a Costco SKU", () => {
+    const r = parseReceiptText(
+      "Little Market\nChicken Skewer 15 1x 9.49 9.49\nProduct 3 1x 1.00 1.00\nTOTAL GBP 10.49",
+    );
+    expect(
+      r.items.map((item) => [
+        item.description,
+        item.quantity,
+        item.unitPrice,
+        item.lineTotal,
+      ]),
+    ).toEqual([
+      ["Chicken Skewer 15", "1", "9.49", "9.49"],
+      ["Product 3", "1", "1.00", "1.00"],
+    ]);
+  });
   it("can read an item photo after a footer photo without discarding legitimate repeats", () => {
     const r = parseReceiptText(
       `COSTCO\nTOTAL INCL VAT £34.36\nVAT Amount 4.48\n${PHOTO_SEPARATOR}\n${costcoText}`,

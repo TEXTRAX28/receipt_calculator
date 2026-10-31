@@ -1,0 +1,80 @@
+{
+  "scope": "Two separately authorized one-attempt requests for exactly the same two identifier-removed UK receipt crops",
+  "model": "gemini-3.1-flash-lite",
+  "attempts": [
+    {
+      "attempt": 1,
+      "human_reply": "Approve this one cropped-receipt test",
+      "http_status": 503,
+      "elapsed_ms": 527,
+      "completed_at": "2026-10-31T10:40:26.498Z",
+      "extraction_completed": false,
+      "api_requests": 1,
+      "automatic_retries": 0,
+      "store": false
+    },
+    {
+      "attempt": 2,
+      "human_reply": "Allow one additional attempt",
+      "http_status": 503,
+      "elapsed_ms": 635,
+      "completed_at": "2026-10-31T10:54:29.194Z",
+      "extraction_completed": false,
+      "api_requests": 1,
+      "automatic_retries": 0,
+      "store": false
+    }
+  ],
+  "total_receipt_api_requests": 2,
+  "identical_request_sha256": "3fea28bdc1dde20a239e38aa7808107aa00dfb1685cbd70a9fbe8b9d073a71c0",
+  "successful_extractions": 0,
+  "accuracy_metrics": null,
+  "accuracy_conclusion": "No receipt draft was returned; these failures do not measure the model's receipt-reading accuracy",
+  "billing_activated": false,
+  "paid_fallback_used": false,
+  "actual_account_billing_verified": false,
+  "cost_scope": "Existing user-declared free quota only; no billing activation. No account invoice or charged cost was inspected.",
+  "input_scope": "Visible item/discount/total crop plus VAT-table crop; merchant/date/currency can be absent after removing identifiers",
+  "privacy_scope": "Crop hashes inspected before upload. store:false requests were used; this does not promise zero provider retention.",
+  "additional_uploads_authorized": 0,
+  "original_corpus_external_processing_permission_changed": false,
+  "non_private_diagnostics": {
+    "model_metadata_get_requests": 1,
+    "model_metadata_http_status": 200,
+    "synthetic_generation_requests": 2,
+    "synthetic_outcomes": [
+      {
+        "transport": "generateContent",
+        "http_status": 503,
+        "elapsed_ms": 3038,
+        "success": false
+      },
+      {
+        "transport": "interactions",
+        "http_status": 503,
+        "elapsed_ms": 293,
+        "success": false
+      }
+    ]
+  },
+  "official_model_reference": "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite",
+  "official_interactions_reference": "https://ai.google.dev/gemini-api/docs/interactions-overview",
+  "evidence_sha256": {
+    "qa-artifacts/advanced-ocr/cloud-review/one-additional-attempt-consumed.json": "2738c5eac6e35f235d1b144015ebfb7a92460e8404419610c9e162cdc999da16",
+    "qa-artifacts/advanced-ocr/cloud-review/one-attempt-consumed.json": "cff9dd5457beca8169e1989f17695d3e3ece0a80cd1d31de72c26c1c7e6f3339",
+    "qa-artifacts/advanced-ocr/cloud-review/user-uk-items.jpg": "1c53a19923a200676096db4cc093610a3c895634d68fa90f9a9a5c5b38b51b68",
+    "qa-artifacts/advanced-ocr/cloud-review/user-uk-vat-totals.jpg": "adcf3ef31024a3e0e1efd92e90404e3bf48b1585fb6d2d5a911836b4e16e705b",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v1/authorization.json": "807e44e40d7b8faad9ad873aad8740fd71a2f54fd714550f3ca6152c3678e68a",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v1/metadata.json": "14335b3f340fcd9687547b9d5251dd85246a429308bb9677f193855a84403007",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v1/runner.mjs": "9e50a9751c7eca6e6ad6acf872a28dbf16d21cd068274a32b5b981577bafb467",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v2/authorization.json": "387c02417dd6283d16a9529852d4c59eaa15b513b8e2e485bc34a6fb46aed635",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v2/metadata.json": "18d37c415f38dd0ac957b418c4e9d28344151eb716b94038df90faf39c0c1298",
+    "qa-artifacts/advanced-ocr/gemini-approved-uk-v2/runner.mjs": "3a948ee0b954d20f25fc7c01776691a6044412974e7b30f07ccd81f6ba5d6243",
+    "qa-artifacts/advanced-ocr/gemini-model-access.json": "822834f74eb5557e46de627c2eb38ff50ead4a1863530e8acfad09a466830188",
+    "qa-artifacts/advanced-ocr/gemini-synthetic-transports-v1/generateContent-response.json": "01f5c7d4e4d8ec06c8098777e731b3d552ba518feb02b681f6c569edcd9c6f6d",
+    "qa-artifacts/advanced-ocr/gemini-synthetic-transports-v1/metadata.json": "f11cf663d36489b4611125f606b1c4bacba8fa734c81864890fb32ab77a1f1ad",
+    "receipt_training/scripts/benchmark_approved_gemini.mjs": "091af2c520b4d3a64e95e6d3185a5ec66d07cf13ba3282d05256516c0d64290f",
+    "receipt_training/scripts/build_approved_gemini_report.py": "4bb18f7557782c32152f6e0f86365a61b8f85765aa182ae451323d1ccca7d541",
+    "receipt_training/scripts/probe_gemini_transports.mjs": "5c8a738806879dc5053842ba88b7d2b462630dbb0e7fa3151691ac24369f19c6"
+  }
+}

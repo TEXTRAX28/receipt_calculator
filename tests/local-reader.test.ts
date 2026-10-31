@@ -205,7 +205,13 @@ describe("local recognition shares the receipt API security boundary", () => {
       await (await fetch(`${base}/api/receipts/providers`)).json(),
     ).toEqual({
       localModel: { configured: false, name: "PaddleOCR" },
-      localVision: { configured: false, name: "Qwen3-VL 4B", maxPanels: 3 },
+      localVision: {
+        configured: false,
+        name: "Qwen3-VL 4B",
+        maxPanels: 3,
+        maxReceiptPanels: 24,
+        supportsBatches: true,
+      },
     });
     expect((await post()).status).toBe(503);
     expect(fetcher).not.toHaveBeenCalled();

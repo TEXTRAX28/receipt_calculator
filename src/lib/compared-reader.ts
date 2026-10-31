@@ -4,6 +4,10 @@ import { extractWithLocalModel } from "./local-model";
 import { extractLocalVisionEvidence } from "./local-vision";
 import { parseReceiptWithSources } from "./parser";
 import { verifyIndependentReadings } from "./verify-readings";
+import { panelsForImages } from "./panel-transport";
+import { MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
+import { extractLocalVisionBatches } from "./local-vision-batches";
+import { joinVisionBatches } from "./join-vision-batches";
 
 /** Each model sees the original prepared images; OCR text never enters the vision request. */
 export async function extractComparedReceipt(
@@ -15,12 +19,23 @@ export async function extractComparedReceipt(
 > {
   const primary = await extractWithLocalModel(images, signal, progress);
   try {
-    const vision = await extractLocalVisionEvidence(images, signal, progress);
+    const panels = await panelsForImages(images, signal);
+    const compared =
+      panels.length > MAX_LOCAL_VISION_PANELS
+        ? joinVisionBatches(
+            await extractLocalVisionBatches(panels, signal, progress),
+            panels,
+            primary.recognition,
+          )
+        : verifyIndependentReadings(
+            await extractLocalVisionEvidence(images, signal, progress),
+            primary.recognition,
+          );
     progress("Comparing the independent readings with the printed rows…");
     if (signal.aborted)
       throw new Error("Scan cancelled. Your photos are still available.");
     return {
-      ...verifyIndependentReadings(vision, primary.recognition),
+      ...compared,
       comparisonComplete: true,
     };
   } catch (error) {
@@ -50,6 +65,7 @@ export async function extractComparedReceipt(
     ].slice(0, 60);
     return {
       receipt,
+      itemAnchors: [],
       sources: parsed.sources,
       fieldSources: {},
       recognition: primary.recognition,

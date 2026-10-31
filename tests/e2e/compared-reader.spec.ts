@@ -328,7 +328,7 @@ for (const count of [1, 4])
     expect(uploads).toEqual(
       count === 1
         ? ["/api/receipts/recognize", "/api/receipts/vision"]
-        : ["/api/receipts/recognize"],
+        : ["/api/receipts/recognize", "/api/receipts/vision-batches"],
     );
     await page
       .getByRole("button", { name: "Back to receipt", exact: true })

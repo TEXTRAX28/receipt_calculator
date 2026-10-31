@@ -249,6 +249,84 @@ export function verifyIndependentReadings(
     }),
   );
   const pairs = forcedPairs(weights, sourceRows.length);
+  // Transient physical-row identities for joining independently read section batches.
+  // Compute before coupon recovery mutates an owner; a matching balance supplies no identity.
+  const itemAnchors = pairs.map(([nativeIndex, sourceIndex]) => ({
+    nativeIndex,
+    reliable:
+      sourceRows[sourceIndex].good &&
+      (["description", "quantity", "unitPrice", "lineTotal"] as const).every(
+        (field) =>
+          sameField(
+            receipt.items[nativeIndex],
+            sourceRows[sourceIndex].item,
+            field,
+            receipt.currency,
+          ),
+      ),
+    regions: (() => {
+      const regions = sourceRows[sourceIndex].regions;
+      const positive = regions.findIndex(
+        (region) => matchCostcoRow(region.text)?.deduction === false,
+      );
+      // The coupon is a distinct printed row, even when its amount belongs to this purchase.
+      return positive >= 0 ? regions.slice(0, positive + 1) : regions;
+    })(),
+  }));
+  for (const [nativeIndex, item] of raw.items.entries()) {
+    if (pairs.some(([index]) => index === nativeIndex)) continue;
+    const candidates: EvidenceLine[][] = [];
+    for (let index = 1; index < lines.length; index++) {
+      const line = lines[index],
+        title = lines[index - 1];
+      const row = line && matchCostcoRow(line.text);
+      if (
+        !line ||
+        !title ||
+        !row?.deduction ||
+        title.photo !== line.photo ||
+        title.part !== line.part ||
+        !item.sourcePhotos.includes(line.photo) ||
+        nameKey(title.text) !== nameKey(item.description) ||
+        !reliable(line, recognition) ||
+        !reliable(title, recognition)
+      )
+        continue;
+      try {
+        if (
+          sameAmount(
+            item.quantity,
+            row.quantity.replace(",", "."),
+            receipt.currency,
+            true,
+          ) &&
+          sameAmount(
+            item.unitPrice,
+            normalizeAmount(
+              row.unitPrice,
+              ocr.currencyUnresolved ? undefined : ocr.currency,
+            ),
+            receipt.currency,
+          ) &&
+          sameAmount(
+            item.lineTotal,
+            normalizeAmount(
+              row.lineTotal,
+              ocr.currencyUnresolved ? undefined : ocr.currency,
+            ),
+            receipt.currency,
+          ) &&
+          item.taxCode === row.taxCode &&
+          sameAmount(item.discount || "0", "0", receipt.currency)
+        )
+          candidates.push([title, line]);
+      } catch {
+        /* An ambiguous printed deduction supplies no row identity. */
+      }
+    }
+    if (candidates.length === 1)
+      itemAnchors.push({ nativeIndex, reliable: true, regions: candidates[0] });
+  }
   const paired = new Map(pairs);
   const pairedSource = new Set(pairs.map(([, index]) => index));
   const removed = new Set<number>();
@@ -800,6 +878,7 @@ export function verifyIndependentReadings(
   receipt.warnings = receipt.warnings.slice(0, 60);
   return {
     receipt,
+    itemAnchors,
     sources,
     fieldSources,
     recognition,

@@ -16,6 +16,8 @@ const capabilities = z.object({
       configured: z.boolean(),
       name: z.string().max(100),
       maxPanels: z.number().int().min(1).max(3),
+      maxReceiptPanels: z.number().int().min(1).max(24).optional(),
+      supportsBatches: z.boolean().optional(),
     })
     .optional(),
 });

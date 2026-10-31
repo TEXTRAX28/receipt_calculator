@@ -59,7 +59,7 @@ import {
 import { formatReceiptMoney } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
 import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
-import { prepareImage, type ReceiptImage } from "./lib/images";
+import { prepareImage, readingBlobs, type ReceiptImage } from "./lib/images";
 import { localOcrProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import {
@@ -253,6 +253,8 @@ export default function App() {
     configured: boolean;
     name: string;
     maxPanels: number;
+    maxReceiptPanels?: number;
+    supportsBatches?: boolean;
   } | null>(null);
   const [aiConfig, setAiConfig] = useState<{
     configured: boolean;
@@ -523,10 +525,20 @@ export default function App() {
     controller.current = new AbortController();
     try {
       if (
-        reader === "computer" &&
-        compareWithVision &&
-        visionConfig?.configured
+        (reader === "computer" &&
+          compareWithVision &&
+          visionConfig?.configured) ||
+        (reader === "vision" &&
+          visionConfig?.supportsBatches &&
+          images.reduce(
+            (count, image) => count + readingBlobs(image).length,
+            0,
+          ) > (visionConfig.maxPanels || 3))
       ) {
+        if (!computerConfig?.configured)
+          throw new Error(
+            "Long local vision receipts also need the computer OCR reader configured. Your photos are still available.",
+          );
         const compared = await extractComparedReceipt(
           images,
           controller.current.signal,
@@ -1119,8 +1131,8 @@ export default function App() {
                             Compare with local vision
                             <small>
                               Reads the photos independently and marks
-                              disagreements. Takes longer; currently up to{" "}
-                              {visionConfig.maxPanels} prepared sections.
+                              disagreements. Long receipts are read in sections
+                              and can take several minutes.
                             </small>
                           </span>
                         </label>
@@ -1128,11 +1140,10 @@ export default function App() {
                     </div>
                   ) : reader === "vision" ? (
                     <p className="hint">
-                      Experimental vision reader on this computer. It can take a
-                      minute and currently reads up to{" "}
-                      {visionConfig?.maxPanels || 3} prepared sections together.
-                      Check every amount and overlapping row; use another reader
-                      for longer receipts.
+                      Experimental vision reader on this computer. Longer
+                      receipts also use the computer OCR reader and are read in
+                      sections, which can take several minutes. Check every
+                      amount and overlapping row.
                     </p>
                   ) : (
                     <div className="ai-reader-info">
@@ -1558,79 +1569,85 @@ export default function App() {
                             </select>
                           </Field>
                         )}
-                        {!state.receipt.pricesIncludeTax &&
-                          state.receipt.taxMode === "codes" && (
-                            <div className="tax-code-box">
-                              <p>
-                                <strong>Use the legend on your receipt.</strong>{" "}
-                                On this UK Costco receipt, A = 20%, Z = 0%. A
-                                minus before the code is a deduction.
-                              </p>
-                              {state.receipt.taxCodes.map((code, index) => (
-                                <div className="tax-code-row" key={index}>
-                                  <Field label={`Tax code ${index + 1}`}>
-                                    <input
-                                      value={code.code}
-                                      maxLength={12}
-                                      onChange={(e) =>
-                                        editReceipt({
-                                          taxCodes: state.receipt.taxCodes.map(
-                                            (c, j) =>
-                                              j === index
-                                                ? {
-                                                    ...c,
-                                                    code: e.target.value.toUpperCase(),
-                                                  }
-                                                : c,
-                                          ),
-                                        })
-                                      }
-                                    />
-                                  </Field>
-                                  <MoneyInput
-                                    label={`Rate % for code ${index + 1}`}
-                                    value={code.rate}
-                                    onChange={(rate) =>
+                        {((!state.receipt.pricesIncludeTax &&
+                          state.receipt.taxMode === "codes") ||
+                          state.receipt.reviewChecks.some(
+                            (check) =>
+                              check.scope === "receipt" &&
+                              check.field === "taxCodes",
+                          )) && (
+                          <div className="tax-code-box">
+                            <p>
+                              <strong>Use the legend on your receipt.</strong>{" "}
+                              Match the printed code and rate. Codes vary by
+                              retailer and country; keep an unreadable rate
+                              blank until checked.
+                            </p>
+                            {state.receipt.taxCodes.map((code, index) => (
+                              <div className="tax-code-row" key={index}>
+                                <Field label={`Tax code ${index + 1}`}>
+                                  <input
+                                    value={code.code}
+                                    maxLength={12}
+                                    onChange={(e) =>
                                       editReceipt({
                                         taxCodes: state.receipt.taxCodes.map(
                                           (c, j) =>
-                                            j === index ? { ...c, rate } : c,
+                                            j === index
+                                              ? {
+                                                  ...c,
+                                                  code: e.target.value.toUpperCase(),
+                                                }
+                                              : c,
                                         ),
                                       })
                                     }
                                   />
-                                  <button
-                                    className="icon-button danger"
-                                    aria-label={`Remove tax code ${index + 1}`}
-                                    onClick={() =>
-                                      editReceipt({
-                                        taxCodes: state.receipt.taxCodes.filter(
-                                          (_, j) => j !== index,
-                                        ),
-                                      })
-                                    }
-                                  >
-                                    <Trash2 size={17} />
-                                  </button>
-                                </div>
-                              ))}
-                              <button
-                                className="text-button"
-                                disabled={state.receipt.taxCodes.length >= 20}
-                                onClick={() =>
-                                  editReceipt({
-                                    taxCodes: [
-                                      ...state.receipt.taxCodes,
-                                      { code: "", rate: "" },
-                                    ],
-                                  })
-                                }
-                              >
-                                <Plus size={16} />
-                                Add tax code
-                              </button>
-                            </div>
-                          )}
+                                </Field>
+                                <MoneyInput
+                                  label={`Rate % for code ${index + 1}`}
+                                  value={code.rate}
+                                  onChange={(rate) =>
+                                    editReceipt({
+                                      taxCodes: state.receipt.taxCodes.map(
+                                        (c, j) =>
+                                          j === index ? { ...c, rate } : c,
+                                      ),
+                                    })
+                                  }
+                                />
+                                <button
+                                  className="icon-button danger"
+                                  aria-label={`Remove tax code ${index + 1}`}
+                                  onClick={() =>
+                                    editReceipt({
+                                      taxCodes: state.receipt.taxCodes.filter(
+                                        (_, j) => j !== index,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <Trash2 size={17} />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              className="text-button"
+                              disabled={state.receipt.taxCodes.length >= 20}
+                              onClick={() =>
+                                editReceipt({
+                                  taxCodes: [
+                                    ...state.receipt.taxCodes,
+                                    { code: "", rate: "" },
+                                  ],
+                                })
+                              }
+                            >
+                              <Plus size={16} />
+                              Add tax code
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </section>
                     <section className="panel items-panel">

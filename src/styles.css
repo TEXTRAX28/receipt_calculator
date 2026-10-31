@@ -1331,9 +1331,11 @@ summary::marker {
 }
 .original-images > div {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 .original-thumb {
+  flex: 0 0 85px;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
