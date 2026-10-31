@@ -95,6 +95,8 @@ const symbols: Record<Currency, string> = {
   KRW: "₩",
   KWD: "KWD ",
   BHD: "BHD ",
+  IDR: "Rp ",
+  TWD: "NT$",
 };
 export function formatMoney(amount: bigint, currency: Currency): string {
   const negative = amount < 0n;

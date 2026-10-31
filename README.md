@@ -39,7 +39,7 @@ The local server sends the ordered sections in one Gemini Interactions request u
 
 Google currently lists a free tier for Gemini 3.8 Flash, subject to account/model limits. Check your own [API limits and pricing](https://ai.google.dev/gemini-api/docs/pricing) before enabling billing or selecting another model. Google's [terms](https://ai.google.dev/gemini-api/terms) require Paid Services when making API clients available to users in the UK/EEA/Switzerland. This local adapter is for development/testing, binds to loopback, checks host/origin and processing consent, and allows one active scan, two attempts per minute and ten per hour. Publishing it needs a proper authenticated server, hosting/TLS and deployment review. Static hosting alone cannot provide the Gemini endpoint.
 
-No API key is configured or live Gemini accuracy claimed in the verification record. API and UI protocol tests use a clearly identified synthetic response. Test real receipt extraction after supplying your own key; no private receipt has been sent to Google during development.
+API and UI protocol tests use clearly identified synthetic responses. A live synthetic two-item scan succeeded with `gemini-3.1-flash-lite`; this verifies a connection, not real-receipt accuracy. Real private receipt benchmarking requires separate upload approval. See the [advanced OCR investigation](receipt_training/evaluation/ADVANCED_OCR_REPORT.md) for current measured evidence and remaining work.
 
 ## Use it
 
@@ -58,13 +58,14 @@ Drafts may be incomplete. Finalization requires a balanced, confirmed receipt, v
 ## Tax, discounts and pennies
 
 - For the supplied UK Costco receipt, A means 20% VAT and Z means 0%. `2.00-Z` is a £2 deduction associated with a zero-rated item. `-A` identifies a deduction in the A category. These are merchant-specific codes, not universal retailer rules.
-- The parser reads printed tax legends and preserves unfamiliar codes for correction. Costco A/Z are prefilled only when Costco is recognized; without a legend, the app explicitly asks you to confirm those rates. Define any other code from the receipt yourself.
+- The parser reads printed tax legends and preserves unfamiliar codes for correction. It does not invent Costco A/Z rates when the legend is missing. On a tax-exclusive receipt, missing code rates block confirmation until entered from the original. Costco tax conventions vary by country.
 - The on-device parser attaches separate Costco discount lines to the preceding purchase and flags them for checking. Unclear generic discounts remain editable receipt-wide adjustments. Repeated purchases across different photos are preserved for manual review. Exact joins between detail windows of one tall image are merged. Gemini is instructed to merge photographed overlaps using context while retaining separate purchases. Its result still requires review.
 - Item discounts reduce that item's line price. Receipt-wide discounts are apportioned by item net cost before added tax.
 - Tax-inclusive prices never receive tax again. Tax rows remain informational. Tax-exclusive receipts use either printed tax adjustments or defined item tax rates, never both. The optional printed tax field checks the calculation.
 - Tax is rounded once per code. The group's minor units are allocated to its items by largest remainder. This reproduces £13.62 VAT and a £176.78 final total for the 18-item Costco demo.
 - Other adjustments can follow item costs/ownership or be shared equally among all people. Whole-receipt mode applies its shares to the entire cost and ignores saved item assignments.
 - All money uses `bigint` minor units. Prices and weights are parsed as exact decimal strings; no binary floating-point money arithmetic is used. GBP has two decimal places, JPY zero, KWD three, and the other offered currencies use their specified precision.
+- IDR and TWD are supported with two minor-unit decimal places. Printed rupiah grouping such as `Rp 36.000` is read as 36000. A single three-place separator without enough currency evidence remains unresolved; the parser keeps the draft editable and asks for correction instead of silently guessing or crashing the scan.
 - Final item costs (or the whole receipt) use largest remainder allocation. Highest fractional remainders get the spare minor units; ties follow receipt order and then person creation order. £10/3 is £3.34, £3.33, £3.33. Each component is also explained; any component-to-final rounding redistribution is disclosed and nets to zero across people.
 - A signed receipt rounding adjustment must be explicitly entered and labelled. It is never invented to hide a discrepancy.
 

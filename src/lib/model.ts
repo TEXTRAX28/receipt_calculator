@@ -13,6 +13,8 @@ export const currencies = {
   KRW: 0,
   KWD: 3,
   BHD: 3,
+  IDR: 2,
+  TWD: 2,
 } as const;
 export type Currency = keyof typeof currencies;
 const id = z

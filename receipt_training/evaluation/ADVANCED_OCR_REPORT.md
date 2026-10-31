@@ -66,13 +66,19 @@ Cloud prices are published planning figures, not measured receipt costs or proof
 - The Gemini REST parser now reads final `model_output` steps. SDK `output_text` is not guaranteed in raw REST responses. Tests reject thought/user/tool content as financial output. [REST response specification](https://ai.google.dev/api/interactions-api).
 - Development/evaluation watchers ignore model environments and generated runs.
 
-Current application unit tests: 110 passed. Current evaluation/spatial tests: 19 passed. A fresh production build/browser run after the feature changes is still required. No external receipt accuracy result has been produced.
+Current application unit tests: 119 passed. Current evaluation/spatial tests: 19 passed. The production build and fresh browser run passed: 65 tests, one duplicate-breakpoint skip. No external real-receipt accuracy result has been produced.
+
+### Financial-parser follow-up
+
+The feature branch now supports IDR and TWD throughout the receipt schema, AI schema, exact money calculation and payment formatting. A separate printed-amount normalizer validates grouping, keeps signs, never rounds a value into currency precision and leaves ambiguous three-place separators unresolved. A malformed or ambiguous OCR amount now keeps an editable draft instead of crashing the entire scan. Missing Costco VAT legends no longer cause invented A=20%/Z=0% rates; unresolved rates on tax-exclusive items block confirmation.
+
+The same frozen Paddle outputs were rescored after these changes, with the original labels unchanged. `advanced-parser-comparison.json` records 102/130 matched products (78.46% recall), 102/143 precision against available labels, 81/130 exact descriptions, 8/129 correct line prices, 6/117 quantities and 3/49 printed totals. There are no parser exceptions, but still **zero trusted reconciliations**. Many receipts lack printed currency context, and price/quantity layout extraction remains inadequate. This is measured progress, not a reliable finished scanner. These current-model results must also remain distinct from the engine-only comparison above.
 
 ## Remaining requirements
 
 The next work must fix parsing/locale ambiguity and overlap handling, integrate the evidence-selected provider into the frontend/backend, and implement document classification, embedded PDF text, quality/edge/deskew/perspective handling, field-region uncertainty and item rescan. Refund/negative-line support, all split/currency invariants, mobile workflows and public-backend security must be completed and tested.
 
-The original model/schema supports neither IDR nor TWD and the parser treats Indonesian thousands as decimal fractions; some well-read amounts therefore fail or become incorrect drafts. Unknown Costco tax codes/rates need receipt evidence rather than global UK assumptions. These are unresolved implementation defects, not successful extraction.
+The original model/schema lacked IDR/TWD and treated Indonesian thousands as decimal fractions. The new normalizer fixes clear grouping and rejects ambiguity, but a receipt without currency/format evidence still needs explicit user context. Recovering correct physical quantities, all money fields and cross-photo overlap remains open. Unknown tax codes/rates must continue to require receipt evidence.
 
 All original manifest records disallow external processing. Two inspected crops of the user's UK receipt remove member/card/transaction identifiers; their hash-bound request manifest permits no upload until approval. The proposed scope is one attempt with 3.1 Flash-Lite using existing free quota, with no billing activation. `store:false` disables stored conversation state, not every provider retention practice. Google's UK/EEA/Swiss data-use provisions and public-client paid-service restriction require a release review. [Terms](https://ai.google.dev/gemini-api/terms).
 

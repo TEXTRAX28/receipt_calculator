@@ -24,6 +24,8 @@ export const aiReceiptSchema = z.strictObject({
     "KRW",
     "KWD",
     "BHD",
+    "IDR",
+    "TWD",
   ]),
   subtotal: amount,
   printedTotal: amount,

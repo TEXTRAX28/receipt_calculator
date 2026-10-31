@@ -1,4 +1,11 @@
-import { newItem, newReceipt, receiptSchema, type Receipt } from "./model";
+import {
+  newItem,
+  newReceipt,
+  receiptSchema,
+  type Receipt,
+  type Currency,
+} from "./model";
+import { printedAmount } from "./printed-amount";
 import { z } from "zod";
 
 export const extractionOutputSchema = z.object({
@@ -6,29 +13,13 @@ export const extractionOutputSchema = z.object({
 });
 export const PHOTO_SEPARATOR = "--- GATHER PHOTO BOUNDARY ---";
 const amountPattern = /[-−]?\d[\d,.]*[.,]\d{2,3}-?/g;
-export function normalizeAmount(token: string): string {
-  const text = token
-    .replace(/[£$€\s−]/g, (c) => (c === "−" ? "-" : ""))
-    .replace(/-$/, "");
-  const dot = text.lastIndexOf("."),
-    comma = text.lastIndexOf(",");
-  const decimal = comma > dot ? "," : ".";
-  const result =
-    decimal === ","
-      ? text.replace(/\./g, "").replace(",", ".")
-      : text.replace(/,/g, "");
-  if (!/^-?\d{1,12}(?:\.\d{1,3})?$/.test(result))
-    throw new Error("Unclear printed amount.");
-  return result;
+export function normalizeAmount(token: string, currency?: Currency): string {
+  return printedAmount(token, { currency });
 }
 const valuesIn = (line: string) =>
   [...line.matchAll(amountPattern)].map((m) => m[0]);
-const lastAmount = (line: string) => {
-  const values = valuesIn(line);
-  return values.length ? normalizeAmount(values.at(-1)!) : "";
-};
 const isFinalTotal = (line: string) =>
-  /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|total\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD)\s*)?[£$€]?\s*\d)/i.test(
+  /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|total\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[£$€]?\s*\d)/i.test(
     line,
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
 
@@ -61,7 +52,14 @@ export function parseReceiptText(output: unknown): Receipt {
             !/^(receipt|tax invoice|welcome|tel|vat|date)\b/i.test(l),
         ) || ""
       ).slice(0, 100);
-  if (text.includes("£") || /\bGBP\b/.test(text)) receipt.currency = "GBP";
+  let currencyIdentified = true;
+  const explicitCurrency = text.match(
+    /\b(GBP|USD|EUR|CAD|AUD|NZD|CHF|SEK|JPY|KRW|KWD|BHD|IDR|TWD)\b/,
+  );
+  if (explicitCurrency) receipt.currency = explicitCurrency[1] as Currency;
+  else if (/\bRp\.?(?=\s|\d|$)/i.test(text)) receipt.currency = "IDR";
+  else if (/NT\$|新[臺台]幣|[臺台]幣/.test(text)) receipt.currency = "TWD";
+  else if (text.includes("£") || /\bGBP\b/.test(text)) receipt.currency = "GBP";
   else if (text.includes("€") || /\bEUR\b/.test(text)) receipt.currency = "EUR";
   else if (/\bJPY\b/.test(text)) receipt.currency = "JPY";
   else if (/\bKWD\b/.test(text)) receipt.currency = "KWD";
@@ -71,10 +69,33 @@ export function parseReceiptText(output: unknown): Receipt {
       receipt.warnings.push(
         "Dollar symbols can mean several currencies. Confirm the selected currency.",
       );
-  } else
+  } else {
+    currencyIdentified = false;
     receipt.warnings.push(
       "Currency was not identified. Confirm the selected currency.",
     );
+  }
+  const normalize = (token: string) => {
+    try {
+      return normalizeAmount(
+        token,
+        currencyIdentified ? receipt.currency : undefined,
+      );
+    } catch (error) {
+      receipt.warnings.push(
+        `Unclear printed amount “${token.slice(0, 60)}”: ${(error as Error).message} Enter it from the original.`,
+      );
+      return "";
+    }
+  };
+  const lastAmount = (line: string) => {
+    const values =
+      currencyIdentified &&
+      ["IDR", "TWD", "JPY", "KRW"].includes(receipt.currency)
+        ? [...line.matchAll(/[-−]?\d[\d,.]*-?/g)].map((m) => m[0])
+        : valuesIn(line);
+    return values.length ? normalize(values.at(-1)!) : "";
+  };
   const isoDate = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
   const localDate = text.match(/\b(\d{1,2})[/.](\d{1,2})[/.](20\d{2})\b/);
   if (isoDate) receipt.date = isoDate[0];
@@ -131,18 +152,17 @@ export function parseReceiptText(output: unknown): Receipt {
       all.findIndex((e) => e.code === entry.code && e.rate === entry.rate) ===
       index,
   );
+  const ukCostco =
+    isCostco &&
+    ((currencyIdentified && receipt.currency === "GBP") || /\bUK\b/.test(text));
   receipt.pricesIncludeTax =
-    !isCostco && !/prices?\s+(?:exclude|excl)|total\s*\(?\s*excl/i.test(text);
+    !ukCostco && !/prices?\s+(?:exclude|excl)|total\s*\(?\s*excl/i.test(text);
   if (isCostco && !receipt.taxCodes.length) {
-    receipt.taxCodes = [
-      { code: "A", rate: "20" },
-      { code: "Z", rate: "0" },
-    ];
     receipt.warnings.push(
-      "Costco A=20% and Z=0% are prefilled. Confirm these rates from the VAT legend on this receipt.",
+      "The Costco tax legend was not read. Add its printed code rates; codes vary between countries and receipts.",
     );
   }
-  receipt.taxMode = receipt.taxCodes.length ? "codes" : "printed";
+  receipt.taxMode = receipt.taxCodes.length || isCostco ? "codes" : "printed";
   receipt.printedTax = taxAmount;
   if (taxAmount && receipt.taxMode === "printed")
     receipt.adjustments.push({
@@ -192,8 +212,19 @@ export function parseReceiptText(output: unknown): Receipt {
     if (costco) {
       const description = pendingDescription || "";
       const negative = !!costco[4];
-      const value = normalizeAmount(costco[3]);
+      const value = normalize(costco[3]);
       if (negative) {
+        if (!value) {
+          receipt.adjustments.push({
+            id: crypto.randomUUID(),
+            label: description || "Unreadable coupon",
+            kind: "discount",
+            amount: "",
+            allocation: "proportional",
+          });
+          pendingDescription = "";
+          continue;
+        }
         const previous = receipt.items.at(-1);
         if (previous && (isCostco || /^IRC\b/i.test(description))) {
           if (previous.discount !== "0") {
@@ -234,7 +265,7 @@ export function parseReceiptText(output: unknown): Receipt {
         item.quantity = /^[Il]$/i.test(costco[1])
           ? ""
           : costco[1].replace(",", ".");
-        item.unitPrice = normalizeAmount(costco[2]);
+        item.unitPrice = normalize(costco[2]);
         item.lineTotal = value;
         item.taxCode = (costco[5] || "").toUpperCase();
         if (!description)
@@ -258,7 +289,7 @@ export function parseReceiptText(output: unknown): Receipt {
       )
     ) {
       const description = generic[1].trim();
-      const amount = normalizeAmount(generic[2]).replace(/^-/, "");
+      const amount = normalize(generic[2]).replace(/^-/, "");
       const negative =
         /[-−]/.test(generic[2]) ||
         /\b(discount|coupon|saving|rebate)\b/i.test(description);
@@ -281,7 +312,7 @@ export function parseReceiptText(output: unknown): Receipt {
         );
         item.description = description.slice(0, 180);
         item.quantity = quantity ? quantity[1].replace(",", ".") : "";
-        item.unitPrice = quantity?.[2] ? normalizeAmount(quantity[2]) : "";
+        item.unitPrice = quantity?.[2] ? normalize(quantity[2]) : "";
         item.lineTotal = amount;
         item.taxCode = generic[3] || "";
         item.note = quantity
