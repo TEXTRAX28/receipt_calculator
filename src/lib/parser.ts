@@ -26,10 +26,19 @@ export const isFinalTotal = (line: string) =>
 
 /** Heuristics produce an editable draft, never a declaration of financial correctness. */
 export function parseReceiptText(output: unknown): Receipt {
+  return parseReceiptWithSources(output).receipt;
+}
+
+/** Indices refer to trimmed, nonempty text lines, including photo boundaries. */
+export function parseReceiptWithSources(output: unknown): {
+  receipt: Receipt;
+  sources: Record<string, number[]>;
+} {
   const { text } = extractionOutputSchema.parse(
     typeof output === "string" ? { text: output } : output,
   );
   const receipt = newReceipt();
+  const sources: Record<string, number[]> = {};
   receipt.source = "text";
   receipt.rawText = text;
   const lines = text
@@ -194,11 +203,13 @@ export function parseReceiptText(output: unknown): Receipt {
       "Confirm whether the item prices already include tax. Merchant formats vary.",
     );
   let pendingDescription = "";
+  let pendingSource: number | undefined;
   let itemSectionEnded = false;
   for (const [lineIndex, line] of lines.entries()) {
     if (line === PHOTO_SEPARATOR) {
       itemSectionEnded = false;
       pendingDescription = "";
+      pendingSource = undefined;
       continue;
     }
     if (isFinalTotal(line)) itemSectionEnded = true;
@@ -215,6 +226,7 @@ export function parseReceiptText(output: unknown): Receipt {
       )
     ) {
       pendingDescription = "";
+      pendingSource = undefined;
       continue;
     }
     const costco = matchCostcoRow(line);
@@ -232,6 +244,7 @@ export function parseReceiptText(output: unknown): Receipt {
             allocation: "proportional",
           });
           pendingDescription = "";
+          pendingSource = undefined;
           continue;
         }
         const previous = receipt.items.at(-1);
@@ -249,6 +262,11 @@ export function parseReceiptText(output: unknown): Receipt {
             });
           } else {
             previous.discount = value;
+            sources[previous.id] = [
+              ...(sources[previous.id] || []),
+              ...(pendingSource === undefined ? [] : [pendingSource]),
+              lineIndex,
+            ];
             previous.note =
               "Separate discount matched to this preceding purchase. Confirm the match.";
             if (costco.taxCode && previous.taxCode !== costco.taxCode)
@@ -283,14 +301,20 @@ export function parseReceiptText(output: unknown): Receipt {
           item.note =
             "Purchased quantity looked like I or l rather than a number. Confirm it against the original.";
         receipt.items.push(item);
+        sources[item.id] = [
+          ...(pendingSource === undefined ? [] : [pendingSource]),
+          lineIndex,
+        ];
       }
       pendingDescription = "";
+      pendingSource = undefined;
       continue;
     }
     // A complete following SKU/quantity/price row identifies this as its title.
     // In particular, 0.75L is a pack measurement, not a 0.75 price with tax code L.
     if (/[a-z]{2}/i.test(line) && matchCostcoRow(lines[lineIndex + 1] || "")) {
       pendingDescription = line.replace(/\*+/g, "").trim();
+      pendingSource = lineIndex;
       continue;
     }
     const generic = line.match(
@@ -334,14 +358,18 @@ export function parseReceiptText(output: unknown): Receipt {
           ? "Check the extracted quantity and line total."
           : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
         receipt.items.push(item);
+        sources[item.id] = [lineIndex];
       }
       pendingDescription = "";
+      pendingSource = undefined;
     } else if (
       /[a-z]{2}/i.test(line) &&
       !valuesIn(line).length &&
       !/^\d{4,}/.test(line)
-    )
+    ) {
       pendingDescription = line.replace(/\*+/g, "").trim();
+      pendingSource = lineIndex;
+    }
     if (receipt.items.length > 300 || receipt.adjustments.length > 30)
       throw new Error(
         "Too many receipt lines. Use a smaller receipt or enter it manually.",
@@ -375,5 +403,5 @@ export function parseReceiptText(output: unknown): Receipt {
         receipt.taxCodes.push({ code, rate: "" });
     }
   receipt.warnings = [...new Set(receipt.warnings)].slice(0, 60);
-  return receiptSchema.parse(receipt);
+  return { receipt: receiptSchema.parse(receipt), sources };
 }

@@ -58,7 +58,7 @@ import {
 } from "./lib/engine";
 import { formatMoney } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
-import { parseReceiptText } from "./lib/parser";
+import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
 import { prepareImage, type ReceiptImage } from "./lib/images";
 import { localOcrProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
@@ -70,6 +70,12 @@ import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
+import ReceiptSource from "./ReceiptSource";
+import {
+  collectReceiptEvidence,
+  type ItemEvidence,
+  type ReceiptEvidence,
+} from "./lib/receipt-evidence";
 
 type Step = AppState["step"];
 const steps: { id: Step; title: string }[] = [
@@ -86,18 +92,28 @@ function Field({
   label,
   children,
   hint,
+  error,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
+  error?: string;
 }) {
   const controlId = useId();
   const control = isValidElement(children)
     ? cloneElement(
-        children as ReactElement<{ id?: string; "aria-describedby"?: string }>,
+        children as ReactElement<{
+          id?: string;
+          "aria-describedby"?: string;
+          "aria-invalid"?: boolean;
+        }>,
         {
           id: controlId,
-          "aria-describedby": hint ? `${controlId}-hint` : undefined,
+          "aria-describedby":
+            [hint ? `${controlId}-hint` : "", error ? `${controlId}-error` : ""]
+              .filter(Boolean)
+              .join(" ") || undefined,
+          "aria-invalid": error ? true : undefined,
         },
       )
     : children;
@@ -106,6 +122,11 @@ function Field({
       <label htmlFor={controlId}>{label}</label>
       {control}
       {hint && <small id={`${controlId}-hint`}>{hint}</small>}
+      {error && (
+        <small className="field-error" id={`${controlId}-error`}>
+          {error}
+        </small>
+      )}
     </div>
   );
 }
@@ -114,16 +135,18 @@ function MoneyInput({
   value,
   onChange,
   hint,
+  error,
   ...rest
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   hint?: string;
+  error?: string;
   required?: boolean;
 }) {
   return (
-    <Field label={label} hint={hint}>
+    <Field label={label} hint={hint} error={error}>
       <input
         {...rest}
         aria-label={label}
@@ -222,6 +245,10 @@ export default function App() {
   const [privacy, setPrivacy] = useState(false);
   const [zoomImage, setZoomImage] = useState<ReceiptImage | null>(null);
   const [cropTarget, setCropTarget] = useState<ReceiptImage | null>(null);
+  const [scanEvidence, setScanEvidence] = useState<ReceiptEvidence | null>(
+    null,
+  );
+  const [sourceItemId, setSourceItemId] = useState<string | null>(null);
   const [personName, setPersonName] = useState("");
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -233,6 +260,24 @@ export default function App() {
     state.finalizedStamp !== "" &&
     state.finalizedStamp === finalStamp(state) &&
     result.canFinalize;
+  const sourceItemIndex = state.receipt.items.findIndex(
+    (item) => item.id === sourceItemId,
+  );
+  const sourceItem = state.receipt.items[sourceItemIndex];
+  const selectedSource =
+    scanEvidence?.receiptId === state.receipt.id && sourceItemId
+      ? scanEvidence.items[sourceItemId]
+      : undefined;
+  const sourceOpen = Boolean(sourceItem && selectedSource);
+  const sourceError = (field: string) =>
+    receiptResult.issues.find(
+      (issue) => issue.path === `items.${sourceItemIndex}.${field}`,
+    )?.message;
+  useEffect(() => {
+    // Editing, replacing or removing an input invalidates its old coordinate map.
+    setScanEvidence(null);
+    setSourceItemId(null);
+  }, [images]);
   useEffect(() => {
     const check = new AbortController();
     localModelConfiguration(
@@ -299,9 +344,10 @@ export default function App() {
     }
   }, [state]);
   useEffect(() => {
-    if (privacy || zoomImage || cropTarget) dialogRef.current?.showModal();
+    if (privacy || zoomImage || cropTarget || sourceOpen)
+      dialogRef.current?.showModal();
     else dialogRef.current?.close();
-  }, [privacy, zoomImage, cropTarget]);
+  }, [privacy, zoomImage, cropTarget, sourceOpen]);
   useEffect(() => {
     document.getElementById("screen-title")?.focus({ preventScroll: true });
   }, [state.step]);
@@ -326,7 +372,12 @@ export default function App() {
       },
       finalizedStamp: "",
     }));
-  const replaceReceipt = (receipt: Receipt) => {
+  const replaceReceipt = (
+    receipt: Receipt,
+    evidence: ReceiptEvidence | null = null,
+  ) => {
+    setScanEvidence(evidence);
+    setSourceItemId(null);
     setState((s) => ({
       ...newState(),
       people: s.people,
@@ -362,6 +413,8 @@ export default function App() {
     storageConflict.current = false;
     images.forEach((i) => URL.revokeObjectURL(i.url));
     setImages([]);
+    setScanEvidence(null);
+    setSourceItemId(null);
     setRawText("");
     setImageError("");
     setAiConsented(false);
@@ -445,17 +498,47 @@ export default function App() {
         );
         return;
       }
-      const output = await (
-        reader === "computer" ? extractWithLocalModel : localOcrProvider.extract
-      )(images, controller.current.signal, setScanStatus);
+      const computerOutput =
+        reader === "computer"
+          ? await extractWithLocalModel(
+              images,
+              controller.current.signal,
+              setScanStatus,
+            )
+          : null;
+      const output =
+        computerOutput ??
+        (await localOcrProvider.extract(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        ));
       setRawText(output.text);
-      const parsed = parseReceiptText(output);
+      const { receipt: parsed, sources } = parseReceiptWithSources(output);
+      const evidence = computerOutput
+        ? collectReceiptEvidence(
+            parsed,
+            output.text,
+            sources,
+            computerOutput.sourceLines,
+            computerOutput.recognition,
+            images,
+          )
+        : null;
       parsed.warnings = [...parsed.warnings, ...(output.warnings || [])].slice(
         0,
         60,
       );
+      if (
+        computerOutput &&
+        Object.keys(evidence?.items || {}).length < parsed.items.length
+      )
+        parsed.warnings = [
+          ...parsed.warnings,
+          "Some source areas could not be matched. Check those purchases against the full receipt photos.",
+        ].slice(0, 60);
       parsed.source = "ocr";
-      replaceReceipt(parsed);
+      replaceReceipt(parsed, evidence);
       setNotice(
         "OCR finished. Check the extracted details against your images before confirming.",
       );
@@ -1448,6 +1531,12 @@ export default function App() {
                           index={index}
                           receipt={state.receipt}
                           cost={receiptResult.items[index]?.total ?? 0n}
+                          evidence={
+                            scanEvidence?.receiptId === state.receipt.id
+                              ? scanEvidence.items[item.id]
+                              : undefined
+                          }
+                          onViewSource={() => setSourceItemId(item.id)}
                           onChange={(change) => editItem(item.id, change)}
                           onDelete={() =>
                             editReceipt({
@@ -2167,12 +2256,14 @@ export default function App() {
       <dialog
         ref={dialogRef}
         onCancel={() => {
+          setSourceItemId(null);
           setCropTarget(null);
           setPrivacy(false);
           setZoomImage(null);
         }}
         onClick={(e) => {
           if (e.target === dialogRef.current) {
+            setSourceItemId(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -2181,15 +2272,18 @@ export default function App() {
         aria-label={
           cropTarget
             ? "Crop receipt image"
-            : zoomImage
-              ? "Original receipt image"
-              : "Your privacy at Gather"
+            : sourceOpen
+              ? `Receipt source for purchase ${sourceItemIndex + 1}`
+              : zoomImage
+                ? "Original receipt image"
+                : "Your privacy at Gather"
         }
       >
         <button
           className="icon-button dialog-close"
           aria-label="Close dialog"
           onClick={() => {
+            setSourceItemId(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -2212,6 +2306,85 @@ export default function App() {
               setCropTarget(null);
             }}
           />
+        ) : sourceItem && selectedSource ? (
+          <ReceiptSource
+            key={sourceItem.id}
+            item={sourceItem}
+            index={sourceItemIndex}
+            evidence={selectedSource}
+          >
+            <div className="source-edit-fields">
+              <Field
+                label={`Item ${sourceItemIndex + 1} description`}
+                error={sourceError("description")}
+              >
+                <input
+                  value={sourceItem.description}
+                  maxLength={180}
+                  onChange={(e) =>
+                    editItem(sourceItem.id, { description: e.target.value })
+                  }
+                />
+              </Field>
+              <div className="form-grid">
+                <MoneyInput
+                  label={`Item ${sourceItemIndex + 1} purchased quantity`}
+                  value={sourceItem.quantity}
+                  error={sourceError("quantity")}
+                  onChange={(quantity) => editItem(sourceItem.id, { quantity })}
+                />
+                <MoneyInput
+                  label={`Item ${sourceItemIndex + 1} unit price (optional)`}
+                  value={sourceItem.unitPrice}
+                  error={sourceError("unitPrice")}
+                  onChange={(unitPrice) =>
+                    editItem(sourceItem.id, { unitPrice })
+                  }
+                />
+                <MoneyInput
+                  label={`Item ${sourceItemIndex + 1} line price`}
+                  value={sourceItem.lineTotal}
+                  error={sourceError("lineTotal")}
+                  onChange={(lineTotal) =>
+                    editItem(sourceItem.id, { lineTotal })
+                  }
+                />
+                <MoneyInput
+                  label={`Item ${sourceItemIndex + 1} discount`}
+                  value={sourceItem.discount}
+                  error={sourceError("discount")}
+                  onChange={(discount) => editItem(sourceItem.id, { discount })}
+                />
+                {!state.receipt.pricesIncludeTax &&
+                  state.receipt.taxMode === "codes" && (
+                    <Field
+                      label={`Item ${sourceItemIndex + 1} tax code`}
+                      error={sourceError("taxCode")}
+                    >
+                      <input
+                        maxLength={12}
+                        value={sourceItem.taxCode}
+                        onChange={(e) =>
+                          editItem(sourceItem.id, {
+                            taxCode: e.target.value.toUpperCase(),
+                          })
+                        }
+                      />
+                    </Field>
+                  )}
+              </div>
+              <p className="hint">
+                Changes recalculate your receipt. Confirm the whole receipt
+                after checking every purchase.
+              </p>
+              <button
+                className="button button-primary full-width"
+                onClick={() => setSourceItemId(null)}
+              >
+                Back to receipt
+              </button>
+            </div>
+          </ReceiptSource>
         ) : zoomImage ? (
           <div className="image-dialog">
             <h2>Original receipt</h2>
@@ -2361,6 +2534,8 @@ function ItemEditor({
   cost,
   onChange,
   onDelete,
+  evidence,
+  onViewSource,
 }: {
   item: Item;
   index: number;
@@ -2368,6 +2543,8 @@ function ItemEditor({
   cost: bigint;
   onChange: (change: Partial<Item>) => void;
   onDelete: () => void;
+  evidence?: ItemEvidence;
+  onViewSource?: () => void;
 }) {
   const [expanded, setExpanded] = useState(
     !item.description || !item.quantity || !item.lineTotal,
@@ -2410,6 +2587,22 @@ function ItemEditor({
           <CircleHelp size={14} />
           {item.note}
         </p>
+      )}
+      {evidence && onViewSource && (
+        <div className="item-source-actions">
+          <button
+            className="text-button"
+            aria-label={`View source for item ${index + 1}`}
+            onClick={onViewSource}
+          >
+            <ScanLine size={16} /> View on receipt
+          </button>
+          {evidence.panels.some((panel) => panel.unclear) && (
+            <span className="source-caution">
+              <CircleHelp size={15} /> Check unclear text
+            </span>
+          )}
+        </div>
       )}
       {expanded && (
         <div className="item-detail-fields">

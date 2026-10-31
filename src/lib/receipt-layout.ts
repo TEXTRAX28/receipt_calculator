@@ -158,6 +158,19 @@ export function assembleRecognition(recognition: Recognition) {
       )
       .join(`\n${PHOTO_SEPARATOR}\n`),
     photos,
+    sourceLines: photos.flatMap((photo, index) => [
+      ...(index ? [null] : []),
+      ...photo.lines
+        .filter((line) => !removed.has(line))
+        .flatMap((line) =>
+          line.text
+            .replace(/\r/g, "")
+            .split("\n")
+            .map((text) => text.trim())
+            .filter(Boolean)
+            .map((text) => ({ ...line, text })),
+        ),
+    ]),
     overlaps,
     warnings: overlaps.map(
       (overlap) =>

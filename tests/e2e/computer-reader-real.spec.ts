@@ -148,6 +148,53 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
     page.getByRole("heading", { name: "A quick check, then we share." }),
   ).toBeVisible({ timeout: 130000 });
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(18);
+  await expect(
+    page.getByRole("button", { name: /^View source for item \d+$/ }),
+  ).toHaveCount(18);
+  const chickenAreas: string[][] = [];
+  for (const itemNumber of [16, 17]) {
+    await page
+      .getByRole("button", {
+        name: `View source for item ${itemNumber}`,
+        exact: true,
+      })
+      .click();
+    const source = page.getByRole("dialog", {
+      name: `Receipt source for purchase ${itemNumber}`,
+    });
+    await expect(source.getByTestId("source-region")).toHaveCount(2);
+    chickenAreas.push(
+      await source
+        .getByTestId("source-region")
+        .evaluateAll((regions) =>
+          regions.map((region) => region.getAttribute("y")!),
+        ),
+    );
+    await source
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+  }
+  expect(chickenAreas[0]).not.toEqual(chickenAreas[1]);
+  await page
+    .getByRole("button", { name: "View source for item 18", exact: true })
+    .click();
+  const clothSource = page.getByRole("dialog", {
+    name: "Receipt source for purchase 18",
+  });
+  await expect(clothSource.getByTestId("source-region")).toHaveCount(4);
+  await clothSource
+    .getByText("Recognized text in this area", { exact: true })
+    .click();
+  await expect(clothSource.locator("pre")).toContainText(/1\.50\s*-?\s*A/);
+  await expect(clothSource.locator("pre")).not.toContainText(
+    /Tran\s*ID|Merchant\s*ID|Card:/i,
+  );
+  await clothSource.screenshot({
+    path: `qa-artifacts/receipt-source-real-${test.info().project.name}.png`,
+  });
+  await clothSource
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
   // Observed financial truth from the supplied images; no edits/corrections below.
   const rows = [
     [/SPAM/i, "14.99", "Z", "0"],

@@ -74,7 +74,7 @@ export async function extractWithLocalModel(
       warnings.push(
         "Check overlapping photos for repeated rows. Separate purchases with identical names must remain separate.",
       );
-    return { text, warnings, recognition };
+    return { text, warnings, recognition, sourceLines: assembled.sourceLines };
   } catch (error) {
     if (signal.aborted)
       throw new Error("Scan cancelled. Your photos are still available.");
