@@ -1,0 +1,144 @@
+{
+  "scope": "One previously inspected source-informed redacted development transaction, with the same two crop JPEGs used by every local reader and prepared for Veryfi. Not a blind holdout, full-corpus metric or provider-selection result.",
+  "label_basis": "Pre-existing source-checked complete visible financial annotation of the parent transaction; no new independent human verification. All 18 purchase rows, four individual coupons, VAT legend and monetary totals remain visible. Hidden merchant/date/currency evidence is excluded from these metrics.",
+  "numeric_comparison_currency": "Known GBP context of the parent transaction for exact minor-unit comparison only; no currency extraction success is claimed.",
+  "methods": {
+    "qwen3_vl_vision_only": {
+      "expected_purchases": 18,
+      "proposed_purchases": 23,
+      "matched_labelled_purchases": 18,
+      "unmatched_proposals": 5,
+      "exact_normalized_descriptions": 16,
+      "lineTotal": {
+        "correct": 18,
+        "known": 18
+      },
+      "unitPrice": {
+        "correct": 18,
+        "known": 18
+      },
+      "discount": {
+        "correct": 14,
+        "known": 18
+      },
+      "nonzero_coupons": {
+        "known": 4,
+        "correct": 0
+      },
+      "printed_total_correct": true
+    },
+    "paddle_plus_independent_qwen": {
+      "expected_purchases": 18,
+      "proposed_purchases": 23,
+      "matched_labelled_purchases": 18,
+      "unmatched_proposals": 5,
+      "exact_normalized_descriptions": 17,
+      "lineTotal": {
+        "correct": 18,
+        "known": 18
+      },
+      "unitPrice": {
+        "correct": 18,
+        "known": 18
+      },
+      "discount": {
+        "correct": 14,
+        "known": 18
+      },
+      "nonzero_coupons": {
+        "known": 4,
+        "correct": 0
+      },
+      "printed_total_correct": true
+    }
+  },
+  "local_native_elapsed_ms": 50735,
+  "actual_local_comparison_elapsed_ms": 69782.29999995232,
+  "timing_scope": "Native timing includes fresh CLI/model loading and excludes crop creation/download. Actual combined timing includes serial primary OCR plus native vision and browser verification, bypassing unrelated photo re-encoding. Laptop/caches, one transaction, no p95 or physical-phone claim.",
+  "local_hybrid_gate": {
+    "printed_total_minor": "17678",
+    "calculated_total_minor": "19339",
+    "discrepancy_minor": "1661",
+    "blocking_issues": 41,
+    "pending_review_checks": 38
+  },
+  "veryfi_state_at_checkpoint": "One comparison requested by the user; free quota/configuration still pending; zero live Veryfi requests and no accuracy result",
+  "veryfi_metrics": null,
+  "external_receipt_uploads": 0,
+  "provider_api_requests": 0,
+  "actual_local_http_requests": 2,
+  "finding": "Both local paths matched all 18 real purchases and copied their line prices, but proposed five extra purchases and failed all four nonzero coupons. Correct copied final totals did not produce a valid payable bill. The actual review gate blocked the combined draft.",
+  "next_local_investigation": "Coupon recovery is guarded by a literal merchant-name check although the primary parser already identifies this headerless Costco layout. Verify recovery predicates and preserve genuine repeated purchases before changing the guard.",
+  "verified_source_locations": [
+    "src/lib/verify-readings.ts:L155",
+    "src/lib/parser.ts:L33",
+    "src/lib/compared-reader.ts:L13",
+    "src/lib/panel-transport.ts:L10"
+  ],
+  "private_row_review": "qa-artifacts/provider-review/local-redacted-visible-field-check-v1.md",
+  "evidence_sha256": {
+    "qa-artifacts/advanced-ocr/cloud-review/user-uk-items.jpg": "1c53a19923a200676096db4cc093610a3c895634d68fa90f9a9a5c5b38b51b68",
+    "qa-artifacts/advanced-ocr/cloud-review/user-uk-vat-totals.jpg": "adcf3ef31024a3e0e1efd92e90404e3bf48b1585fb6d2d5a911836b4e16e705b",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/harness.py": "6eff8731dea50679011a5b0d34615c98101876a2f3929686d10f11be430c9381",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/metadata.json": "fb483eda394805d1fbe894e3228aa85ac20f71fdd5892a93f10d66698010843d",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/model-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/model-output.json": "bf836593674936eb1ee8212a96e897bfa75c0236a008664c9f5258e445683ca5",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/request.json": "e74672a1b16f0e32067d4347ae867b826483c958c0cf1a4118faf999d08450b2",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/stderr.txt": "53e8fc1dcb4e7997e92451e890ce244e3b53109c6c7f7fda86810d665b6fc33f",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/stdout.txt": "460d5faae9bb7715cdacd742e72eb48c093085ccbf06d4c7c1f32836bbdc1e27",
+    "qa-artifacts/advanced-ocr/qwen-redacted-uk-v1/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/metadata.json": "d15b7cb2933b4a3eb999309a368566105fff00c3217e6412a670c70ec5f67eee",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/response-1.json": "a43ac8b7ccfd4a3839046ec31ac79087b85145b73f1c905cfa861c2188ab7032",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/response-2.json": "1d7a264b3a4e2fc9cb4d2234e6a5d7475ca18931a6bd21c58fc63e21edafa4f8",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/result.json": "2e238d67d9979f9d94981a71b99b518591ce70a368c36f57bfd2cd1090507001",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/extraction-instructions.mjs": "08d325eae5d084426d747356ca99c677e6d342b226fae077762bd7cfa4ec8454",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/local-ocr.mjs": "9b19c8324db6597a053dab8d2b8069bee42e9eed2fc92f073afcd96bdd72bdda",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/local-vision.mjs": "43dc2451dd291fa7d1238ea28c457e97591c2e243dab0823630032f3c38219ea",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/local_image_guard.py": "b9ec1565a274993a6f0da00db313bf75dca93acb5b9463bc5163ccc61b112300",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/local_ocr_models.py": "fbfa4219fe787e472bb601f3ea656d341d4448d4f653fa3fff1db28f3c97ceea",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/local_ocr_worker.py": "ef4dcd6260b531d240f4d14135b00d02a305933b8d09ee046d8c32e6e5abb54d",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/private-paths.mjs": "025ecb074fce43c7d0fe557686fd2532c165adb3a06bc932960e50fb79ec4395",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/private-process.mjs": "cb2bc1ac03abc6e83993c6b9545fafdbc5988b7fbf6b509caefc95c2558f1200",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/server/receipt-api.mjs": "c5a13f260981d999c9b4a1e5647e1ccc278c5a6817319fd48e23634939ff4288",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/compared-reader.ts": "a38b14a7bd2645b0e5734c17996b7ffc7f4608eca368c89e019d3ec6d3611218",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/costco-row.ts": "566b9da221ba823f84dea3384e43ae18bec7effb9e344f3ab2cad7d8809a7ca3",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/demo.ts": "b70d2182c6a8659db19d853e026855412c813a5cf8d0909043c8f04b88cb2dbd",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/engine.ts": "921a73364fad8ff914f53bcb677e07f79d1ba0ca2b00c311f2971117de8135a1",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/extraction-schema.mjs": "ef3b2d6e323f5ba8f249884956b43c755b6c6928e2995a3cc204a146826ad2dc",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/gemini.ts": "e2fc5a22b3cb9e6bf76e8a628b7574ece3313b4ebbec40639482977359f64b5b",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/image-quality.ts": "583e20c71a17d5e40c7977ba6ec8218bc099c4e1cb1e9b676ee741c879c56832",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/images.ts": "3949ec2e9c4c4d963c9869cb1a0eda4499410c2fc19777ec5c55ac1882f5e3a9",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/join-vision-batches.ts": "4b052b4e32388c1ce9e8078b5efdc42287b7b05e64483acba8fae5a09c9e0443",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/local-model.ts": "2b5a7c66245200aeed01f7ef9f2879e486ea759e03975c1b48580f55f87b1293",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/local-vision-batches.ts": "52d45a1112ee442097cb4afff0f45a3f1c084d7c62b8c3c06e965b7f46c85baf",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/local-vision.ts": "eae4d42e4b874a64f92736bd0c1a026e1ecc8bd46693bba5107b0a6b58e8f954",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/model.ts": "7c8796267d60b8c25ad97737e27fdc6c2ea50c0b1d63d0a0ab8535a1e3e9e10b",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/money.ts": "8003358751be960d81227dd92551471dfdd1675d25608e8839616919d604d04f",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/ocr.ts": "a61aff67e5f83585a4cdd1af54d893ca26ffe53cc20080f611737ad575036f50",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/panel-transport.ts": "7bec9ab43b23a18b2b4928fc351854e2c8bfaf9dfb3dad48a5e26e94321d43d2",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/parser.ts": "81f52558244994a56f0f3a6a2eb4b965c6e55109af4e45ec0efce0d371847e81",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/pdf-text.ts": "5288c485fd75d2f6aaa027bac735ae4b794177cf8159cdf4c52dc47f6cecb10d",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/pdf.ts": "593ebe1b0b4fb6d1d4bf1e0a8fca74c62f3822ca3d4fe710fa8d55b93be2832b",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/printed-amount.ts": "d9a03eb8bbd0e9f95bf0ceae46a6ead158319015f2a9fbd535e25a88af125887",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/receipt-date.ts": "ef62e655f455dbf99e760a1042db073d85347596987450591b9d5983c90408b2",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/receipt-evidence.ts": "0152b52ae63ad4f616c3940139092aaf87d00e6783d0a914be68d136b7bf69bd",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/receipt-files.ts": "c269cfd535f3816f04b2633bda1abbbe9d46d334f28d503b775b1a1963cc4181",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/receipt-layout.ts": "3ed15aec744feb3b1a73b783c4dd5cd72bc96c46c55898a46a519f55a23654cb",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/receipt-summaries.ts": "b8954370e9acf1c41401458d856a228a754dd88e269408c845193511cab5d9a7",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/recognition-schema.mjs": "55650f2f8fa66df2f52c0a7c7328d9f451d369a13621c79b2a91f095ba748e60",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/review-checks.ts": "ee68ae2b2d25cd2b7c7960076f41633ca3fc9e58f9e13aa52e4b26173efd6fc0",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/scan-limits.mjs": "7fb43ae151410231b6df70ea05f97803462be8be48a19a1bc3e9803099015d41",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/storage.ts": "ab81c6319255215c651f3ea26d4a754b3b7f88ad20fb75fec2fee9800407c026",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/summary.ts": "e513f4614029738143cb5ce79bd34482e4263c4e1b4c8102039735ee1164d2ba",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/verify-readings.ts": "a7b884555774f71759f5f5ff478b0015d0e0b8f187c438d0404578fc57a3f6f8",
+    "qa-artifacts/provider-review/local-redacted-comparison-v1/source/src/lib/vision-plan.mjs": "4d6ec3c69c73d8f80f579972203e838e25f2fbccd16b577e96b77f1564b10aac",
+    "qa-artifacts/provider-review/local-redacted-visible-field-check-v1.md": "254a8f148bc182aeac8383faae4ab0907946e28ab8177ae6bd833e14e21d19bb",
+    "qa-artifacts/provider-review/run_local_redacted_comparison_v1.mjs": "ce69aba729a5dea9b9e465087b19d2e491340364b15820bf97a3a39b74727d51",
+    "qa-artifacts/provider-review/veryfi-uk-v1/manifest.json": "b7bbb2cc93a48ee9fe73a97001ef248ab13719065f8f970f3ecbd9038c5f8146",
+    "receipt_training/annotations/private/supplement-labels.jsonl": "d81abf83edfb6a1bdc167cca359dabf14c3b2f20a84b4dcce7e54dad7e69430c",
+    "receipt_training/evaluation/config.json": "2a3d8c8cb39cb25473d483b49e936c182ce513188bedb93ddf5ccf1bd710370a",
+    "receipt_training/evaluation/vision-candidate-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "receipt_training/scripts/build_provider_crop_report.py": "96da57b5bee261a8ea6f89c68cbb4bb1739febe15761f9f37bbca74a8f861a2b",
+    "receipt_training/scripts/score.py": "fe05ead24bb1664304c4ae2b13c90413340da4b6e7f98cd8d85f52b1b1a86d3a"
+  }
+}
