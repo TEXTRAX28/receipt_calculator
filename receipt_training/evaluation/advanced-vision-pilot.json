@@ -28,7 +28,7 @@
       "source_snapshots_equal_within_provider": true,
       "financial_metrics": {
         "counts": {
-          "samples": 7,
+          "samples": 6,
           "item_label_samples": 4,
           "expected_items": 55,
           "predicted_items": 9,
@@ -41,8 +41,8 @@
           "quantity_correct": 3,
           "missing_items": 52,
           "unmatched_predictions": 6,
-          "currency_known": 7,
-          "currency_unresolved": 2,
+          "currency_known": 6,
+          "currency_unresolved": 1,
           "selected_currency_correct": 3,
           "currency_correct": 3,
           "currency_dataset_context": 2,
@@ -52,14 +52,14 @@
           "subtotal_correct": 0,
           "tax_known": 3,
           "tax_correct": 0,
-          "reconciliation_unavailable": 7,
+          "reconciliation_unavailable": 6,
           "trusted_reconciliation_known": 6,
           "trusted_reconciliation_correct": 0,
           "complete_receipt_known": 1,
-          "complete_receipt_unscorable": 6,
+          "complete_receipt_unscorable": 5,
           "processing_errors": 0,
-          "requires_review": 7,
-          "merchant_known": 5,
+          "requires_review": 6,
+          "merchant_known": 4,
           "merchant_correct": 2,
           "item_discount_known": 21,
           "item_discount_correct": 0,
@@ -89,8 +89,8 @@
         },
         "merchant": {
           "correct": 2,
-          "count": 5,
-          "rate": 0.4
+          "count": 4,
+          "rate": 0.5
         },
         "item_price": {
           "correct": 3,
@@ -124,8 +124,8 @@
         },
         "currency": {
           "correct": 3,
-          "count": 7,
-          "rate": 0.4286
+          "count": 6,
+          "rate": 0.5
         },
         "subtotal": {
           "correct": 0,
@@ -158,11 +158,11 @@
           "rate": 1.0
         },
         "latency_ms": {
-          "samples": 7,
-          "median": 2368,
-          "mean": 3226.714285714286,
+          "samples": 6,
+          "median": 2107.5,
+          "mean": 3369.8333333333335,
           "p95_nearest_rank": 9601,
-          "total": 22587
+          "total": 20219
         }
       },
       "per_financial_case": [
@@ -634,37 +634,6 @@
             }
           ],
           "scanner_issue_count": 2,
-          "scanner_discrepancy_minor": null
-        },
-        {
-          "receipt_id": "costco-tw-photo-20130612",
-          "category": "costco/physical",
-          "country": "TW",
-          "currency": "TWD",
-          "split": "development",
-          "counts": {
-            "samples": 1,
-            "item_label_samples": 0,
-            "expected_items": 0,
-            "predicted_items": 0,
-            "matched_items": 0,
-            "merchant_known": 1,
-            "merchant_correct": 0,
-            "missing_items": 0,
-            "currency_known": 1,
-            "currency_unresolved": 1,
-            "selected_currency_correct": 0,
-            "currency_correct": 0,
-            "currency_dataset_context": 0,
-            "reconciliation_unavailable": 1,
-            "complete_receipt_known": 0,
-            "complete_receipt_unscorable": 1,
-            "processing_errors": 0,
-            "requires_review": 1
-          },
-          "elapsed_ms": 2368,
-          "errors": [],
-          "scanner_issue_count": 3,
           "scanner_discrepancy_minor": null
         },
         {
@@ -1428,7 +1397,13 @@
           "scanner_discrepancy_minor": null
         }
       ],
-      "nonfinancial_controls": []
+      "nonfinancial_controls": [
+        {
+          "id": "costco-tw-photo-20130612",
+          "error": false,
+          "predicted_purchases": 1
+        }
+      ]
     },
     "Paddle_current_layout": {
       "runs": [
@@ -1446,7 +1421,7 @@
       "source_snapshots_equal_within_provider": true,
       "financial_metrics": {
         "counts": {
-          "samples": 7,
+          "samples": 6,
           "item_label_samples": 4,
           "expected_items": 55,
           "predicted_items": 54,
@@ -1460,8 +1435,8 @@
           "quantity_correct": 24,
           "missing_items": 7,
           "unmatched_predictions": 6,
-          "currency_known": 7,
-          "currency_unresolved": 6,
+          "currency_known": 6,
+          "currency_unresolved": 5,
           "selected_currency_correct": 3,
           "currency_correct": 1,
           "currency_dataset_context": 2,
@@ -1478,12 +1453,12 @@
           "trusted_reconciliation_known": 6,
           "trusted_reconciliation_correct": 1,
           "complete_receipt_known": 1,
-          "complete_receipt_unscorable": 6,
+          "complete_receipt_unscorable": 5,
           "processing_errors": 0,
-          "requires_review": 7,
-          "reconciliation_unavailable": 4,
-          "merchant_known": 5,
-          "merchant_correct": 4,
+          "requires_review": 6,
+          "reconciliation_unavailable": 3,
+          "merchant_known": 4,
+          "merchant_correct": 3,
           "item_discount_known": 21,
           "item_discount_matched_known": 21,
           "item_discount_correct": 19,
@@ -1511,9 +1486,9 @@
           "rate": 0.8182
         },
         "merchant": {
-          "correct": 4,
-          "count": 5,
-          "rate": 0.8
+          "correct": 3,
+          "count": 4,
+          "rate": 0.75
         },
         "item_price": {
           "correct": 25,
@@ -1547,8 +1522,8 @@
         },
         "currency": {
           "correct": 1,
-          "count": 7,
-          "rate": 0.1429
+          "count": 6,
+          "rate": 0.1667
         },
         "subtotal": {
           "correct": 1,
@@ -1581,11 +1556,11 @@
           "rate": 0.5208
         },
         "latency_ms": {
-          "samples": 7,
-          "median": 6045,
-          "mean": 6529,
+          "samples": 6,
+          "median": 5377.0,
+          "mean": 6609,
           "p95_nearest_rank": 14440,
-          "total": 45703
+          "total": 39654
         }
       },
       "per_financial_case": [
@@ -1950,37 +1925,6 @@
           "scanner_discrepancy_minor": null
         },
         {
-          "receipt_id": "costco-tw-photo-20130612",
-          "category": "costco/physical",
-          "country": "TW",
-          "currency": "TWD",
-          "split": "development",
-          "counts": {
-            "samples": 1,
-            "item_label_samples": 0,
-            "expected_items": 0,
-            "predicted_items": 0,
-            "matched_items": 0,
-            "merchant_known": 1,
-            "merchant_correct": 1,
-            "missing_items": 0,
-            "currency_known": 1,
-            "currency_unresolved": 1,
-            "selected_currency_correct": 0,
-            "currency_correct": 0,
-            "currency_dataset_context": 0,
-            "reconciliation_unavailable": 1,
-            "complete_receipt_known": 0,
-            "complete_receipt_unscorable": 1,
-            "processing_errors": 0,
-            "requires_review": 1
-          },
-          "elapsed_ms": 6049,
-          "errors": [],
-          "scanner_issue_count": 2,
-          "scanner_discrepancy_minor": null
-        },
-        {
           "receipt_id": "supplement-user-uk-20261026-group",
           "category": "costco/physical",
           "country": "GB",
@@ -2195,7 +2139,13 @@
           "scanner_discrepancy_minor": null
         }
       ],
-      "nonfinancial_controls": []
+      "nonfinancial_controls": [
+        {
+          "id": "costco-tw-photo-20130612",
+          "error": false,
+          "predicted_purchases": 0
+        }
+      ]
     },
     "docTR_current_layout": {
       "runs": [
@@ -2213,7 +2163,7 @@
       "source_snapshots_equal_within_provider": true,
       "financial_metrics": {
         "counts": {
-          "samples": 7,
+          "samples": 6,
           "item_label_samples": 4,
           "expected_items": 55,
           "predicted_items": 52,
@@ -2227,8 +2177,8 @@
           "quantity_correct": 24,
           "missing_items": 7,
           "unmatched_predictions": 4,
-          "currency_known": 7,
-          "currency_unresolved": 6,
+          "currency_known": 6,
+          "currency_unresolved": 5,
           "selected_currency_correct": 3,
           "currency_correct": 1,
           "currency_dataset_context": 2,
@@ -2245,11 +2195,11 @@
           "trusted_reconciliation_known": 6,
           "trusted_reconciliation_correct": 0,
           "complete_receipt_known": 1,
-          "complete_receipt_unscorable": 6,
+          "complete_receipt_unscorable": 5,
           "processing_errors": 0,
-          "requires_review": 7,
-          "reconciliation_unavailable": 4,
-          "merchant_known": 5,
+          "requires_review": 6,
+          "reconciliation_unavailable": 3,
+          "merchant_known": 4,
           "merchant_correct": 3,
           "item_discount_known": 21,
           "item_discount_matched_known": 20,
@@ -2279,8 +2229,8 @@
         },
         "merchant": {
           "correct": 3,
-          "count": 5,
-          "rate": 0.6
+          "count": 4,
+          "rate": 0.75
         },
         "item_price": {
           "correct": 24,
@@ -2314,8 +2264,8 @@
         },
         "currency": {
           "correct": 1,
-          "count": 7,
-          "rate": 0.1429
+          "count": 6,
+          "rate": 0.1667
         },
         "subtotal": {
           "correct": 0,
@@ -2348,11 +2298,11 @@
           "rate": 0.5
         },
         "latency_ms": {
-          "samples": 7,
-          "median": 9160,
-          "mean": 10729.857142857143,
+          "samples": 6,
+          "median": 9580.0,
+          "mean": 11627.5,
           "p95_nearest_rank": 30064,
-          "total": 75109
+          "total": 69765
         }
       },
       "per_financial_case": [
@@ -2707,37 +2657,6 @@
           "scanner_discrepancy_minor": null
         },
         {
-          "receipt_id": "costco-tw-photo-20130612",
-          "category": "costco/physical",
-          "country": "TW",
-          "currency": "TWD",
-          "split": "development",
-          "counts": {
-            "samples": 1,
-            "item_label_samples": 0,
-            "expected_items": 0,
-            "predicted_items": 0,
-            "matched_items": 0,
-            "merchant_known": 1,
-            "merchant_correct": 0,
-            "missing_items": 0,
-            "currency_known": 1,
-            "currency_unresolved": 1,
-            "selected_currency_correct": 0,
-            "currency_correct": 0,
-            "currency_dataset_context": 0,
-            "reconciliation_unavailable": 1,
-            "complete_receipt_known": 0,
-            "complete_receipt_unscorable": 1,
-            "processing_errors": 0,
-            "requires_review": 1
-          },
-          "elapsed_ms": 5344,
-          "errors": [],
-          "scanner_issue_count": 2,
-          "scanner_discrepancy_minor": null
-        },
-        {
           "receipt_id": "supplement-user-uk-20261026-group",
           "category": "costco/physical",
           "country": "GB",
@@ -2957,7 +2876,13 @@
           "scanner_discrepancy_minor": null
         }
       ],
-      "nonfinancial_controls": []
+      "nonfinancial_controls": [
+        {
+          "id": "costco-tw-photo-20130612",
+          "error": false,
+          "predicted_purchases": 0
+        }
+      ]
     },
     "Qwen_current_protocol": {
       "runs": [
@@ -2975,7 +2900,7 @@
       "source_snapshots_equal_within_provider": true,
       "financial_metrics": {
         "counts": {
-          "samples": 7,
+          "samples": 6,
           "item_label_samples": 4,
           "expected_items": 55,
           "predicted_items": 19,
@@ -2988,8 +2913,8 @@
           "quantity_correct": 15,
           "missing_items": 40,
           "unmatched_predictions": 4,
-          "currency_known": 7,
-          "currency_unresolved": 5,
+          "currency_known": 6,
+          "currency_unresolved": 4,
           "selected_currency_correct": 3,
           "currency_correct": 2,
           "currency_dataset_context": 2,
@@ -2999,19 +2924,19 @@
           "subtotal_correct": 1,
           "tax_known": 3,
           "tax_correct": 1,
-          "reconciliation_unavailable": 3,
+          "reconciliation_unavailable": 2,
           "trusted_reconciliation_known": 6,
           "trusted_reconciliation_correct": 0,
           "complete_receipt_known": 1,
-          "complete_receipt_unscorable": 6,
+          "complete_receipt_unscorable": 5,
           "processing_errors": 2,
-          "requires_review": 7,
+          "requires_review": 6,
           "item_price_matched_known": 15,
           "reconciliation_checked": 4,
           "reconciliation_failed": 3,
           "reconciliation_with_validation_issues": 4,
           "untrusted_zero_discrepancy": 1,
-          "merchant_known": 5,
+          "merchant_known": 4,
           "merchant_correct": 1,
           "item_discount_known": 21,
           "item_discount_correct": 0,
@@ -3041,8 +2966,8 @@
         },
         "merchant": {
           "correct": 1,
-          "count": 5,
-          "rate": 0.2
+          "count": 4,
+          "rate": 0.25
         },
         "item_price": {
           "correct": 15,
@@ -3076,8 +3001,8 @@
         },
         "currency": {
           "correct": 2,
-          "count": 7,
-          "rate": 0.2857
+          "count": 6,
+          "rate": 0.3333
         },
         "subtotal": {
           "correct": 1,
@@ -3110,11 +3035,11 @@
           "rate": 1.0
         },
         "latency_ms": {
-          "samples": 7,
-          "median": 25878,
-          "mean": 26404,
+          "samples": 6,
+          "median": 26122.5,
+          "mean": 28919,
           "p95_nearest_rank": 45931,
-          "total": 184828
+          "total": 173514
         }
       },
       "per_financial_case": [
@@ -3510,37 +3435,6 @@
           "errors": [],
           "scanner_issue_count": 3,
           "scanner_discrepancy_minor": "0"
-        },
-        {
-          "receipt_id": "costco-tw-photo-20130612",
-          "category": "costco/physical",
-          "country": "TW",
-          "currency": "TWD",
-          "split": "development",
-          "counts": {
-            "samples": 1,
-            "item_label_samples": 0,
-            "expected_items": 0,
-            "predicted_items": 0,
-            "matched_items": 0,
-            "merchant_known": 1,
-            "merchant_correct": 0,
-            "missing_items": 0,
-            "currency_known": 1,
-            "currency_unresolved": 1,
-            "selected_currency_correct": 0,
-            "currency_correct": 0,
-            "currency_dataset_context": 0,
-            "reconciliation_unavailable": 1,
-            "complete_receipt_known": 0,
-            "complete_receipt_unscorable": 1,
-            "processing_errors": 0,
-            "requires_review": 1
-          },
-          "elapsed_ms": 11314,
-          "errors": [],
-          "scanner_issue_count": 3,
-          "scanner_discrepancy_minor": null
         },
         {
           "receipt_id": "supplement-user-uk-20261026-group",
@@ -4185,7 +4079,13 @@
           "scanner_discrepancy_minor": "2773"
         }
       ],
-      "nonfinancial_controls": []
+      "nonfinancial_controls": [
+        {
+          "id": "costco-tw-photo-20130612",
+          "error": false,
+          "predicted_purchases": 0
+        }
+      ]
     }
   },
   "vision_process_metrics": {
@@ -4216,5 +4116,6 @@
     "The long Costco output included coupon/summary errors; fixing number formatting alone does not establish correct semantics.",
     "Original manual labels are partial except for the supplied source-checked transaction; CORD labels can omit modifiers. Strict complete-financial denominator for the original set remains zero.",
     "The benchmark CLI is experimental/deprecated in this runtime; no public serving, OS sandbox, consumer integration or on-phone deployment was validated."
-  ]
+  ],
+  "control_classification_basis": "Uses the sealed predeclared nonfinancial-control role. Source visually rechecked as a photo-order form with no purchase prices. Original real_receipt=true and included_in_pilot=false metadata is preserved; broad source-document authenticity is not used as financial eligibility."
 }

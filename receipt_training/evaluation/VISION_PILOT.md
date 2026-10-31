@@ -4,7 +4,7 @@ The pinned candidate is Qwen3-VL-4B-Instruct, Q4_K_M language weights plus its Q
 
 Seven cases were declared before real inference: the first two CORD development IDs, the first Taiwan Costco sample, Bristol Costco, historical Tesco, the supplied grouped UK receipt as a separate development supplement, and the original nonfinancial control. There are six financial receipts. No original evaluation-set ID was selected. Every vision image panel was hash-checked against the same frozen JPEG bytes used by the OCR candidates. The vision model saw images and a fixed extraction instruction/schema, without OCR text or labels. All inference was local; receipt API charges and external receipt uploads were zero. Hardware/hosting compute cost is unmeasured.
 
-The original 50-receipt comparison remains separate. These small development results cannot replace it.
+The original 50-receipt comparison remains separate. These small development results cannot replace it. Financial eligibility follows the sealed pilot's declared roles. The control was visually rechecked as a photo-order form with no purchase prices; its original broad `real_receipt=true` / `included_in_pilot=false` metadata remains unchanged. It is scored separately from the six financial cases.
 
 | Six financial pilot receipts | Frozen Tesseract baseline | Current Paddle pipeline | Current docTR pipeline | This Qwen protocol |
 |---|---:|---:|---:|---:|
