@@ -80,7 +80,7 @@ if (httpLocal) {
   const python = env.LOCAL_OCR_PYTHON || "", engine = env.LOCAL_OCR_ENGINE || "paddle-v6";
   if (!isAbsolute(python) || !["paddle-v6", "doctr"].includes(engine))
     throw new Error("Configure an absolute LOCAL_OCR_PYTHON path and a supported LOCAL_OCR_ENGINE before a live benchmark");
-  const runtimeFiles = ["server/receipt-api.mjs", "server/local-ocr.mjs", "server/local-model-manifest.json", "server/local_ocr_worker.py", "server/local_ocr_models.py"];
+  const runtimeFiles = ["server/receipt-api.mjs", "server/extraction-instructions.mjs", "server/local-ocr.mjs", "server/local-model-manifest.json", "server/local_ocr_worker.py", "server/local_ocr_models.py"];
   for (const name of runtimeFiles) {
     const bytes = await readFile(resolve(project, name));
     runtimeHashes[name] = sha(bytes);

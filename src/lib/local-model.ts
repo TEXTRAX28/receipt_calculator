@@ -11,14 +11,24 @@ const capabilities = z.object({
     configured: z.boolean(),
     name: z.enum(["PaddleOCR", "docTR"]),
   }),
+  localVision: z
+    .object({
+      configured: z.boolean(),
+      name: z.string().max(100),
+      maxPanels: z.number().int().min(1).max(3),
+    })
+    .optional(),
 });
-export async function localModelConfiguration(signal: AbortSignal) {
+export async function localReaderConfiguration(signal: AbortSignal) {
   const response = await fetch("./api/receipts/providers", {
     signal,
     cache: "no-store",
   });
   if (!response.ok) throw new Error("Computer reader unavailable");
-  return capabilities.parse(await response.json()).localModel;
+  return capabilities.parse(await response.json());
+}
+export async function localModelConfiguration(signal: AbortSignal) {
+  return (await localReaderConfiguration(signal)).localModel;
 }
 
 export async function extractWithLocalModel(

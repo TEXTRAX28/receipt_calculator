@@ -75,6 +75,17 @@ afterEach(async () => {
 });
 
 describe("bounded local-model process bridge (protocol fixture, no OCR accuracy claim)", () => {
+  it("releases the idle model for vision and restarts it for a later OCR scan", async () => {
+    const { model, root, starts } = await reader();
+    await model.extract(panels("FIRST"));
+    await model.release();
+    expect(model.configured).toBe(true);
+    expect(
+      (await model.extract(panels("SECOND"))).panels[0].lines[0].text,
+    ).toBe("SECOND");
+    expect(starts()).toBe(2);
+    expect(await readdir(root)).toEqual([]);
+  });
   it("reuses one worker, preserves split UTF-8 and removes every job's files", async () => {
     const { model, root, starts } = await reader();
     expect((await model.extract(panels("MILK"))).panels[0].lines[0].text).toBe(
@@ -192,7 +203,10 @@ describe("local recognition shares the receipt API security boundary", () => {
     const { base, post, fetcher } = await api();
     expect(
       await (await fetch(`${base}/api/receipts/providers`)).json(),
-    ).toEqual({ localModel: { configured: false, name: "PaddleOCR" } });
+    ).toEqual({
+      localModel: { configured: false, name: "PaddleOCR" },
+      localVision: { configured: false, name: "Qwen3-VL 4B", maxPanels: 3 },
+    });
     expect((await post()).status).toBe(503);
     expect(fetcher).not.toHaveBeenCalled();
   });

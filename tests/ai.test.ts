@@ -96,7 +96,9 @@ describe("Gemini receipts are evidence for the exact engine", () => {
       items: draft.items.slice(1),
     });
     expect(receipt.items).toHaveLength(17);
-    expect(receipt.warnings.join(" ")).toMatch(/says 18 items.*found 17/);
+    expect(receipt.warnings.join(" ")).toMatch(
+      /read an item count of 18.*found 17/,
+    );
     expect(receipt.warnings.join(" ")).toMatch(/Currency was unclear/);
     expect(receipt.warnings.join(" ")).toMatch(/could not determine/);
     expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);

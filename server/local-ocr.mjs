@@ -61,7 +61,7 @@ const cancelled = () =>
   );
 
 // Keep provider credentials out of the model process, including unrelated keys.
-function workerEnvironment() {
+export function workerEnvironment() {
   const names = [
     "SystemRoot",
     "WINDIR",
@@ -375,6 +375,11 @@ export function createLocalModelReader({
           }
         }
       }
+    },
+    async release() {
+      if (active)
+        throw new LocalOcrError(429, "A computer scan is already running.");
+      await stop();
     },
     async dispose() {
       disposed = true;

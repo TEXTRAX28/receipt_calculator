@@ -55,6 +55,24 @@ The computer reader appears when its interpreter and verified model files are pr
 
 This runs on the computer hosting Gather. It is not phone on-device inference. Access from a separate phone still needs an accessible, secured server URL; the current server accepts loopback only.
 
+## Optional experimental local vision (Windows)
+
+The **Local vision** reader uses the pinned Qwen3-VL 4B model and native Vulkan runtime from the recorded comparison. It is an optional development reader, and every resulting purchase and amount still needs review. Known coupon and unprinted-metadata errors remain; balanced arithmetic alone does not prove accurate extraction. The current profile accepts at most three prepared image sections together; a tall photo can produce several sections. Longer inputs are rejected before upload instead of silently dropping sections. The on-device, computer OCR and Gemini readers retain their larger input limits. Automatic long-receipt vision batching and measured hybrid recovery remain unfinished.
+
+Install the optional computer reader's Python environment above first, then download/verify the separate public vision assets:
+
+```powershell
+py -3.12 receipt_training/scripts/setup_vision_candidate.py
+```
+
+This downloads approximately 3 GB of pinned public models/runtime files into the ignored local cache and sends no receipts. On an already prepared checkout, add `--check` for offline verification. Set the following in your ignored `.env.local`, retain the absolute `LOCAL_OCR_PYTHON` path, then restart Gather:
+
+```dotenv
+LOCAL_VISION_ENABLED=1
+```
+
+Choose **Local vision** after uploading your photos. No cloud key or upload consent is needed for this reader. It validates complete JPEG decoding in a bounded Python process, verifies the model/runtime assets before the first inference, unloads an idle computer OCR worker, and launches the fixed native model profile. Temporary inputs and the process are removed when the scan finishes or is cancelled. If cleanup or process termination fails, this reader stops accepting scans and reports the need for manual recovery. Invalid JSON, invalid photo references, relaxed decoder constraints and financial inconsistencies are rejected or remain blocked in review; another service is never called automatically. Native OS isolation and crash recovery still need further work before public deployment. Reproducible comparisons and their limitations are in [the advanced OCR report](receipt_training/evaluation/ADVANCED_OCR_REPORT.md).
+
 ## Optional Gemini setup
 
 1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey). Access to the Gemini chat app is separate from API access.

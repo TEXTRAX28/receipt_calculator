@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: [
+    ...(!process.env.GATHER_LOCAL_VISION_URL
+      ? ["**/local-vision-real.spec.ts"]
+      : []),
     ...(!process.env.GATHER_REAL_RECEIPT ? ["**/real-receipt.spec.ts"] : []),
     ...(!process.env.GATHER_LOCAL_MODEL_URL
       ? ["**/computer-reader-real.spec.ts"]

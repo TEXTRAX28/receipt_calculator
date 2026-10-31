@@ -64,8 +64,9 @@ import { localOcrProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import {
   extractWithLocalModel,
-  localModelConfiguration,
+  localReaderConfiguration,
 } from "./lib/local-model";
+import { extractWithLocalVision } from "./lib/local-vision";
 import { MAX_RECEIPT_IMAGES, MAX_BATCH_BYTES } from "./lib/scan-limits.mjs";
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
@@ -226,15 +227,20 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
-  const [reader, setReader] = useState<"local" | "computer" | "gemini">(
-    "local",
-  );
+  const [reader, setReader] = useState<
+    "local" | "computer" | "vision" | "gemini"
+  >("local");
   const readerChosen = useRef(false);
   const [computerConfig, setComputerConfig] = useState<{
     configured: boolean;
     name: string;
   } | null>(null);
   const [aiConsented, setAiConsented] = useState(false);
+  const [visionConfig, setVisionConfig] = useState<{
+    configured: boolean;
+    name: string;
+    maxPanels: number;
+  } | null>(null);
   const [aiConfig, setAiConfig] = useState<{
     configured: boolean;
     model: string;
@@ -280,13 +286,15 @@ export default function App() {
   }, [images]);
   useEffect(() => {
     const check = new AbortController();
-    localModelConfiguration(
+    localReaderConfiguration(
       AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
     )
       .then((config) => {
         if (check.signal.aborted) return;
-        setComputerConfig(config);
-        if (config.configured && !readerChosen.current) setReader("computer");
+        setComputerConfig(config.localModel);
+        setVisionConfig(config.localVision || null);
+        if (config.localModel.configured && !readerChosen.current)
+          setReader("computer");
       })
       .catch(() => {});
     return () => check.abort();
@@ -480,11 +488,24 @@ export default function App() {
     if (busyRef.current || !images.length || !canReplace()) return;
     if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
     if (reader === "computer" && !computerConfig?.configured) return;
+    if (reader === "vision" && !visionConfig?.configured) return;
     busyRef.current = true;
     setBusy(true);
     setImageError("");
     controller.current = new AbortController();
     try {
+      if (reader === "vision") {
+        const parsed = await extractWithLocalVision(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
+        replaceReceipt(parsed);
+        setNotice(
+          "Local vision finished. This reader is experimental: check every purchase, discount, tax setting and amount against your photos before confirming.",
+        );
+        return;
+      }
       if (reader === "gemini") {
         const parsed = await extractWithGemini(
           images,
@@ -986,6 +1007,20 @@ export default function App() {
                         <ScanLine size={17} /> This computer
                       </button>
                     )}
+                    {visionConfig?.configured && (
+                      <button
+                        type="button"
+                        className={`button ${reader === "vision" ? "button-primary" : "button-outline"}`}
+                        aria-pressed={reader === "vision"}
+                        onClick={() => {
+                          readerChosen.current = true;
+                          setReader("vision");
+                          setAiConsented(false);
+                        }}
+                      >
+                        <Sparkles size={17} /> Local vision
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`button ${reader === "gemini" ? "button-primary" : "button-outline"}`}
@@ -1012,6 +1047,14 @@ export default function App() {
                       scan takes longer while the reader starts. Check
                       quantities, amounts and overlapping rows against the
                       originals.
+                    </p>
+                  ) : reader === "vision" ? (
+                    <p className="hint">
+                      Experimental vision reader on this computer. It can take a
+                      minute and currently reads up to{" "}
+                      {visionConfig?.maxPanels || 3} prepared sections together.
+                      Check every amount and overlapping row; use another reader
+                      for longer receipts.
                     </p>
                   ) : (
                     <div className="ai-reader-info">
@@ -1090,6 +1133,7 @@ export default function App() {
                       className="button button-primary full-width"
                       disabled={
                         busy ||
+                        (reader === "vision" && !visionConfig?.configured) ||
                         (reader === "gemini" &&
                           (!aiConsented || !aiConfig?.configured || checkingAi))
                       }
@@ -1106,7 +1150,9 @@ export default function App() {
                           ? "Read receipt with Gemini"
                           : reader === "computer"
                             ? "Read receipt on this computer"
-                            : "Read receipt on this device"}
+                            : reader === "vision"
+                              ? "Read receipt with local vision"
+                              : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -1124,7 +1170,7 @@ export default function App() {
                   <span>
                     {reader === "local"
                       ? "On-device OCR keeps your photos on this device."
-                      : reader === "computer"
+                      : reader === "computer" || reader === "vision"
                         ? "Photos are processed on this computer and temporary files are removed after reading."
                         : "Gemini only receives photos when you agree and start a scan."}
                   </span>

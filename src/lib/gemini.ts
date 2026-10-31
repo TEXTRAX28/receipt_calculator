@@ -4,13 +4,17 @@ import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { z } from "zod";
+import { normalizeReceiptDate } from "./receipt-date";
 
-export function receiptFromAi(output: unknown): Receipt {
+export function receiptFromAi(
+  output: unknown,
+  provider: "Gemini" | "Local vision" = "Gemini",
+): Receipt {
   const data = aiReceiptSchema.parse(output);
   const receipt = newReceipt();
   receipt.source = "ai";
   receipt.merchant = data.merchant;
-  receipt.date = data.date;
+  receipt.date = normalizeReceiptDate(data.date);
   receipt.currency = data.currency || "GBP";
   receipt.currencyUnresolved = !data.currency;
   receipt.subtotal = data.subtotal;
@@ -46,7 +50,7 @@ export function receiptFromAi(output: unknown): Receipt {
     if (!receipt.taxCodes.some((entry) => entry.code === taxCode))
       receipt.taxCodes.push({ code: taxCode, rate: "" });
   receipt.warnings = [
-    "Gemini prepared this draft from your photos. Check every purchase, discount, tax code and the printed total against the originals.",
+    `${provider} prepared this draft from your photos. Check every purchase, discount, tax code and the printed total against the originals.`,
     ...data.warnings,
   ];
   if (!data.currency)
@@ -55,7 +59,7 @@ export function receiptFromAi(output: unknown): Receipt {
     );
   if (data.pricesIncludeTax === null) {
     receipt.warnings.push(
-      "Gemini could not determine whether item prices include tax. Confirm the tax setting before continuing.",
+      `${provider} could not determine whether item prices include tax. Confirm the tax setting before continuing.`,
     );
     // The review still requires human confirmation even if the provisional arithmetic balances.
   }
@@ -64,7 +68,7 @@ export function receiptFromAi(output: unknown): Receipt {
     data.printedItemCount !== receipt.items.length
   )
     receipt.warnings.push(
-      `The receipt says ${data.printedItemCount} items, but Gemini found ${receipt.items.length} purchase lines. Check for missing rows or overlapping captures; printed counts can also include quantities.`,
+      `${provider} read an item count of ${data.printedItemCount}, but found ${receipt.items.length} purchase lines. Check the count against the original and look for missing rows or overlapping captures; printed counts can also include quantities.`,
     );
   return receiptSchema.parse(receipt);
 }

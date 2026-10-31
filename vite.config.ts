@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { createReceiptApi } from "./server/receipt-api.mjs";
 import { createLocalModelReader } from "./server/local-ocr.mjs";
+import { createLocalVisionReader } from "./server/local-vision.mjs";
+import { privateFileDeny } from "./server/private-paths.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -11,12 +13,18 @@ export default defineConfig(({ mode }) => {
       python: env.LOCAL_OCR_PYTHON || "",
       engine: env.LOCAL_OCR_ENGINE || "paddle-v6",
     });
+    const localVision = createLocalVisionReader({
+      enabled: env.LOCAL_VISION_ENABLED === "1",
+      python: env.LOCAL_OCR_PYTHON || "",
+    });
     return {
       localReader,
+      localVision,
       handler: createReceiptApi({
         apiKey: env.GEMINI_API_KEY || "",
         model: env.GEMINI_MODEL || undefined,
         localReader,
+        localVision,
       }),
     };
   };
@@ -30,6 +38,7 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use(reader.handler);
           server.httpServer?.once("close", () => {
             void reader.localReader.dispose().catch(() => {});
+            void reader.localVision.dispose().catch(() => {});
           });
         },
         configurePreviewServer(server) {
@@ -37,6 +46,7 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use(reader.handler);
           server.httpServer?.once("close", () => {
             void reader.localReader.dispose().catch(() => {});
+            void reader.localVision.dispose().catch(() => {});
           });
         },
       },
@@ -62,6 +72,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "127.0.0.1",
       strictPort: true,
+      fs: { deny: privateFileDeny },
       watch: {
         ignored: [
           "**/receipt_training/.cache/**",

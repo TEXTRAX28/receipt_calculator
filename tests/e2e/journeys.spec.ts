@@ -80,11 +80,9 @@ test("unknown currency stays unpriced until explicitly selected, including the e
     ).violations,
   ).toEqual([]);
   await mkdir("qa-artifacts", { recursive: true });
-  await page
-    .locator(".metadata")
-    .screenshot({
-      path: `qa-artifacts/currency-metadata-${info.project.name}.png`,
-    });
+  await page.locator(".metadata").screenshot({
+    path: `qa-artifacts/currency-metadata-${info.project.name}.png`,
+  });
   await page.screenshot({
     path: `qa-artifacts/currency-unresolved-${info.project.name}.png`,
     fullPage: true,
