@@ -2597,6 +2597,7 @@ export default function App() {
             item={sourceItem}
             index={sourceItemIndex}
             evidence={selectedSource}
+            localReader={computerConfig?.configured ? "computer" : "device"}
           >
             <div className="source-edit-fields">
               <Field

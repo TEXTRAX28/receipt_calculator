@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
+import ReceiptAreaReader from "./ReceiptAreaReader";
 import type { Item } from "./lib/model";
 import {
   itemReadStamp,
@@ -49,6 +50,7 @@ export default function ReceiptSource({
   title,
   currentStamp,
   evidence,
+  localReader,
   children,
 }: {
   item?: Item;
@@ -56,6 +58,7 @@ export default function ReceiptSource({
   title?: string;
   currentStamp?: string;
   evidence: ItemEvidence;
+  localReader?: "computer" | "device";
   children: ReactNode;
 }) {
   const [active, setActive] = useState(0);
@@ -108,6 +111,13 @@ export default function ReceiptSource({
         <summary>Recognized text in this area</summary>
         <pre>{panel.regions.map((r) => r.text).join("\n")}</pre>
       </details>
+      {localReader && (
+        <ReceiptAreaReader
+          key={`${panel.photo}:${panel.part}`}
+          panel={panel}
+          reader={localReader}
+        />
+      )}
       {children}
     </div>
   );

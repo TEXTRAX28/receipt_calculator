@@ -5,10 +5,16 @@ export default function ImageCropper({
   image,
   onApply,
   onCancel,
+  title = "Just the receipt, please.",
+  description = "Trim away the table, carpet or background. Keep all receipt text inside the green frame. Your original photo stays available for review.",
+  applyLabel = "Apply crop",
 }: {
   image: ReceiptImage;
   onApply: (image: ReceiptImage) => void;
   onCancel: () => void;
+  title?: string;
+  description?: string;
+  applyLabel?: string;
 }) {
   const [bounds, setBounds] = useState<CropBounds>(
     image.crop || { left: 0, right: 0, top: 0, bottom: 0 },
@@ -42,11 +48,8 @@ export default function ImageCropper({
   }
   return (
     <div className="cropper">
-      <h2>Just the receipt, please.</h2>
-      <p>
-        Trim away the table, carpet or background. Keep all receipt text inside
-        the green frame. Your original photo stays available for review.
-      </p>
+      <h2>{title}</h2>
+      <p>{description}</p>
       <div className="crop-preview">
         <img src={image.url} alt="Receipt with adjustable crop frame" />
         <div
@@ -114,7 +117,7 @@ export default function ImageCropper({
           onClick={() => void apply()}
         >
           <Check size={17} />
-          {busy ? "Cropping…" : "Apply crop"}
+          {busy ? "Cropping…" : applyLabel}
         </button>
       </div>
     </div>

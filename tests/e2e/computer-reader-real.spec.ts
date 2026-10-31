@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 test("real scanned PDF → installed computer OCR → exact split", async ({
@@ -272,6 +273,26 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
     throw new Error(
       "GATHER_LOCAL_COSTCO_PHOTOS must contain exactly two local photo paths",
     );
+  const inputHashes = await Promise.all(
+    (files as string[]).map(async (file) =>
+      createHash("sha256")
+        .update(await readFile(file))
+        .digest("hex"),
+    ),
+  );
+  const requestPanelHashes: string[][] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      requestPanelHashes.push(
+        request
+          .postDataJSON()
+          .panels.map((panel: { data: string }) =>
+            createHash("sha256")
+              .update(Buffer.from(panel.data, "base64"))
+              .digest("hex"),
+          ),
+      );
+  });
   const base = process.env.GATHER_LOCAL_MODEL_URL;
   if (!base || !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base))
     throw new Error(
@@ -351,6 +372,55 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
   );
   await clothSource.screenshot({
     path: `qa-artifacts/receipt-source-real-${test.info().project.name}.png`,
+  });
+  const beforeReread = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+  );
+  await clothSource
+    .getByRole("button", { name: "Reread this purchase", exact: true })
+    .click();
+  const areaStarted = Date.now();
+  const areaResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/receipts/recognize",
+    { timeout: 130000 },
+  );
+  await clothSource
+    .getByRole("button", { name: "Read selected area", exact: true })
+    .click();
+  await expect(clothSource.locator(".area-read-text")).toContainText(
+    /SPONTEX/i,
+    { timeout: 130000 },
+  );
+  await expect(clothSource.locator(".area-read-text")).toContainText("6.99");
+  await expect(clothSource.locator(".area-read-text")).toContainText("1.50");
+  const areaResult = await areaResponse;
+  expect(areaResult.status()).toBe(200);
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+    ),
+  ).toEqual(beforeReread);
+  const areaOutcome = {
+    actualInstalledModel: true,
+    uniqueDevelopmentTransaction: 1,
+    elapsedMs: Date.now() - areaStarted,
+    timingScope:
+      "Area crop preparation, installed PaddleOCR HTTP recognition and browser rendering; initial full receipt scan excluded, warm worker/caches; not a representative latency or phone-hardware measurement",
+    selectedPurchase: 18,
+    recognizedText: await clothSource.locator(".area-read-text").textContent(),
+    recognition: await areaResult.json(),
+    draftUnchangedAfterReread: true,
+    financialEdits: 0,
+    finalSplitVerified: false,
+    inputHashes,
+    requestPanelHashes,
+    posts,
+    external,
+  };
+  await clothSource.screenshot({
+    path: `qa-artifacts/area-reader-costco-${test.info().project.name}.png`,
   });
   await clothSource
     .getByRole("button", { name: "Back to receipt", exact: true })
@@ -457,6 +527,12 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
   await expect(page.getByTestId("person-total-0")).toHaveText("£58.93");
   await expect(page.getByTestId("person-total-1")).toHaveText("£58.93");
   await expect(page.getByTestId("person-total-2")).toHaveText("£58.92");
-  expect(posts).toEqual(["/api/receipts/recognize"]);
+  expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/recognize"]);
   expect(external).toEqual([]);
+  areaOutcome.finalSplitVerified = true;
+  await mkdir("qa-artifacts", { recursive: true });
+  await writeFile(
+    `qa-artifacts/area-reader-costco-${test.info().project.name}.json`,
+    JSON.stringify(areaOutcome, null, 2),
+  );
 });

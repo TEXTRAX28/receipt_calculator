@@ -37,6 +37,87 @@ async function setup(page: Page, computer = false) {
   return requests;
 }
 
+test("a digital purchase area can be reread by actual on-device OCR without changing its financial draft", async ({
+  page,
+}, info) => {
+  test.setTimeout(180000);
+  const requests = await setup(page);
+  await page
+    .getByLabel("Upload receipt images")
+    .setInputFiles(fixture("digital-two-page.pdf"));
+  await page
+    .getByRole("button", { name: "Read PDF text on this device", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "View source for item 2", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Receipt source for purchase 2",
+  });
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+  );
+  await dialog
+    .getByRole("button", { name: "Reread this purchase", exact: true })
+    .click();
+  await expect(dialog.getByText(/This reads on your device/)).toBeVisible();
+  const started = Date.now();
+  await dialog
+    .getByRole("button", { name: "Read selected area", exact: true })
+    .click();
+  await expect(dialog.locator(".area-read-text")).toContainText("Milk", {
+    timeout: 130000,
+  });
+  await expect(dialog.locator(".area-read-text")).toContainText("2.50");
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+    ),
+  ).toEqual(saved);
+  await expect(
+    dialog.getByLabel("Item 2 line price", { exact: true }),
+  ).toHaveValue("2.50");
+  await expect(
+    dialog.getByLabel("Item 2 purchased quantity", { exact: true }),
+  ).toHaveValue("2");
+  await mkdir("qa-artifacts", { recursive: true });
+  await dialog.screenshot({
+    path: `qa-artifacts/area-device-real-${info.project.name}.png`,
+  });
+  await writeFile(
+    `qa-artifacts/area-device-real-${info.project.name}.json`,
+    JSON.stringify(
+      {
+        synthetic: true,
+        method:
+          "actual installed browser Tesseract on a selected rendered PDF area",
+        elapsedMs: Date.now() - started,
+        timingScope:
+          "Selected-area crop preparation and browser OCR only; reused imported PDF and existing caches; not full scan latency or phone hardware",
+        recognized: await dialog.locator(".area-read-text").textContent(),
+        draftUnchanged: true,
+        ...requests,
+      },
+      null,
+      2,
+    ),
+  );
+  await dialog
+    .getByRole("button", { name: "Close dialog", exact: true })
+    .click();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "View source for item 2", exact: true }),
+  ).toHaveCount(0);
+  const persisted = await page.evaluate(() =>
+    localStorage.getItem("gather.receipt.v1")!,
+  );
+  expect(persisted).not.toContain("area-read");
+  expect(JSON.parse(persisted).receipt.rawText).toBe("");
+  expect(requests.posts).toEqual([]);
+  expect(requests.external).toEqual([]);
+});
+
 test("real PDF text → original row areas → checked three-person split, without OCR or cloud requests", async ({
   page,
 }, info) => {

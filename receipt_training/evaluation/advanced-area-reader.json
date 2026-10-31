@@ -1,0 +1,159 @@
+{
+  "scope": "Local item-area reread with manual correction; UI/integration evidence, not a new recognition cohort or stronger-provider selection",
+  "behaviour": "Source-highlighted purchases offer an adjustable area crop. Use the configured computer reader, otherwise the existing browser English OCR. New text stays transient beside the original source and editable fields. It does not update receipt values, source mappings, verification checks, assignments or confirmation stamps. Closing, changing source sections and cancellation abort owned work and discard late results.",
+  "verified_source_locations": [
+    "src/ReceiptAreaReader.tsx:L84",
+    "src/ReceiptAreaReader.tsx:L93",
+    "src/ReceiptSource.tsx:L1",
+    "src/ImageCropper.tsx:L37",
+    "src/lib/receipt-evidence.ts:L130"
+  ],
+  "real_costco_development": {
+    "unique_transactions": 1,
+    "actual_installed_reader": "PaddleOCR PP-OCRv6 medium ONNX",
+    "source_photo_sha256": [
+      "293a13103f6df29c7f3c09f1cf6a8a1a55d4c61f8c31d393f0d2e3b5daef90cf",
+      "8aa9e5fcd18f47e9fc4e4132a7f14089c176886e38b66f2659409261c7229aff"
+    ],
+    "sent_panel_sha256": [
+      [
+        "2ece3628f89c4b2e46b6605fdb115621040afeba713f1bf8e0f5cd34b06d3cb8",
+        "aae9951a0d98116cf755eb30bb920ea5cdfbf789a08e587d67ec158116741599"
+      ],
+      [
+        "b7de2f47bc1997edb8c31d36104081a23e044dfa0e1c655e60d14f3db3c79ad8"
+      ]
+    ],
+    "purchase_and_negative_coupon_text_visible": true,
+    "draft_unchanged": true,
+    "financial_edits": 0,
+    "final_split": [
+      "58.93",
+      "58.93",
+      "58.92"
+    ],
+    "receipt_total": "176.78",
+    "area_elapsed_ms": 1782,
+    "timing_scope": "Area crop preparation, installed PaddleOCR HTTP recognition and browser rendering; initial full receipt scan excluded, warm worker/caches; not a representative latency or phone-hardware measurement",
+    "external_requests": 0,
+    "local_http_requests": 2
+  },
+  "synthetic_pdf_area": {
+    "unique_transactions": 1,
+    "browser_projects": [
+      "desktop",
+      "phone emulation on desktop Chrome"
+    ],
+    "actual_reader": "bundled browser Tesseract English OCR",
+    "quantity_unit_line_text_correct": true,
+    "drafts_unchanged": true,
+    "area_elapsed_ms": [
+      1289,
+      1311
+    ],
+    "timing_scope": "Selected-area crop preparation and browser OCR only; reused imported PDF and existing caches; not full scan latency or phone hardware",
+    "external_requests": 0,
+    "receipt_uploads": 0
+  },
+  "tests": {
+    "unit_passes": 321,
+    "standard_browser_passes": 129,
+    "standard_browser_skips": 1,
+    "new_targeted_browser_passes": 10,
+    "extra_actual_native_workflow_passes": 1,
+    "typecheck_build_format_passed": true,
+    "new_browser_tests_typechecked": true,
+    "responsive_widths": [
+      320,
+      390
+    ],
+    "accessibility_checked": true
+  },
+  "financial_and_extraction_library_unchanged": true,
+  "original_cohort_accuracy_delta_claimed": false,
+  "limitations": [
+    "Areas are available only where a literal source mapping exists and only during the current scan session",
+    "The frame can contain adjacent purchases or totals; no parsed fields or coupon ownership are automatically applied",
+    "Rereading uses an existing local OCR engine and has no general improvement guarantee",
+    "No cloud/VLM area call, calibrated confidence, live-camera guidance, real-phone latency or broad area-reading accuracy measurement",
+    "Public authentication/TLS/isolation, refund handling and other whole-goal requirements remain open"
+  ],
+  "source_sha256": {
+    "src/ReceiptAreaReader.tsx": "06bd3076adb5c89eec0e1966d4d6ec5695020925da8d419514b42976a7d1b365",
+    "src/ReceiptSource.tsx": "a5612ac05b246b44a591db104cff73fd6fab40add0ee9e846efddb54b870c4b5",
+    "src/ImageCropper.tsx": "05a2f705ae702f3cab479ceb299ba5e7a9ac896b3e3c4c1e0bf0ddccd6aa7592",
+    "src/App.tsx": "1fe2bdc7e0815784b2f8f99a108057b0c702f4c09f0613072539a08a70729521",
+    "src/styles.css": "4575a02320cb65aefe95a3159898517c43f3831411380e3b751f264050f988d4",
+    "tests/e2e/computer-reader.spec.ts": "317449e117ed9569a7f44d9263ebd9f23b338bf8315d7d10806337e5e9121ded",
+    "tests/e2e/computer-reader-real.spec.ts": "45e70e01e334e708ca354b5d9c0fc3bcb1166ef81207f5844f037f359491745c",
+    "tests/e2e/pdf-receipts.spec.ts": "d065669295430a1351a348b122c89a7beabca9605efef6df31170d5aa812616c",
+    "package.json": "f67f0c79edb670863e1b5c44ae9456f1d5f219a178773cee188af40597b2e305",
+    "package-lock.json": "f3f38ca0d4fdfe787d8593174a0fb0b74131dca7fa07d50a84d6838cb98402fe",
+    "playwright.config.ts": "79cf88717f5a9e13dd428836a728df3bee9a09f8385603c9399df867f1143512"
+  },
+  "evidence_sha256": {
+    "qa-artifacts/area-device-real-desktop.json": "ba87ba77b7cbc3173a3413578af40bdbb33d57ee073528bc2f019ba4f0e9d7e3",
+    "qa-artifacts/area-device-real-desktop.png": "6b60674cf6df8015a39646c9355a67e1b4e06f210f93c98611ffcdb1a195efd1",
+    "qa-artifacts/area-device-real-mobile.json": "1d8b36834de6aa2677e878a1838daa75197ecef8b8764f7b2e5425f10a003fe8",
+    "qa-artifacts/area-device-real-mobile.png": "a54bf79e3a9eb2e99134c3939a230a346ba23ca5d29b67a10b213042724240a6",
+    "qa-artifacts/area-reader-browser-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "qa-artifacts/area-reader-build-first.log": "e9726d6e826a0693bd1bb1b527a854a49278a1b36589826140a2d524a2ded2f4",
+    "qa-artifacts/area-reader-checkpoint/source/package-lock.json": "f3f38ca0d4fdfe787d8593174a0fb0b74131dca7fa07d50a84d6838cb98402fe",
+    "qa-artifacts/area-reader-checkpoint/source/package.json": "f67f0c79edb670863e1b5c44ae9456f1d5f219a178773cee188af40597b2e305",
+    "qa-artifacts/area-reader-checkpoint/source/playwright.config.ts": "79cf88717f5a9e13dd428836a728df3bee9a09f8385603c9399df867f1143512",
+    "qa-artifacts/area-reader-checkpoint/source/src/App.tsx": "1fe2bdc7e0815784b2f8f99a108057b0c702f4c09f0613072539a08a70729521",
+    "qa-artifacts/area-reader-checkpoint/source/src/ImageCropper.tsx": "05a2f705ae702f3cab479ceb299ba5e7a9ac896b3e3c4c1e0bf0ddccd6aa7592",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/compared-reader.ts": "a38b14a7bd2645b0e5734c17996b7ffc7f4608eca368c89e019d3ec6d3611218",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/costco-row.ts": "566b9da221ba823f84dea3384e43ae18bec7effb9e344f3ab2cad7d8809a7ca3",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/demo.ts": "b70d2182c6a8659db19d853e026855412c813a5cf8d0909043c8f04b88cb2dbd",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/engine.ts": "921a73364fad8ff914f53bcb677e07f79d1ba0ca2b00c311f2971117de8135a1",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/extraction-schema.mjs": "ef3b2d6e323f5ba8f249884956b43c755b6c6928e2995a3cc204a146826ad2dc",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/gemini.ts": "e2fc5a22b3cb9e6bf76e8a628b7574ece3313b4ebbec40639482977359f64b5b",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/image-quality.ts": "583e20c71a17d5e40c7977ba6ec8218bc099c4e1cb1e9b676ee741c879c56832",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/images.ts": "3949ec2e9c4c4d963c9869cb1a0eda4499410c2fc19777ec5c55ac1882f5e3a9",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/join-vision-batches.ts": "4b052b4e32388c1ce9e8078b5efdc42287b7b05e64483acba8fae5a09c9e0443",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/local-model.ts": "2b5a7c66245200aeed01f7ef9f2879e486ea759e03975c1b48580f55f87b1293",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/local-vision-batches.ts": "52d45a1112ee442097cb4afff0f45a3f1c084d7c62b8c3c06e965b7f46c85baf",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/local-vision.ts": "eae4d42e4b874a64f92736bd0c1a026e1ecc8bd46693bba5107b0a6b58e8f954",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/model.ts": "7c8796267d60b8c25ad97737e27fdc6c2ea50c0b1d63d0a0ab8535a1e3e9e10b",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/money.ts": "8003358751be960d81227dd92551471dfdd1675d25608e8839616919d604d04f",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/ocr.ts": "a61aff67e5f83585a4cdd1af54d893ca26ffe53cc20080f611737ad575036f50",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/panel-transport.ts": "7bec9ab43b23a18b2b4928fc351854e2c8bfaf9dfb3dad48a5e26e94321d43d2",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/parser.ts": "81f52558244994a56f0f3a6a2eb4b965c6e55109af4e45ec0efce0d371847e81",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/pdf-text.ts": "5288c485fd75d2f6aaa027bac735ae4b794177cf8159cdf4c52dc47f6cecb10d",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/pdf.ts": "593ebe1b0b4fb6d1d4bf1e0a8fca74c62f3822ca3d4fe710fa8d55b93be2832b",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/printed-amount.ts": "d9a03eb8bbd0e9f95bf0ceae46a6ead158319015f2a9fbd535e25a88af125887",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/receipt-date.ts": "ef62e655f455dbf99e760a1042db073d85347596987450591b9d5983c90408b2",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/receipt-evidence.ts": "0152b52ae63ad4f616c3940139092aaf87d00e6783d0a914be68d136b7bf69bd",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/receipt-files.ts": "c269cfd535f3816f04b2633bda1abbbe9d46d334f28d503b775b1a1963cc4181",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/receipt-layout.ts": "3ed15aec744feb3b1a73b783c4dd5cd72bc96c46c55898a46a519f55a23654cb",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/receipt-summaries.ts": "b8954370e9acf1c41401458d856a228a754dd88e269408c845193511cab5d9a7",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/recognition-schema.mjs": "55650f2f8fa66df2f52c0a7c7328d9f451d369a13621c79b2a91f095ba748e60",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/review-checks.ts": "ee68ae2b2d25cd2b7c7960076f41633ca3fc9e58f9e13aa52e4b26173efd6fc0",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/scan-limits.mjs": "7fb43ae151410231b6df70ea05f97803462be8be48a19a1bc3e9803099015d41",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/storage.ts": "ab81c6319255215c651f3ea26d4a754b3b7f88ad20fb75fec2fee9800407c026",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/summary.ts": "e513f4614029738143cb5ce79bd34482e4263c4e1b4c8102039735ee1164d2ba",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/verify-readings.ts": "7acd4ab644b143d983d30114bb196fc1ab9d236b25ebf1f36a19f29bf9bb78c7",
+    "qa-artifacts/area-reader-checkpoint/source/src/lib/vision-plan.mjs": "4d6ec3c69c73d8f80f579972203e838e25f2fbccd16b577e96b77f1564b10aac",
+    "qa-artifacts/area-reader-checkpoint/source/src/ReceiptAreaReader.tsx": "06bd3076adb5c89eec0e1966d4d6ec5695020925da8d419514b42976a7d1b365",
+    "qa-artifacts/area-reader-checkpoint/source/src/ReceiptSource.tsx": "a5612ac05b246b44a591db104cff73fd6fab40add0ee9e846efddb54b870c4b5",
+    "qa-artifacts/area-reader-checkpoint/source/src/styles.css": "4575a02320cb65aefe95a3159898517c43f3831411380e3b751f264050f988d4",
+    "qa-artifacts/area-reader-checkpoint/source/tests/e2e/computer-reader-real.spec.ts": "45e70e01e334e708ca354b5d9c0fc3bcb1166ef81207f5844f037f359491745c",
+    "qa-artifacts/area-reader-checkpoint/source/tests/e2e/computer-reader.spec.ts": "317449e117ed9569a7f44d9263ebd9f23b338bf8315d7d10806337e5e9121ded",
+    "qa-artifacts/area-reader-checkpoint/source/tests/e2e/pdf-receipts.spec.ts": "d065669295430a1351a348b122c89a7beabca9605efef6df31170d5aa812616c",
+    "qa-artifacts/area-reader-costco-desktop.json": "03501d43a1a9fad60424e968c5efc4566848a458d4125067e2448779d203bbc7",
+    "qa-artifacts/area-reader-costco-desktop.png": "fc75bd2abfd0c0c0085f7267944225001fa2c7cd1f47f382ea6a036a13da8b88",
+    "qa-artifacts/area-reader-costco-real-final.log": "6c4d5133bb7cc7aeba12bde984895a848866fb9e7ac040f3d665c7c93c7a80fc",
+    "qa-artifacts/area-reader-e2e-final.log": "e9da68966735795916e199aa37aac6ad2e79ab9687e208f21d3841b690b2a2b4",
+    "qa-artifacts/area-reader-format-final.log": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+    "qa-artifacts/area-reader-graph-final.log": "36bb5ad2ebd05554c6e808316369e329de78882aca40eda9b5883a05493d2ffd",
+    "qa-artifacts/area-reader-targeted-first.log": "a5ce84eb4cd02a5f37a0d2a02ab7693be0d63a1b910cf219dfc106a32336a334",
+    "qa-artifacts/area-reader-unit-first.log": "cc6708af86ed4383dd59f0a36a17953065e6c7d2c56b19d594389355a6e1b74a",
+    "qa-artifacts/area-result-mobile.png": "e0b39aae5bee9f93d5a75127c5a2b909f05d6b5180a3020e88400196a7555fe1",
+    "qa-artifacts/area-select-mobile-320.png": "d49ea1113a41281fb54d6bbd752644c6613a7f50cf6ca19d943b8eb708e5876b",
+    "qa-artifacts/area-select-mobile-390.png": "3de6de053a3970cc7d124151c33ed50cca5eaaaaa1209f8180a1cb0231c7cd36",
+    "receipt_training/evaluation/runs/headerless-coupon-v2-after-development/metadata.json": "171fc03946968a79f6a7b22db9c84e912835fe8a6b7c8090167adeb6365d76c3",
+    "receipt_training/scripts/build_area_reader_report.py": "e01881d826a320654356c9eb6be16b1bd0a6c3c8a9f0e52b21a198c32c8dfb40",
+    "tests/fixtures/pdfs/digital-two-page.pdf": "977fabdf6c09c651d094147ff7c0cdac97965a612b2a12d9a6c64ea9ad51d9fd"
+  }
+}
