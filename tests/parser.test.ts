@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   normalizeAmount,
   parseReceiptText,
+  parseReceiptWithSources,
   PHOTO_SEPARATOR,
 } from "../src/lib/parser";
 import { calculateReceipt } from "../src/lib/engine";
@@ -283,5 +284,103 @@ TOTAL INCL VAT £9.58`);
     expect(r.adjustments.some((a) => a.kind === "discount")).toBe(true);
     expect(r.adjustments.some((a) => a.kind === "fee")).toBe(true);
     expect(r.warnings.some((w) => /whole receipt/.test(w))).toBe(true);
+  });
+});
+
+describe("separate reduced-price rows", () => {
+  it("keeps repeated product titles and the first unreadable price without total-based repair", () => {
+    const { receipt, sources } = parseReceiptWithSources(
+      "TESCO\n6 JAM DOUGHNTS\nREDUCED PRICE\n6 JAM DOUGHNTS\nREDUCED PRICE\t0.55\nTOTAL £6.71",
+    );
+    expect(receipt.items.map((item) => item.description)).toEqual([
+      "6 JAM DOUGHNTS",
+      "6 JAM DOUGHNTS",
+    ]);
+    expect(receipt.items.map((item) => item.lineTotal)).toEqual(["", "0.55"]);
+    expect(receipt.items.every((item) => item.quantity === "")).toBe(true);
+    expect(receipt.items.every((item) => item.unitPrice === "")).toBe(true);
+    expect(sources[receipt.items[0].id]).toEqual([1, 2]);
+    expect(sources[receipt.items[1].id]).toEqual([3, 4]);
+    expect(receipt.printedTotal).toBe("6.71");
+    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+  });
+
+  it("uses the reduced selling price once and requires review of its product match", () => {
+    const receipt = parseReceiptText(
+      "Market\n4 TEACAKES\nREDUCED PRICE: £0.50 Z\nTOTAL £0.50",
+    );
+    expect(receipt.items).toHaveLength(1);
+    const item = receipt.items[0];
+    expect(item.description).toBe("4 TEACAKES");
+    expect(item.discount).toBe("0");
+    expect(item.taxCode).toBe("Z");
+    expect(receipt.adjustments).toHaveLength(0);
+    item.quantity = "1";
+    expect(calculateReceipt(receipt).total).toBe(50n);
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        scope: "item",
+        itemId: item.id,
+        field: "lineTotal",
+        reason: "recovered",
+        confirmedValue: "",
+      }),
+    );
+    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+  });
+
+  it.each(["VAT 0.10", PHOTO_SEPARATOR, "Card: VISA"])(
+    "does not associate a product across %s",
+    (boundary) => {
+      const receipt = parseReceiptText(
+        `Rolls\n${boundary}\nREDUCED PRICE 0.50\nTOTAL £0.50`,
+      );
+      expect(receipt.items).toHaveLength(0);
+      expect(receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          scope: "receipt",
+          field: "items",
+          reason: "coverage",
+        }),
+      );
+    },
+  );
+
+  it("does not turn an orphan label into a purchase or overwrite an already priced product", () => {
+    const receipt = parseReceiptText(
+      "REDUCED PRICE 0.50\nBread £2.00\nREDUCED PRICE 0.40\nTOTAL £2.00",
+    );
+    expect(
+      receipt.items.map((item) => [item.description, item.lineTotal]),
+    ).toEqual([["Bread", "2.00"]]);
+    expect(receipt.reviewChecks.some((check) => check.field === "items")).toBe(
+      true,
+    );
+  });
+
+  it("does not turn a signed reduction into a guessed product selling price", () => {
+    const receipt = parseReceiptText(
+      "Market\nBread\nREDUCED PRICE -0.50\nTOTAL £1.00",
+    );
+    expect(receipt.items).toHaveLength(0);
+    expect(receipt.adjustments).toHaveLength(1);
+    expect(receipt.adjustments[0].amount).toBe("0.50");
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        field: "adjustments",
+        reason: "classification",
+      }),
+    );
+  });
+
+  it("keeps an overprecision reduced price unreadable instead of rounding it", () => {
+    const receipt = parseReceiptText(
+      "Market\nBread\nREDUCED PRICE £0.555\nTOTAL £0.56",
+    );
+    expect(receipt.items[0].lineTotal).toBe("");
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({ field: "lineTotal", reason: "unclear" }),
+    );
+    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
   });
 });

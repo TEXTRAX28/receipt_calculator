@@ -272,6 +272,52 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
+    // A reduced-price label states the preceding product's selling price,
+    // rather than a second purchase or another deduction from that price.
+    const reducedPrice = line.match(
+      /^reduced\s+price\s*:?(?:\s+([£$€]?\s*\d[\d,.]*[.,]\d{2,3})\s*([A-Z])?)?\s*$/i,
+    );
+    if (reducedPrice) {
+      if (
+        pendingDescription &&
+        pendingSource === lineIndex - 1 &&
+        !/^(?:reduced price|receipt|total|cash|tax|vat|tel|date)\b/i.test(
+          pendingDescription,
+        )
+      ) {
+        const item = newItem();
+        item.description = pendingDescription.slice(0, 180);
+        item.quantity = item.unitPrice = "";
+        item.lineTotal = reducedPrice[1] ? normalize(reducedPrice[1]) : "";
+        item.taxCode = reducedPrice[2]?.toUpperCase() || "";
+        item.note =
+          "Price read from the following reduced-price row. Confirm the product match and purchased quantity; pack size is separate.";
+        receipt.items.push(item);
+        sources[item.id] = [pendingSource, lineIndex];
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field: "lineTotal",
+          reason: item.lineTotal ? "recovered" : "unclear",
+          other: item.lineTotal
+            ? "Selling price read from the following reduced-price row. Confirm its product match."
+            : "The reduced price was not readable. Copy it from the original receipt.",
+          confirmedValue: "",
+        });
+      } else {
+        receipt.reviewChecks.push({
+          scope: "receipt",
+          field: "items",
+          reason: "coverage",
+          other:
+            "A reduced-price row could not be tied to an adjacent product. Check for missing items.",
+          confirmedValue: "",
+        });
+      }
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     const costco = matchCostcoRow(line);
     if (costco) {
       const description = pendingDescription || "";

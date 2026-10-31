@@ -1,5 +1,10 @@
 # Six-receipt Veryfi result
 
+**Later local fix:** [reduced-price grouping](REDUCED_PRICE_GROUPING.md) raises
+the text/parser path to 26/26 matched descriptions and 25/25 readable line prices
+with selected currency, using these saved outputs and zero further uploads.
+The table below preserves the comparison before that isolated parser change.
+
 The approved comparison is complete: six extraction requests succeeded, and
 Veryfi reported deleting all six matching new test records. There were no
 retries, Gemini uploads or paid activation. The six-receipt permission is now
