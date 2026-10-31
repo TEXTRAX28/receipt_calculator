@@ -277,6 +277,11 @@ def main():
             raise ValueError("Predictions changed after inference")
         if meta.get("evaluation_runner_sha256") and meta["evaluation_runner_sha256"] != hashlib.sha256((folder / "evaluate.mjs").read_bytes()).hexdigest():
             raise ValueError("Saved evaluation runner changed after inference")
+        for filename, expected_hash in meta.get("runtime_source_sha256", {}).items():
+            runtime_file = (folder / "runtime-source" / filename).resolve()
+            runtime_file.relative_to((folder / "runtime-source").resolve())
+            if hashlib.sha256(runtime_file.read_bytes()).hexdigest() != expected_hash:
+                raise ValueError("Saved backend runtime source changed after inference")
         metadata.append(meta)
         for prediction in read_jsonl(folder / "predictions.jsonl"):
             receipt_id = prediction["receipt_id"]
