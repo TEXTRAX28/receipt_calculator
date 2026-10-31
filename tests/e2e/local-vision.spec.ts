@@ -209,6 +209,66 @@ test("local vision → structured review → exact split uses only the local end
   expect(uploads).toEqual(["/api/receipts/vision"]);
 });
 
+test("unknown tax inclusion needs a specific source check even with a balanced total (mock protocol)", async ({
+  page,
+}, info) => {
+  const draft = aiCostcoDraft();
+  Object.assign(draft, {
+    pricesIncludeTax: null,
+    subtotal: "5.50",
+    printedTotal: "5.50",
+    printedTax: "",
+    printedItemCount: 1,
+    taxCodes: [],
+    adjustments: [],
+    items: [
+      {
+        ...draft.items[0],
+        description: "SYNTHETIC TEA",
+        quantity: "1",
+        unitPrice: "5.50",
+        lineTotal: "5.50",
+        discount: "0",
+        taxCode: "",
+        sourcePhotos: [1],
+      },
+    ],
+  });
+  await page.route("**/api/receipts/vision", (route) =>
+    route.fulfill({ json: { receipt: draft } }),
+  );
+  await (await start(page)).click();
+  const confirm = page.getByRole("button", {
+    name: "Confirm receipt & add people",
+  });
+  await expect(
+    page.getByRole("textbox", { name: "Printed total", exact: true }),
+  ).toHaveValue("5.50");
+  await expect(confirm).toBeDisabled();
+  const checked = page.getByRole("checkbox", {
+    name: "I checked whether item prices include tax against the original",
+    exact: true,
+  });
+  await expect(checked).not.toBeChecked();
+  await page.screenshot({
+    path: await qaArtifactPath(info, `unknown-tax-${info.project.name}.png`),
+    fullPage: true,
+  });
+  await checked.check();
+  await expect(confirm).toBeEnabled();
+  await page.reload();
+  await expect(checked).toBeChecked();
+  await expect(confirm).toBeEnabled();
+  await checked.uncheck();
+  await expect(confirm).toBeDisabled();
+  await page
+    .getByRole("checkbox", { name: /Item prices already include tax/ })
+    .uncheck();
+  // An explicit human correction supplies a new reading of this field.
+  await expect(checked).toBeChecked();
+  await expect(confirm).toBeEnabled();
+});
+
 test("local vision refuses excess prepared sections before uploading and retains all photos", async ({
   page,
 }) => {

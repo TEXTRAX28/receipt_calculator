@@ -7,7 +7,8 @@ import {
 } from "../server/receipt-api.mjs";
 import { receiptFromAi, extractWithGemini } from "../src/lib/gemini";
 import { calculateReceipt, calculateSplit } from "../src/lib/engine";
-import { newState } from "../src/lib/model";
+import { newState, receiptSchema } from "../src/lib/model";
+import { confirmReviewCheck, reviewKey } from "../src/lib/review-checks";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { planReadingPanels } from "../src/lib/images";
 import { joinDetailText } from "../src/lib/ocr";
@@ -75,6 +76,74 @@ afterEach(async () => {
 });
 
 describe("Gemini receipts are evidence for the exact engine", () => {
+  const balancedTaxDraft = (pricesIncludeTax: boolean | null) => {
+    const draft = aiCostcoDraft();
+    return {
+      ...draft,
+      pricesIncludeTax,
+      subtotal: "5.50",
+      printedTotal: "5.50",
+      printedTax: "",
+      printedItemCount: 1,
+      taxCodes: [],
+      adjustments: [],
+      items: [
+        {
+          ...draft.items[0],
+          description: "SYNTHETIC TEA",
+          quantity: "1",
+          unitPrice: "5.50",
+          lineTotal: "5.50",
+          discount: "0",
+          taxCode: "",
+          sourcePhotos: [1],
+        },
+      ],
+    };
+  };
+  it.each(["Gemini", "Local vision"] as const)(
+    "%s cannot pass an unknown tax basis merely because the provisional total balances",
+    (provider) => {
+      const receipt = receiptFromAi(balancedTaxDraft(null), provider);
+      const result = calculateReceipt(receipt);
+      expect(result.total).toBe(550n);
+      expect(result.discrepancy).toBe(0n);
+      expect(result.issues).toEqual([
+        expect.objectContaining({ path: "pricesIncludeTax" }),
+      ]);
+      expect(receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          scope: "receipt",
+          field: "pricesIncludeTax",
+          confirmedValue: "",
+        }),
+      );
+    },
+  );
+  it("binds tax-basis confirmation to persisted values and reopens on a changed value", () => {
+    const receipt = receiptFromAi(balancedTaxDraft(null));
+    const key = reviewKey(receipt.reviewChecks[0]);
+    const confirmed = confirmReviewCheck(receipt, key);
+    const restored = receiptSchema.parse(JSON.parse(JSON.stringify(confirmed)));
+    expect(calculateReceipt(restored).issues).toEqual([]);
+    restored.pricesIncludeTax = false;
+    expect(calculateReceipt(restored).issues).toEqual([
+      expect.objectContaining({ path: "pricesIncludeTax" }),
+    ]);
+  });
+  it.each([true, false])(
+    "keeps an explicitly returned tax basis %s without inventing uncertainty",
+    (basis) => {
+      const receipt = receiptFromAi(balancedTaxDraft(basis));
+      expect(receipt.pricesIncludeTax).toBe(basis);
+      expect(
+        receipt.reviewChecks.some(
+          (check) => check.field === "pricesIncludeTax",
+        ),
+      ).toBe(false);
+      expect(calculateReceipt(receipt).issues).toEqual([]);
+    },
+  );
   it("preserves 18 Costco purchases, both identical chickens, discounts and exact VAT", () => {
     const receipt = receiptFromAi(aiCostcoDraft());
     expect(receipt.source).toBe("ai");

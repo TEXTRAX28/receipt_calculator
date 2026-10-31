@@ -86,7 +86,13 @@ export function receiptFromAi(
     receipt.warnings.push(
       `${provider} could not determine whether item prices include tax. Confirm the tax setting before continuing.`,
     );
-    // The review still requires human confirmation even if the provisional arithmetic balances.
+    receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "pricesIncludeTax",
+      reason: "unclear",
+      other: "The reader could not determine whether item prices include tax",
+      confirmedValue: "",
+    });
   }
   if (
     data.printedItemCount !== null &&
