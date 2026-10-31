@@ -2,9 +2,10 @@
 
 
 def parse_cli_transcript(transcript, prompt):
-    if len(transcript) > 70000 or "\n" in prompt or not prompt:
+    if len(transcript) > 73000 or not prompt or len(prompt) > 12000:
         raise ValueError("Invalid bounded single-turn transcript")
     transcript = transcript.replace("\r\n", "\n")
+    prompt = prompt.replace("\r\n", "\n")
     prefix = f"User:\n{prompt}\n\nAssistant:\n"
     if not transcript.startswith(prefix):
         raise ValueError("Native transcript has unexpected role/prompt framing")

@@ -1,0 +1,39 @@
+{
+  "model": "ggml-org/GLM-OCR-GGUF",
+  "revision": "65a42de1148dbed2297e922b5dbc7d9b70c36578",
+  "upstream_model": "zai-org/GLM-OCR",
+  "upstream_documentation_revision": "2e85a62840ccac27daa451df36c736c4636b8628",
+  "license": "mit",
+  "component_scope": "Model-only document transcription using the documented Text Recognition prompt; not the official SDK's complete layout-analysis pipeline",
+  "default_prompt": "Text Recognition:",
+  "runtime_release_marker": "v0.8.0",
+  "runtime_build": "b11960",
+  "runtime_commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+  "runtime_executable": "llama-cli.exe",
+  "files": [
+    {
+      "path": "GLM-OCR-Q8_0.gguf",
+      "bytes": 950433408,
+      "sha256": "45bc244a6446aff850521dc41f18bc8d7105ad5f0c2c8c28af04e7cc4f4d50b1",
+      "url": "https://huggingface.co/ggml-org/GLM-OCR-GGUF/resolve/65a42de1148dbed2297e922b5dbc7d9b70c36578/GLM-OCR-Q8_0.gguf"
+    },
+    {
+      "path": "mmproj-GLM-OCR-Q8_0.gguf",
+      "bytes": 484403648,
+      "sha256": "9c4b58e33e316ed142eb5dcb41abec3844d3e6e5dc361ffb782c3fa9d175141f",
+      "url": "https://huggingface.co/ggml-org/GLM-OCR-GGUF/resolve/65a42de1148dbed2297e922b5dbc7d9b70c36578/mmproj-GLM-OCR-Q8_0.gguf"
+    },
+    {
+      "path": "llama-b11960-bin-win-vulkan-x64.zip",
+      "bytes": 37345851,
+      "sha256": "bac6914b5e83523eb008c6789eaa12669f93fbc196c3b9e8237b6672323b33e9",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11960/llama-b11960-bin-win-vulkan-x64.zip"
+    }
+  ],
+  "private_uploads": 0,
+  "documentation_sources": [
+    "https://huggingface.co/zai-org/GLM-OCR",
+    "https://huggingface.co/ggml-org/GLM-OCR-GGUF",
+    "https://github.com/zai-org/GLM-OCR"
+  ]
+}

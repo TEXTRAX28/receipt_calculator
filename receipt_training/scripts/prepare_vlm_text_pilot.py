@@ -78,7 +78,7 @@ def main():
             output.write(data)
     plan = {"version": args.version, "sealed_at": datetime.now(timezone.utc).isoformat(), "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
             "base_plan_sha256": sha(source), "model_manifest": args.model_manifest, "model_manifest_sha256": sha(manifest_path), "builder_sha256": sha(Path(__file__)),
-            "scope": "VLM element recognition on unchanged complete source panels, not the full PaddleOCR-VL layout-analysis pipeline. Text-only evidence has no word boxes or OCR confidence. One fresh native process per panel.",
+            "scope": manifest.get("component_scope", "Model-only document transcription, without a separate layout-analysis pipeline") + ". Unchanged complete source panels; text-only evidence has no word boxes or OCR confidence. One fresh native process per panel.",
             "label_files_read": False, "input_ocr_text": False, "cases": cases}
     with plan_path.open("x", encoding="utf-8") as output:
         json.dump(plan, output, indent=2)

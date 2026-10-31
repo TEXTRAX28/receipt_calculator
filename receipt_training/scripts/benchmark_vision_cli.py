@@ -15,6 +15,7 @@ import re
 import subprocess
 import time
 from vision_cli_text import parse_cli_transcript
+from vision_cli_json import decode_structured_reply
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = ROOT / "qa-artifacts/advanced-ocr"
@@ -33,6 +34,13 @@ request = json.loads(request_path.read_text(encoding="utf-8"))
 output_mode = request.get("output_mode", "structured-receipt")
 if output_mode not in ["structured-receipt", "text"]:
     raise ValueError("Choose a supported experiment output mode")
+if not isinstance(request.get("constrain_schema", True), bool):
+    raise ValueError("The decoder-constraint setting must be an explicit boolean")
+if not isinstance(request.get("normalize_numeric_json", False), bool):
+    raise ValueError("The typed JSON adapter setting must be an explicit boolean")
+template_kwargs = request.get("chat_template_kwargs")
+if template_kwargs is not None and (not isinstance(template_kwargs, dict) or set(template_kwargs) != {"enable_thinking"} or not isinstance(template_kwargs["enable_thinking"], bool)):
+    raise ValueError("Only an explicit enable_thinking boolean is supported")
 if not 512 <= request.get("context", 4096) <= 16384 or not 1 <= request.get("max_tokens", 1800) <= 6000 or not 64 <= request.get("image_tokens", 1024) <= 2048:
     raise ValueError("Context, output or vision-token budget exceeds the experiment limits")
 if not isinstance(request.get("prompt"), str) or not 1 <= len(request["prompt"]) <= 12000:
@@ -71,6 +79,8 @@ for path in images:
 (out / "request.json").write_bytes(request_path.read_bytes())
 (out / "harness.py").write_bytes(Path(__file__).read_bytes())
 (out / "vision_cli_text.py").write_bytes(Path(__file__).with_name("vision_cli_text.py").read_bytes())
+if request.get("normalize_numeric_json", False):
+    (out / "vision_cli_json.py").write_bytes(Path(__file__).with_name("vision_cli_json.py").read_bytes())
 if output_mode == "structured-receipt":
     (out / "schema.json").write_text(json.dumps(request["schema"]), encoding="utf-8")
 command = [str(cli), "-m", str(model), "--mmproj", str(projector),
@@ -79,10 +89,16 @@ command = [str(cli), "-m", str(model), "--mmproj", str(projector),
            "--n-predict", str(request.get("max_tokens", 1800)), "--image-max-tokens", str(request.get("image_tokens", 1024)),
            "--gpu-layers", str(request.get("gpu_layers", "auto")), "--batch-size", "256", "--ubatch-size", "128",
            "--threads", "4", "--threads-batch", "4", "--temp", "0", "--seed", "20261031"]
-if output_mode == "structured-receipt":
+if output_mode == "structured-receipt" and request.get("constrain_schema", True):
     command.extend(["--json-schema-file", str(out / "schema.json")])
 if executable == "llama-cli.exe":
-    command.extend(["--single-turn", "--no-display-prompt", "--simple-io", "--output", str(out / "transcript.txt")])
+    # JSON schemas contain literal backslashes. The CLI defaults to interpreting
+    # escapes, which changes the prompt before inference and its saved framing.
+    command.extend(["--no-escape", "--single-turn", "--no-display-prompt", "--simple-io", "--output", str(out / "transcript.txt")])
+if template_kwargs is not None:
+    if executable != "llama-cli.exe":
+        raise ValueError("The pinned template-kwargs profile requires llama-cli")
+    command.extend(["--chat-template-kwargs", json.dumps(template_kwargs)])
 if request.get("projector_gpu", True) is False:
     command.append("--no-mmproj-offload")
 if request.get("verbose", False) is True:
@@ -93,15 +109,18 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "started_at":datetime.now(timezone.utc).isoformat(),
             "manifest_sha256":sha(manifest_path), "cli_sha256":sha(cli), "harness_sha256":sha(Path(__file__)),
             "runtime_executable":executable,
+            "prompt_escape_sequences_processed": False if executable == "llama-cli.exe" else None,
             "text_helper_sha256":sha(out / "vision_cli_text.py"),
+            "json_adapter_sha256":sha(out / "vision_cli_json.py") if request.get("normalize_numeric_json", False) else None,
             "request_sha256":sha(request_path), "schema_sha256":sha(out / "schema.json") if output_mode == "structured-receipt" else None,
             "output_mode":output_mode,
+            "decoder_schema_enforced": output_mode == "structured-receipt" and request.get("constrain_schema", True),
             "images":[{"path":str(p.relative_to(ROOT)),"sha256":sha(p)} for p in images],
             "external_api_requests":0,"external_receipt_uploads":0,"api_cost_usd":"0","compute_cost_usd":None,
             "label_files_read":False,"input_ocr_text":False,"deadline_seconds":args.deadline,
             "require_clean_schema":request.get("require_clean_schema", False),
-            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose"]},
-            "timing_scope":"Fresh CLI model loading, image encoding and constrained generation; excludes verified download/setup, browser preprocessing and deterministic financial validation"}
+            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs"]},
+            "timing_scope":"Fresh CLI model loading, image encoding and generation; decoder-constraint setting recorded separately. Excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]
 memory_fn=ctypes.WinDLL("psapi").GetProcessMemoryInfo
@@ -133,24 +152,29 @@ metadata["decoder_schema_warning"]=("JSON schema conversion was incomplete" in d
 if metadata["require_clean_schema"] and metadata["decoder_schema_warning"]:
     metadata["error"]="decoder-schema-warning"
 text=re.sub(r"\x1b\[[0-9;]*m","",stdout.read_text(encoding="utf-8",errors="replace"))
-if output_mode == "text":
-    if executable == "llama-cli.exe" and (out / "transcript.txt").exists():
-        metadata["transcript_sha256"] = sha(out / "transcript.txt")
-        try:
-            text = parse_cli_transcript((out / "transcript.txt").read_text(encoding="utf-8"), request["prompt"])
-        except (ValueError, UnicodeError):
-            metadata["error"] = "invalid-native-transcript"
-            text = ""
-    elif executable == "llama-cli.exe":
-        metadata["error"] = "missing-native-transcript"
+if executable == "llama-cli.exe" and (out / "transcript.txt").exists():
+    metadata["transcript_sha256"] = sha(out / "transcript.txt")
+    try:
+        text = parse_cli_transcript((out / "transcript.txt").read_text(encoding="utf-8"), request["prompt"])
+    except (ValueError, UnicodeError):
+        metadata["error"] = "invalid-native-transcript"
         text = ""
+elif executable == "llama-cli.exe":
+    metadata["error"] = "missing-native-transcript"
+    text = ""
+if output_mode == "text":
     metadata["parsed_text"] = bool(text.strip()) and len(text) <= 60000
     if metadata["parsed_text"]:
         (out / "model-output.txt").write_text(text.strip(), encoding="utf-8")
 else:
     try:
-        start=text.index("{")
-        value,_=json.JSONDecoder().raw_decode(text[start:])
+        if request.get("normalize_numeric_json", False):
+            value=decode_structured_reply(text)
+        else:
+            start=text.index("{")
+            value,end=json.JSONDecoder().raw_decode(text[start:])
+            if executable == "llama-cli.exe" and (text[:start].strip() or text[start + end:].strip()):
+                raise ValueError("The model returned additional content outside its JSON receipt")
         (out / "model-output.json").write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding="utf-8")
         metadata["parsed_json"]=True
     except (ValueError,json.JSONDecodeError):

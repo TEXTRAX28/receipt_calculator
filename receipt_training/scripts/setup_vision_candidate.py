@@ -32,7 +32,8 @@ def main():
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     CACHE.mkdir(parents=True, exist_ok=True)
     files = manifest["files"]
-    if sum(f["bytes"] for f in files) > 3_200_000_000:
+    # Includes the pinned 4B model/projector candidates, with the 10-GiB free-space floor below.
+    if sum(f["bytes"] for f in files) > 4_000_000_000:
         raise ValueError("Model assets exceed the planned download budget")
     paths = []
     for entry in files:

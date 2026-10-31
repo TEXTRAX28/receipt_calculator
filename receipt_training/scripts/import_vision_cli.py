@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import runpy
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -46,6 +47,8 @@ def main():
                 raise ValueError("Saved raw output or harness changed")
         if meta.get("text_helper_sha256") and sha(raw / "vision_cli_text.py") != meta["text_helper_sha256"]:
             raise ValueError("Saved native-text helper changed")
+        if meta.get("json_adapter_sha256") and sha(raw / "vision_cli_json.py") != meta["json_adapter_sha256"]:
+            raise ValueError("Saved typed JSON adapter changed")
         request = json.loads(request_path.read_text(encoding="utf-8"))
         if not re.fullmatch(r"[\w-]+", request["source_panel_run"]):
             raise ValueError("Invalid source panel run")
@@ -63,8 +66,21 @@ def main():
                 raise ValueError("Frozen image panel bytes changed")
         row = {"receipt_id": item["id"], "image_sha256": source["image_sha256"], "source_photos": sorted({p["photo_index"] + 1 for p in source["panels"]}), "reading_panels": len(source["panels"]), "inference_ms": meta["elapsed_ms"]}
         if meta.get("parsed_json") and meta["exit_code"] == 0 and not meta.get("error"):
-            text = re.sub(r"\x1b\[[0-9;]*m", "", (raw / "stdout.txt").read_text(encoding="utf-8", errors="replace"))
-            decoded, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
+            if meta.get("runtime_executable") == "llama-cli.exe":
+                if sha(raw / "transcript.txt") != meta.get("transcript_sha256"):
+                    raise ValueError("Native transcript changed")
+                # These are our checksum-verified local experiment snapshots,
+                # never model-supplied code. Replay the version used at inference.
+                parse_transcript = runpy.run_path(str(raw / "vision_cli_text.py"))["parse_cli_transcript"]
+                text = parse_transcript((raw / "transcript.txt").read_text(encoding="utf-8"), request["prompt"])
+                if meta.get("json_adapter_sha256"):
+                    decode_json = runpy.run_path(str(raw / "vision_cli_json.py"))["decode_structured_reply"]
+                    decoded = decode_json(text)
+                else:
+                    decoded = json.loads(text)
+            else:
+                text = re.sub(r"\x1b\[[0-9;]*m", "", (raw / "stdout.txt").read_text(encoding="utf-8", errors="replace"))
+                decoded, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
             if decoded != json.loads((raw / "model-output.json").read_text(encoding="utf-8")):
                 raise ValueError("Parsed model output differs from the verified raw stream")
             row["receipt"] = decoded
@@ -80,7 +96,10 @@ def main():
             raise ValueError("Pilot mixes different models or runtimes")
     out.mkdir(parents=True)
     (out / "structured.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records), encoding="utf-8")
+    (out / "importer.py").write_bytes(Path(__file__).read_bytes())
+    (out / "pilot.json").write_bytes(pilot_path.read_bytes())
     result = {"adapter": metadata[0]["model"] + "-" + metadata[0]["runtime"], "completed_at": max(m["completed_at"] for m in metadata), "structured_sha256": sha(out / "structured.jsonl"), "model_manifest_sha256": metadata[0]["manifest_sha256"], "predeclared_pilot_sha256": sha(pilot_path), "selected_ids": [r["receipt_id"] for r in records], "label_files_read_for_inference": False, "ocr_text_supplied": False, "api_requests": 0, "api_cost_usd": "0", "runs": evidence, "timing_scope": metadata[0]["timing_scope"]}
+    result["importer_sha256"] = sha(out / "importer.py")
     (out / "metadata.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps({"verified_vision_cases": len(records), "run": args.run}))
 

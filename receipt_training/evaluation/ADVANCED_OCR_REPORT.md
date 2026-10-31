@@ -1,6 +1,6 @@
 # Advanced OCR investigation — work in progress
 
-Updated 2026-10-31. The full twelve-phase objective remains active. The latest checkpoint adds local PDF import and direct embedded-text reading, after the independent local comparison and bounded long-receipt work. This report records evidence gathered so far; it does not certify a finished scanner or public release.
+Updated 2026-10-31. The full twelve-phase objective remains active. The latest investigation benchmarks GLM-OCR in both literal-text and structured modes and Qwen3.5-4B, following local PDF import, independent local comparison and bounded long-receipt work. This report records evidence gathered so far; it does not certify a finished scanner or public release.
 
 ## Protected baseline
 
@@ -149,6 +149,44 @@ All seven previous cases were sealed before real inference, with the same nine i
 
 This tests the element recognizer on complete prepared panels. [Paddle's documentation](https://www.paddleocr.ai/main/en/version3.x/pipeline_usage/PaddleOCR-VL.html) distinguishes that component from the complete layout-analysis/recognition pipeline and warns that directly invoking the VLM does not reproduce full-pipeline performance. No word boxes or confidence scores were fabricated for its text-only output. Full-pipeline deployment remains untested. Detailed counts, resource scope and provenance are in [advanced-paddle-vl16-pilot.json](advanced-paddle-vl16-pilot.json).
 
+### GLM-OCR component and structured trials
+
+The pinned [GLM-OCR GGUF](https://huggingface.co/ggml-org/GLM-OCR-GGUF) uses Q8_0 language/projector weights totaling approximately 1.43 GB, verified by size and SHA256. The [upstream model card](https://huggingface.co/zai-org/GLM-OCR) declares MIT for the model. The separately published [SDK code](https://github.com/zai-org/GLM-OCR) has Apache-2.0 licensing. These tests invoke the model directly; they do not evaluate its complete SDK/layout pipeline.
+
+Both modes were sealed before real inference on the previous seven-case pilot's identical panel bytes and frozen application source. Six cases are financial receipts; the seventh is the predeclared nonfinancial photo-order control. The model never received labels or earlier OCR output. These previously inspected development cases are diagnostic, not a blind holdout or the full original cohort.
+
+| Six financial cases, identical frozen parser/validation | Qwen3-VL structured v2 | GLM literal text | GLM structured |
+|---|---:|---:|---:|
+| Matched labelled products / 55 | 55 | 50 | 22 |
+| Exact normalized descriptions / 55 | 52 | 49 | 22 |
+| Correct line prices / 54 | 50 | 27 | 2 |
+| Correct purchased quantities / 55 | 55 | 27 | 0 |
+| Correct unit prices / 27 | 27 | 27 | 0 |
+| Correct item discounts / 21 | 14 | 21 | 0 |
+| Correct printed final totals / 6 | 6 | 2 | 1 |
+| Trusted reconciliation / 6 | 0 | 0 | 0 |
+| Strict complete receipt / 1 scorable case | 0 | 0 | 0 |
+
+All nine literal-text panel processes completed, at approximately 5.3–9.0 seconds per panel with about 1.25 GB peak CLI working set. That component-plus-parser pipeline still missed five labelled products and retained five unmatched predictions; five financial cases had unresolved currency. No word geometry or confidence was fabricated. The nonfinancial control produced zero purchases.
+
+Direct structured extraction used a synthetic-tested JSON-template prompt and a bounded format adapter. The adapter accepts one complete JSON object or outer fence and converts explicitly named numeric fields into exact decimal strings; it never fills missing values, rescales amounts, rounds, merges products or repairs counts. All seven native processes exited, but only four returned decodable JSON and only one passed strict application schema validation. The long supplied Costco transaction returned malformed output. The final synthetic control copied two rows and £3.50 correctly but invented a printed item count of one; its mistake remains in the evidence. An earlier forced-decoder attempt failed inside native sampler initialization and is recorded separately from model accuracy.
+
+Neither GLM mode is selected as the application reader. The text component's coupon result merits investigation only as a separately measured recovery option. Its overall financial results are weaker than the existing structured candidate. API calls and external receipt uploads were zero; laptop compute cost is unmeasured. Process working set excludes GPU and whole-application memory, and these fresh CLI timings exclude preparation/setup. Detailed counts and checksums are in [advanced-glm-ocr-pilot.json](advanced-glm-ocr-pilot.json); `python receipt_training/scripts/build_glm_ocr_pilot_report.py --check` verifies the retained evidence without making any model or provider call.
+
+### Qwen3.5-4B protocol trial
+
+The Apache-2.0 [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) candidate uses pinned [Unsloth Q4_K_M weights](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF) and an F16 projector, approximately 3.41 GB in total. This is a community GGUF conversion, not Qwen's official GGUF release. The documented `enable_thinking:false` configuration was passed explicitly. No cloud receipt requests or paid service were used.
+
+Five synthetic compatibility attempts are retained. They exposed an incomplete unconstrained response, a native grammar/sampler initialization failure, and default CLI escape processing that altered an embedded JSON-schema prompt. The harness now disables escape processing and exact framing tests reject changed prompts. The first literal-prompt control passed strict validation. The control using the exact original pilot schema copied `$schema` into its receipt answer and was rejected. That failure was retained before the seven-case trial, rather than silently removing the metadata or declaring the contract reliable.
+
+The seven cases then used the previous pilot's identical panels, semantic instructions and application validation source, with the explicit JSON schema appended because native constrained decoding failed. All seven processes returned JSON, but only **two passed strict application schema validation**. CORD output included unsupported monetary separators, Bristol quantities violated the decimal-string contract, and Tesco, the supplied Costco transaction and the nonfinancial control copied the schema metadata field. Their invalid drafts remain rejected. Across the six financial cases, the practical pipeline matched **6/55 labelled products**, **0/54 line prices**, **6/55 quantities**, **1/6 final totals** and **0/6 trusted reconciliations**. Four financial schema failures dominate those end-to-end counts; they are not measurements of every raw field's recognition accuracy.
+
+Native times were **16.6–41.4 seconds per case**, with a maximum CLI working set of **3,593,146,368 bytes**, excluding GPU/whole-system memory. Fresh process/model loading is included; preprocessing/download/setup is excluded and caches may be warm. Scoring initially collided on its fixed local browser port; the stored original outputs were replayed sequentially without repeating native inference. This profile is not selected for the app, and its result does not establish that every Qwen3.5 deployment or a corrected protocol would perform the same. Evidence, compatibility outcomes and financial denominators are in [advanced-qwen35-pilot.json](advanced-qwen35-pilot.json), checked with `python receipt_training/scripts/build_qwen35_pilot_report.py --check`.
+
+The local comparison now includes two conventional neural OCR engines, Qwen3-VL structured extraction, PaddleOCR-VL component recognition, both GLM-OCR modes and this Qwen3.5 profile. The older Qwen3-VL protocol remains the strongest measured structured candidate on this cohort; a newer model name alone does not justify replacement. The broader provider comparison and full acceptance criteria remain unfinished.
+
+All **46 Python checks** passed after the harness changes, including exact prompt boundaries, decimal precision, malformed/duplicate JSON, oversized exponents and the existing evaluation/native-worker guards. Reimporting both GLM text and Qwen3.5 structured outputs with their checksum-verified original helper snapshots reproduced the earlier canonical output files byte for byte. No frontend/backend application source changed in this checkpoint; prior app test results retain their original scope.
+
 ### Full structured vision comparison on all original receipts
 
 The corrected Qwen protocol was extended to **all 50 original financial receipts plus the four separate diagnostics**. Selection used frozen preparation inventories, never label files. The seven previously tested requests retained exactly their bytes; new requests used the same instructions/schema/settings and their own verified image/photo mapping. All 54 native runs returned JSON without decoder-relaxation warnings and all passed strict application validation and supplied-photo reference checks. The browser postprocessor was frozen to the v2 library bytes while source-review development continued; no extracted amount or uncertainty was repaired. This is the previously inspected regression cohort, not a fresh blind holdout.
@@ -269,7 +307,7 @@ Current verification: **313 unit tests, 113 standard browser tests and one dupli
 |---|---|
 | 1 — Investigation | Existing application, datasets, branches, extraction and financial paths inspected; primary changes preserved. |
 | 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. Complete original financial truth and genuine digital/PDF cases remain missing. |
-| 3 — Technology comparison | Full neural OCR comparisons, full structured vision cohort and document-VLM component trial measured. Two separately approved Gemini crop attempts returned 503, leaving real cloud accuracy unmeasured; other providers remain unconfigured. Strongest final architecture is not certified. |
+| 3 — Technology comparison | Full neural OCR comparisons, full Qwen3-VL cohort, PaddleOCR-VL component recognition, GLM text/structured pilots and Qwen3.5 protocol trial measured. Newer tested profiles did not justify replacing the current candidate. Two separately approved Gemini crop attempts returned 503, leaving real cloud accuracy unmeasured; other providers remain unconfigured. Strongest final architecture is not certified. |
 | 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF import/direct text and actual scanned-PDF OCR-to-split now work within tested limits. General document classification, genuine long-photo/PDF accuracy, overlap coverage, quality/edges/deskew/perspective, broader recovery calibration and area rescan remain open. |
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
 | 6 — Credentials/services | Keys remain server-only. Exactly two separately approved redacted-crop uploads were attempted and returned 503. Both permissions are consumed. No additional private upload or billing activation is authorized. |

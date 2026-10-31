@@ -4,8 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
-
-from vision_cli_text import parse_cli_transcript
+import runpy
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -68,8 +67,6 @@ def main():
             for filename, key in [("stdout.txt", "stdout_sha256"), ("stderr.txt", "stderr_sha256"), ("harness.py", "harness_sha256"), ("vision_cli_text.py", "text_helper_sha256")]:
                 if sha(raw / filename) != meta[key]:
                     raise ValueError("Native raw stream or harness changed")
-            if sha(Path(__file__).with_name("vision_cli_text.py")) != meta["text_helper_sha256"]:
-                raise ValueError("Use the tested text-decoder version to reproduce this import")
             if meta["images"] != [{"path": str(image.relative_to(ROOT)), "sha256": panel["sha256"]}]:
                 raise ValueError("Native process saw another image")
             elapsed += meta["elapsed_ms"]
@@ -79,7 +76,8 @@ def main():
                 continue
             if sha(raw / "transcript.txt") != meta["transcript_sha256"]:
                 raise ValueError("Native response transcript changed")
-            decoded = parse_cli_transcript((raw / "transcript.txt").read_text(encoding="utf-8"), request["prompt"]).strip()
+            parse_transcript = runpy.run_path(str(raw / "vision_cli_text.py"))["parse_cli_transcript"]
+            decoded = parse_transcript((raw / "transcript.txt").read_text(encoding="utf-8"), request["prompt"]).strip()
             if decoded != (raw / "model-output.txt").read_text(encoding="utf-8"):
                 raise ValueError("Saved parsed text differs from the native transcript")
             panels.append({"photo_index": panel["photo_index"], "panel_index": panel["panel_index"], "width": panel["width"], "height": panel["height"],
@@ -103,7 +101,7 @@ def main():
                 "predeclared_pilot_sha256": sha(plan_path), "importer_sha256": sha(out / "importer.py"), "model_manifest_sha256": plan["model_manifest_sha256"], "selected_ids": [r["receipt_id"] for r in records],
                 "label_files_read_for_inference": False, "input_ocr_text": False, "word_geometry_available": False, "word_confidence_available": False,
                 "api_requests": 0, "api_cost_usd": "0", "compute_cost_usd": None, "panels": evidence,
-                "timing_scope": "Sum of fresh CLI/model loading, image encoding and generation for each source panel; browser parser/reconciliation time added later. Initial shader cache can be warm. Not full PaddleOCR-VL layout pipeline or persistent-server throughput."}
+                "timing_scope": "Sum of fresh CLI/model loading, image encoding and generation for each source panel; browser parser/reconciliation time added later. Initial shader cache can be warm. Model-only transcription, not a complete layout pipeline or persistent-server throughput."}
     (out / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     print(json.dumps({"verified_cases": len(records), "verified_panels": len(evidence), "case_failures": sum("error" in r for r in records), "run": args.run}))
 
