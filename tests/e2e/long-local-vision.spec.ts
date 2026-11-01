@@ -92,8 +92,8 @@ async function setup(page: Page, count = 4, standalone = false) {
       .click();
   else
     await page
-      .getByRole("checkbox", { name: /Compare with local vision/ })
-      .check();
+      .getByLabel("Local vision comparison", { exact: true })
+      .selectOption("always");
   return page.getByRole("button", {
     name: standalone
       ? "Read receipt with local vision"

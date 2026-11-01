@@ -34,6 +34,10 @@ test("real scanned PDF → installed computer OCR → exact split", async ({
   await expect(
     page.getByRole("button", { name: "This computer", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+  const comparison = page.getByLabel("Local vision comparison", {
+    exact: true,
+  });
+  if (await comparison.isVisible()) await comparison.selectOption("off");
   const started = Date.now();
   await page
     .getByLabel("Upload receipt images")

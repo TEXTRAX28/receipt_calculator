@@ -9,6 +9,11 @@ import { MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 import { extractLocalVisionBatches } from "./local-vision-batches";
 import { joinVisionBatches } from "./join-vision-batches";
 import type { ReadingContext } from "./reading-context.mjs";
+import {
+  localCheckDecision,
+  type LocalCheckMode,
+  type LocalCheckDecision,
+} from "./local-check-policy";
 
 /** Each model sees the original prepared images; OCR text never enters the vision request. */
 export async function extractComparedReceipt(
@@ -16,10 +21,76 @@ export async function extractComparedReceipt(
   signal: AbortSignal,
   progress: (status: string) => void,
   context?: ReadingContext,
+  mode: Exclude<LocalCheckMode, "off"> = "always",
 ): Promise<
-  ReturnType<typeof verifyIndependentReadings> & { comparisonComplete: boolean }
+  ReturnType<typeof verifyIndependentReadings> & {
+    comparisonComplete: boolean;
+    comparisonAttempted: boolean;
+    decision: LocalCheckDecision;
+  }
 > {
   const primary = await extractWithLocalModel(images, signal, progress);
+  if (signal.aborted)
+    throw new Error("Scan cancelled. Your photos are still available.");
+  const parsed = parseReceiptWithSources(primary, context);
+  const decision = localCheckDecision(
+    parsed.receipt,
+    parsed.sources,
+    primary.sourceLines,
+    primary.recognition,
+  );
+  const firstReading = (failed: boolean, error?: unknown) => {
+    const receipt: Receipt = {
+      ...parsed.receipt,
+      source: "ocr",
+      reviewChecks: [...parsed.receipt.reviewChecks],
+    };
+    if (
+      !receipt.reviewChecks.some(
+        (check) => check.scope === "receipt" && check.field === "items",
+      )
+    )
+      receipt.reviewChecks.push({
+        scope: "receipt",
+        field: "items",
+        reason: failed ? "coverage" : "source",
+        other: failed
+          ? "The second reading could not be completed"
+          : "Computer OCR draft; check every purchase against the originals",
+        confirmedValue: "",
+      });
+    receipt.warnings = [
+      ...receipt.warnings,
+      ...primary.warnings,
+      ...(failed
+        ? [
+            "The extra vision comparison could not finish. This is the computer OCR draft only. Check the whole purchase list against your photos or try again.",
+            error instanceof Error
+              ? error.message.slice(0, 350)
+              : "Choose another reader if the extra comparison remains unavailable.",
+          ]
+        : []),
+    ].slice(0, 60);
+    return {
+      receipt,
+      itemAnchors: [],
+      sources: parsed.sources,
+      fieldSources: {},
+      recognition: primary.recognition,
+      text: primary.text,
+      sourceLines: primary.sourceLines,
+      corrections: [],
+      removedAdjustments: [],
+      agreements: 0,
+      matchedPurchases: 0,
+      ocrPurchases: receipt.items.length,
+      originalVisionPurchases: 0,
+      comparisonComplete: false,
+      comparisonAttempted: failed,
+      decision,
+    };
+  };
+  if (mode === "auto" && !decision.needed) return firstReading(false);
   try {
     const panels = await panelsForImages(images, signal);
     const compared =
@@ -41,47 +112,12 @@ export async function extractComparedReceipt(
     return {
       ...compared,
       comparisonComplete: true,
+      comparisonAttempted: true,
+      decision,
     };
   } catch (error) {
     if (signal.aborted) throw error;
-    // Preserve a successful first reading, but never label it as independently checked.
-    const parsed = parseReceiptWithSources(primary, context);
-    const receipt: Receipt = {
-      ...parsed.receipt,
-      source: "ocr",
-      reviewChecks: [
-        {
-          scope: "receipt",
-          field: "items",
-          reason: "coverage",
-          other: "The second reading could not be completed",
-          confirmedValue: "",
-        },
-      ],
-    };
-    receipt.warnings = [
-      ...receipt.warnings,
-      ...primary.warnings,
-      "The extra vision comparison could not finish. This is the computer OCR draft only. Check the whole purchase list against your photos or try again.",
-      error instanceof Error
-        ? error.message.slice(0, 350)
-        : "Choose another reader if the extra comparison remains unavailable.",
-    ].slice(0, 60);
-    return {
-      receipt,
-      itemAnchors: [],
-      sources: parsed.sources,
-      fieldSources: {},
-      recognition: primary.recognition,
-      text: primary.text,
-      sourceLines: primary.sourceLines,
-      corrections: [],
-      removedAdjustments: [],
-      agreements: 0,
-      matchedPurchases: 0,
-      ocrPurchases: receipt.items.length,
-      originalVisionPurchases: 0,
-      comparisonComplete: false,
-    };
+    // Keep every existing source/classification check when a second reader fails.
+    return firstReading(true, error);
   }
 }

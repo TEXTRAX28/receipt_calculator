@@ -71,6 +71,7 @@ import {
 import { extractWithLocalVision } from "./lib/local-vision";
 import { receiptFromVeryfiText, veryfiOcrProvider } from "./lib/veryfi";
 import { extractComparedReceipt } from "./lib/compared-reader";
+import type { LocalCheckMode } from "./lib/local-check-policy";
 import {
   applyItemEdit,
   applyReceiptEdit,
@@ -289,7 +290,7 @@ export default function App() {
   >("local");
   const readerChosen = useRef(false);
   const pdfTextAvailable = canReadPdfText(images);
-  const [compareWithVision, setCompareWithVision] = useState(false);
+  const [localCheckMode, setLocalCheckMode] = useState<LocalCheckMode>("auto");
   const [scanCurrency, setScanCurrency] = useState<Receipt["currency"] | "">(
     "",
   );
@@ -642,7 +643,7 @@ export default function App() {
       }
       if (
         (reader === "computer" &&
-          compareWithVision &&
+          localCheckMode !== "off" &&
           visionConfig?.configured) ||
         (reader === "vision" &&
           visionConfig?.supportsBatches &&
@@ -660,6 +661,9 @@ export default function App() {
           controller.current.signal,
           setScanStatus,
           readingContext,
+          reader === "computer" && localCheckMode === "auto"
+            ? "auto"
+            : "always",
         );
         const evidence = collectReceiptEvidence(
           compared.receipt,
@@ -675,7 +679,9 @@ export default function App() {
         setNotice(
           compared.comparisonComplete
             ? "Both local readings finished. Check the marked values and every purchase against your photos before confirming."
-            : "The computer reader finished, but the extra comparison could not. Check the whole draft against your photos.",
+            : compared.comparisonAttempted
+              ? "The computer reader finished, but the extra comparison could not. Check the whole draft against your photos."
+              : "The computer reader finished. Check every purchase against your photos before confirming.",
         );
         return;
       }
@@ -1320,24 +1326,30 @@ export default function App() {
                         originals.
                       </p>
                       {visionConfig?.configured && (
-                        <label className="check-row comparison-choice">
-                          <input
-                            type="checkbox"
-                            checked={compareWithVision}
-                            disabled={busy}
-                            onChange={(event) =>
-                              setCompareWithVision(event.target.checked)
-                            }
-                          />
-                          <span>
-                            Compare with local vision
-                            <small>
-                              Reads the photos independently and marks
-                              disagreements. Long receipts are read in sections
-                              and can take several minutes.
-                            </small>
-                          </span>
-                        </label>
+                        <div className="comparison-choice">
+                          <Field label="Local vision comparison">
+                            <select
+                              value={localCheckMode}
+                              disabled={busy}
+                              onChange={(event) =>
+                                setLocalCheckMode(
+                                  event.target.value as LocalCheckMode,
+                                )
+                              }
+                            >
+                              <option value="auto">
+                                When details need a check
+                              </option>
+                              <option value="always">Every scan</option>
+                              <option value="off">Skip extra check</option>
+                            </select>
+                          </Field>
+                          <p className="hint">
+                            Checks unclear or incomplete drafts independently on
+                            this computer and marks disagreements. Long receipts
+                            are read in sections and can take several minutes.
+                          </p>
+                        </div>
                       )}
                     </div>
                   ) : reader === "pdf" ? (

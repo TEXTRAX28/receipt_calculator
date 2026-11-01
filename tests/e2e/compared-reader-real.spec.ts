@@ -45,8 +45,8 @@ test("real independent readers → original two-photo review → exact checked s
     .getByRole("button", { name: "This computer", exact: true })
     .click();
   await page
-    .getByRole("checkbox", { name: /Compare with local vision/ })
-    .check();
+    .getByLabel("Local vision comparison", { exact: true })
+    .selectOption("always");
   const nativeResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/receipts/vision") &&

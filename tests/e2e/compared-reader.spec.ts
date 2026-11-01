@@ -41,8 +41,8 @@ async function start(page: Page, count = 1) {
     })),
   );
   await page
-    .getByRole("checkbox", { name: /Compare with local vision/ })
-    .check();
+    .getByLabel("Local vision comparison", { exact: true })
+    .selectOption("always");
   return page.getByRole("button", {
     name: "Read receipt on this computer",
     exact: true,
