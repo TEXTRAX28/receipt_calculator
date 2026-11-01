@@ -530,21 +530,46 @@ geometry invariant tests support the change. See the
 [methods, actual UI evidence and remaining limits](SOURCE_PRICE_RECOVERY.md) and
 [873-file comparison checkpoint](advanced-source-price-recovery-v2.json).
 
+### Receipt-level literal recovery
+
+The independent verifier also proposes invalid nonempty subtotal/final/tax
+amounts from uniquely labelled, reliable OCR rows with a monetary-word score of
+at least 0.98. Original values remain visible and checks stay pending. Conflicting
+totals/currencies, weak evidence, changed signs, empty/valid amounts and embedded
+instructions are withheld; no purchase sum or balancing equation selects a value.
+
+The same-reading original-fifty replay improves copied totals **33/49 → 34/49
+automatically**, **33/49 → 41/49 with explicit post-extraction currency**, and
+selected-currency subtotals **25/34 → 27/34**. All purchase-price, quantity, unit,
+discount, tax-basis and charge vectors stay unchanged. Eleven proposals across
+both currency views match known labels with no scored per-case regression; these
+views are not independent receipt samples or complete financial results.
+
+A fresh actual local-model/HTTP phone workflow preserves all five correct item
+prices, proposes subtotal 221000 and final total 261333, opens their source
+evidence and keeps confirmation blocked without edits. Its single scan-to-review
+observation is 96.90 seconds, not a p95 or speed comparison. All 537 unit checks
+pass, including seventeen receipt-level recovery tests. A final isolated guard
+preserves disputed headers across model batches; the native observation precedes
+this guard, which is covered by current replay and synthetic batch checks. See
+[methods and remaining limits](SCALAR_SOURCE_RECOVERY.md) and the
+[584-file comparison](advanced-scalar-recovery-v2.json).
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |
 |---|---|
 | 1 — Investigation | Existing application, datasets, branches, extraction and financial paths inspected; primary changes preserved. |
 | 2 — Baseline/truth | Original cohort and baseline frozen with field/latency metrics. A separate source-checked priced-row revision adds two paid add-ons and three zero-price options; five frozen pipelines are rescored on both label versions without new inference. Complete original financial/global truth and genuine digital/PDF cases remain missing. |
-| 3 — Technology comparison | Full neural OCR comparisons, Qwen3-VL cohort, PaddleOCR-VL, GLM modes and Qwen3.5 profiles measured. Veryfi's one UK and six-case live screens are complete; native fields underperform its text/parser path on these cases. Two Gemini attempts returned 503, without an accuracy draft. No general provider winner or full financial accuracy is certified. |
-| 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF/direct text, actual scanned-PDF OCR-to-split, advisory photo-quality checks, selected-area rereads and explicit user currency work within tested limits. Automatic local comparison routes uncertain drafts to independent vision and preserves checks on failure. Six old oversized cases now complete fresh current preparation/native inference. Compact multi-photo output completed actual two-photo Costco and four-photo synthetic checked splits, while prior canonical timeouts remain preserved. Broader document classification, genuine long-photo/PDF accuracy, overlap coverage, calibrated quality/edges/deskew/perspective and general recovery remain open. |
+| 3 — Technology comparison | Full neural OCR comparisons, Qwen3-VL cohort, PaddleOCR-VL, GLM modes and Qwen3.5 profiles measured. Veryfi's one UK and six-case live screens are complete; native fields underperform its text/parser path on these cases. Two Gemini attempts returned 503, without an accuracy draft. The approved six-crop Azure screen matches 23/25 native prices; its research word-layout/parser path matches 25/25 with explicit currency, while native currency is wrong on four cases. No general provider winner or full financial accuracy is certified. |
+| 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF/direct text, actual scanned-PDF OCR-to-split, advisory photo-quality checks, selected-area rereads and explicit user currency work within tested limits. Automatic local comparison routes uncertain drafts to independent vision and preserves checks on failure. Invalid item and receipt-level amounts receive pending literal-source proposals under source, currency and batch-conflict guards. Six old oversized cases now complete fresh current preparation/native inference. Compact multi-photo output completed actual two-photo Costco and four-photo synthetic checked splits, while prior canonical timeouts remain preserved. Broader document classification, genuine long-photo/PDF accuracy, overlap coverage, calibrated quality/edges/deskew/perspective and general recovery remain open. |
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
 | 6 — Credentials/services | Keys remain server-only. Both Gemini scopes, both Veryfi live-test scopes and the separately approved six-crop Azure scope are consumed. The user confirmed sufficient Free credits before each Veryfi run; all seven extraction requests and matching deletions succeeded. Account billing was not inspected and no paid activation was made. New app uploads require a deliberately configured finite allowance plus per-scan consent; current allowance is zero. No broader corpus upload is authorized. |
 | 7 — Git protection | Stable baseline and separate improvement branch preserved; incremental local commits; no merge/push/deploy. |
 | 8 — Splitting | Exact purchase/refund-credit allocation, signed tax, coupon reversal, currency/rounding and conservation regressions pass. Unresolved currency and ambiguous negative-row classification block confirmation. Genuine refund truth, unsupported input representations and broader financial coverage remain open. |
 | 9 — Mobile UX | Capture/reorder/crop/progress, local quality advice, PDF import/cancellation, responsive source review, area rereading/manual correction and sharing work in browser tests. Optional bounded receipt-edge suggestions preserve originals and need Apply. Veryfi consent/review controls fit 320/390 px browser emulation. Perspective/arbitrary rotation, live-camera guidance and physical-device testing remain open. |
 | 10 — Public security | Local host/origin/body/rate/timeout/cleanup/secret, PDF worker-error/import and development private-file HTTP boundaries tested. Public authentication/TLS, crash recovery/OS isolation, production quotas/spend/provider privacy review remain open. |
-| 11 — Complete verification | All fifty original financial receipts now have fresh current-preparation native attempts: fifty OCR successes, forty-nine vision successes and one single-photo timeout, with its primary draft preserved. Mean preparation-to-draft time is 50.56 seconds and p95 107.34 seconds across all fifty, including the safe fallback. Source-covered errors, unresolved currencies and unscorable complete financial truth remain explicit. The compact two-photo workflow completes source review and an exact split; a four-photo synthetic native batching workflow also completes its checked split. Owned Node/Chrome/model memory sampling excludes GPU, handset and production sizing. A strict audit still discloses thirteen overwritten historical artifacts. Missing input types/truth, post-deadline full-cohort coverage, physical-device and cloud/provider/recovery verification remain incomplete. |
+| 11 — Complete verification | The earlier full native run attempted all fifty: fifty OCR successes, forty-nine vision successes and one single-photo timeout, with primary fallback; mean preparation-to-draft time was 50.56 seconds and p95 107.34 seconds. Later row-first evidence retains fifty candidate readings, with 48 fresh calls plus two protocol-matched pilots. The latest same-reading verifier replay matches 41/49 copied totals with explicit currency and 34/49 automatically; it does not replace the earlier latency cohort. Current checks pass 537 unit tests, 167 standard browser tests with one existing skip, and an actual local-model phone workflow. A final isolated batch-header-conflict guard is covered by frozen replay and synthetic per-field tests after that native observation. Complete original financial truth, genuine input types, physical-device and broader provider/recovery verification remain incomplete. Thirteen overwritten historical artifacts remain disclosed. |
 | 12 — Final report | This is a maintained evidence report with limitations and reproduction. Final requirement-by-requirement acceptance is not yet achieved. |
 
 ## Remaining requirements

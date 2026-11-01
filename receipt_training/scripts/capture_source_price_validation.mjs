@@ -8,11 +8,22 @@ import { fileURLToPath } from "node:url";
 import { loadEnv } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const output = resolve(root, "qa-artifacts/source-price-release-v1");
-const validation = "qa-artifacts/invalid-line-recovery-validation-v2";
+const scalars = process.argv.includes("--scalars");
+const expectedUnit = scalars ? 537 : 520;
+const output = resolve(
+  root,
+  scalars
+    ? "qa-artifacts/scalar-source-release-v1"
+    : "qa-artifacts/source-price-release-v1",
+);
+const validation = scalars
+  ? "qa-artifacts/invalid-scalar-validation-v2"
+  : "qa-artifacts/invalid-line-recovery-validation-v2";
 const report = resolve(
   root,
-  "receipt_training/evaluation/advanced-source-price-validation-v1.json",
+  scalars
+    ? "receipt_training/evaluation/advanced-scalar-validation-v1.json"
+    : "receipt_training/evaluation/advanced-source-price-validation-v1.json",
 );
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const name = (path) => relative(root, path).replaceAll("\\", "/");
@@ -73,6 +84,9 @@ if (process.argv.includes("--check")) {
     "index.html",
     "tsconfig.json",
     "receipt_training/evaluation/SOURCE_PRICE_RECOVERY.md",
+    ...(scalars
+      ? ["receipt_training/evaluation/SCALAR_SOURCE_RECOVERY.md"]
+      : []),
     "receipt_training/evaluation/AZURE_SIX_RESULT.md",
     "receipt_training/evaluation/ADVANCED_OCR_REPORT.md",
     "receipt_training/scripts/capture_source_price_validation.mjs",
@@ -95,7 +109,9 @@ if (process.argv.includes("--check")) {
 
   const unit = await json(validation + "/unit.json");
   assert(
-    unit.success && unit.numPassedTests === 520 && unit.numFailedTests === 0,
+    unit.success &&
+      unit.numPassedTests === expectedUnit &&
+      unit.numFailedTests === 0,
   );
   const browser = await json(validation + "/browser.json");
   assert(
@@ -105,9 +121,9 @@ if (process.argv.includes("--check")) {
       browser.stats.flaky === 0,
   );
   for (const [file, pattern] of [
-    ["build.log", /built in/],
+    [scalars ? "build-final.log" : "build.log", /built in/],
     ["format.log", /All matched files use Prettier/],
-    ["graph.log", /Graph is current/],
+    [scalars ? "graph-check.log" : "graph.log", /Graph is current/],
   ])
     assert(
       pattern.test((await remember(validation + "/" + file)).toString("utf8")),
@@ -135,8 +151,9 @@ if (process.argv.includes("--check")) {
   await include(validation);
   for (const folder of browserFolders) await include(folder);
 
-  const comparisonPath =
-    "receipt_training/evaluation/advanced-source-price-recovery-v2.json";
+  const comparisonPath = scalars
+    ? "receipt_training/evaluation/advanced-scalar-recovery-v2.json"
+    : "receipt_training/evaluation/advanced-source-price-recovery-v2.json";
   const comparison = JSON.parse(await remember(comparisonPath));
   assert(
     comparison.known_field_regressions.length === 0 &&
@@ -147,7 +164,9 @@ if (process.argv.includes("--check")) {
     assert.equal(evidence[path], expected, path);
   }
   const ui = await json(
-    "qa-artifacts/invalid-price-native-phone-v2/ui/result.json",
+    scalars
+      ? "qa-artifacts/invalid-scalar-native-phone-v1/ui/result.json"
+      : "qa-artifacts/invalid-price-native-phone-v2/ui/result.json",
   );
   assert.equal(
     ui.image_sha256,
@@ -163,6 +182,12 @@ if (process.argv.includes("--check")) {
       ui.financial_fields_edited === false &&
       ui.recoveries === 5,
   );
+  if (scalars)
+    assert(
+      ui.scalarRecoveries.length === 2 &&
+        ui.receipt.printedTotal === "261333" &&
+        ui.receipt.subtotal === "221000",
+    );
 
   const git = (args, cwd = root) =>
     execFileSync("git", args, { cwd, windowsHide: true });
@@ -193,7 +218,7 @@ if (process.argv.includes("--check")) {
     scope:
       "Final source-price proposal code: regression validation, frozen saved-reading replay, retained actual phone observations and protected Git state. Not production acceptance.",
     source_sha256: sources,
-    unit_passed: 520,
+    unit_passed: expectedUnit,
     browser_passed: 167,
     browser_existing_skip: 1,
     browser_attachment_folders: browserFolders.size,
@@ -205,8 +230,9 @@ if (process.argv.includes("--check")) {
     new_external_requests_by_capture: 0,
     native_phone_observations: comparison.native_phone_observations,
     successful_native_scan_to_review_ms: ui.elapsed_ms,
-    limits:
-      "Actual native phone observations precede the isolated final conflicting-batch-currency guard; final replay and synthetic batch tests verify that guard. Price proposals remain unconfirmed. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active.",
+    limits: scalars
+      ? "One actual installed-model phone-emulated workflow verifies pending subtotal/final-total and purchase-price proposals without edits. It precedes the isolated final batch-header-conflict guard; final replay and synthetic per-field tests verify that guard. Unreadable units/charges remain blocked. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active."
+      : "Actual native phone observations precede the isolated final conflicting-batch-currency guard; final replay and synthetic batch tests verify that guard. Price proposals remain unconfirmed. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active.",
     evidence_sha256: evidence,
   };
   await writeFile(report, JSON.stringify(result, null, 2) + "\n", {
@@ -217,7 +243,7 @@ if (process.argv.includes("--check")) {
       verified_files: Object.keys(evidence).length,
       source_files: Object.keys(sources).length,
       browser_attachment_folders: browserFolders.size,
-      unit_passed: 520,
+      unit_passed: expectedUnit,
       browser_passed: 167,
       configured_private_value_matches: 0,
       protected_git_state_unchanged: true,

@@ -166,6 +166,78 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
     });
   }
   expect(recoveries).toBeGreaterThan(0);
+  const scalarRecoveries = [];
+  if (process.env.GATHER_LOCAL_RECOVERY_SCALARS === "1") {
+    for (const [field, expected, label] of [
+      ["subtotal", "221000", "Subtotal after item discounts (optional)"],
+      ["printedTotal", "261333", "Printed total"],
+    ] as const) {
+      expect(state.receipt[field]).toBe(expected);
+      await expect(page.getByLabel(label, { exact: true })).toHaveValue(
+        expected,
+      );
+      let invalid = false;
+      try {
+        money(native.receipt[field], "IDR", true);
+      } catch {
+        invalid = true;
+      }
+      if (invalid) {
+        const check = state.receipt.reviewChecks.find(
+          (check) => check.scope === "receipt" && check.field === field,
+        );
+        expect(check).toMatchObject({
+          reason: "recovered",
+          other: native.receipt[field],
+          confirmedValue: "",
+        });
+        expect(check?.details).toContainEqual({
+          label: "Previous invalid vision amount",
+          value: native.receipt[field],
+        });
+        scalarRecoveries.push({
+          field,
+          original: native.receipt[field],
+          proposed: state.receipt[field],
+          check,
+        });
+      }
+    }
+    expect(scalarRecoveries.length).toBeGreaterThan(0);
+    await page
+      .getByLabel("Printed total", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(folder, "phone-totals.png") });
+    await page
+      .getByRole("button", {
+        name: "View source for printed total",
+        exact: true,
+      })
+      .click();
+    const source = page.getByRole("dialog", {
+      name: "Receipt source for printed total",
+      exact: true,
+    });
+    await expect(source).toBeVisible();
+    await expect(source.getByTestId("source-region").first()).toBeVisible();
+    await expect(
+      source.getByLabel("I checked printed total against the original", {
+        exact: true,
+      }),
+    ).not.toBeChecked();
+    await source
+      .getByText("Recognized text in this area", { exact: true })
+      .click();
+    await expect(
+      source.getByText("261,333", { exact: false }).first(),
+    ).toBeVisible();
+    await page.screenshot({
+      path: path.join(folder, "phone-total-source.png"),
+    });
+    await source
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+  }
   const input = page.getByLabel("Item 1 line price", { exact: true });
   await input.scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(folder, "phone-price.png") });
@@ -207,6 +279,7 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
         request_sha256: createHash("sha256").update(body).digest("hex"),
         elapsed_ms: elapsed,
         recoveries,
+        scalarRecoveries,
         reviewed,
         receipt: state.receipt,
         calculation,

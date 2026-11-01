@@ -10,6 +10,7 @@ import { createServer, loadEnv } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2];
+const checkScalars = process.argv.includes("--scalars");
 assert(/^[\w-]+$/.test(run || ""), "Use a new run name");
 const out = resolve(root, "qa-artifacts", run);
 await mkdir(out);
@@ -72,6 +73,7 @@ const meta = {
   source_sha256: source,
   external_uploads: 0,
   retries: 0,
+  checks_scalar_proposals: checkScalars,
 };
 await json("plan.json", meta);
 let server;
@@ -115,6 +117,7 @@ try {
         "receipt_training/non_costco/physical/cord/cord-v2-train-005.jpg",
       ),
       GATHER_LOCAL_RECOVERY_RUN: run,
+      GATHER_LOCAL_RECOVERY_SCALARS: checkScalars ? "1" : "",
       PLAYWRIGHT_JSON_OUTPUT_FILE: resolve(out, "playwright.json"),
       PLAYWRIGHT_HTML_OUTPUT_DIR: resolve(out, "html"),
     },

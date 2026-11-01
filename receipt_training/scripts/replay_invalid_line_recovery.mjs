@@ -8,6 +8,7 @@ import { createServer } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2] || "invalid-line-recovery-v1";
+const scalarOnly = process.argv.includes("--scalar-only");
 assert(/^[\w-]+$/.test(run));
 const out = resolve(root, "qa-artifacts", run);
 const resultFolder = resolve(out, "replay");
@@ -139,6 +140,19 @@ try {
                   c.confirmedValue === "",
               ),
             );
+          for (const recovery of value.scalarRecoveries || [])
+            assert(
+              value.receipt.reviewChecks.some(
+                (check) =>
+                  check.scope === "receipt" &&
+                  check.field === recovery.field &&
+                  check.reason === "recovered" &&
+                  check.confirmedValue === "" &&
+                  check.details.some(
+                    (detail) => detail.value === recovery.evidence.previous,
+                  ),
+              ),
+            );
           rows.push({
             receipt_id: item.id,
             image_sha256: item.record.sha256,
@@ -173,17 +187,22 @@ const financial = (receipt) => ({
   currencyUnresolved: receipt.currencyUnresolved,
   merchant: receipt.merchant,
   date: receipt.date,
-  subtotal: receipt.subtotal,
-  printedTotal: receipt.printedTotal,
-  printedTax: receipt.printedTax,
+  ...(scalarOnly
+    ? {}
+    : {
+        subtotal: receipt.subtotal,
+        printedTotal: receipt.printedTotal,
+        printedTax: receipt.printedTax,
+      }),
   pricesIncludeTax: receipt.pricesIncludeTax,
   taxMode: receipt.taxMode,
   taxCodes: receipt.taxCodes,
   items: receipt.items.map(
-    ({ description, quantity, unitPrice, discount, taxCode }) => ({
+    ({ description, quantity, unitPrice, lineTotal, discount, taxCode }) => ({
       description,
       quantity,
       unitPrice,
+      ...(scalarOnly ? { lineTotal } : {}),
       discount,
       taxCode,
     }),
@@ -212,6 +231,16 @@ for (const before of rows.filter((r) => r.variant === "before")) {
   for (const [index, item] of after.receipt.items.entries())
     if (item.lineTotal !== before.receipt.items[index].lineTotal)
       assert(after.priceRecoveries.some((r) => r.itemId === item.id));
+  if (scalarOnly)
+    for (const field of ["subtotal", "printedTotal", "printedTax"])
+      if (after.receipt[field] !== before.receipt[field])
+        assert(
+          after.scalarRecoveries.some(
+            (recovery) =>
+              recovery.field === field &&
+              recovery.evidence.previous === before.receipt[field],
+          ),
+        );
 }
 const bytes = Buffer.from(
   rows
@@ -234,6 +263,10 @@ await writeFile(
       predictions_sha256: sha(bytes),
       predictions: rows.length,
       unrelated_financial_vectors_unchanged: true,
+      unchanged_financial_vector_scope: scalarOnly
+        ? "All purchase fields including line totals, currency, metadata, tax basis/codes and adjustments; each changed subtotal/final/tax amount must have a pending literal-source proposal"
+        : "All financial fields except individually proposed item line totals",
+      scalar_only_recovery_replay: scalarOnly,
       recovery_checks_unconfirmed: true,
       new_model_requests: 0,
       external_requests: 0,
@@ -252,7 +285,9 @@ console.log(
       .map((r) => ({
         id: r.receipt_id,
         mode: r.mode,
-        count: r.priceRecoveries.length,
+        count: scalarOnly
+          ? r.scalarRecoveries.length
+          : r.priceRecoveries.length,
       }))
       .filter((r) => r.count),
     new_model_requests: 0,

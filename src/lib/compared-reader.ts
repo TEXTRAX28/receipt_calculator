@@ -81,6 +81,7 @@ export async function extractComparedReceipt(
       sourceLines: primary.sourceLines,
       corrections: [],
       priceRecoveries: [],
+      scalarRecoveries: [],
       removedAdjustments: [],
       agreements: 0,
       matchedPurchases: 0,

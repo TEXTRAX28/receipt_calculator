@@ -158,7 +158,10 @@ export function verifyIndependentReadings(
   output: unknown,
   recognition: Recognition,
   context?: ReadingContext,
-  options: { allowPriceRecovery?: boolean } = {},
+  options: {
+    allowPriceRecovery?: boolean;
+    blockedScalarFields?: ("subtotal" | "printedTotal" | "printedTax")[];
+  } = {},
 ) {
   const raw = aiReceiptSchema.parse(output);
   const receipt = receiptFromAi(raw, "Local vision", context);
@@ -413,13 +416,13 @@ export function verifyIndependentReadings(
     sourceIndices: number[];
     evidence: NonNullable<ReturnType<typeof recoverInvalidPrice>>;
   }[] = [];
-  if (
+  const sourceRecoveryAllowed =
     options.allowPriceRecovery !== false &&
     !receipt.currencyUnresolved &&
     !ocr.currencyUnresolved &&
     receipt.currency === ocr.currency &&
-    (!raw.currency || raw.currency === receipt.currency)
-  ) {
+    (!raw.currency || raw.currency === receipt.currency);
+  if (sourceRecoveryAllowed) {
     for (const [nativeIndex, sourceIndex] of pairs) {
       const owner = receipt.items[nativeIndex];
       const source = sourceRows[sourceIndex];
@@ -744,12 +747,19 @@ export function verifyIndependentReadings(
     lines.some(
       (line) => line && predicate(line.text) && reliable(line, recognition),
     );
+  const scalarRecoveries: {
+    field: "subtotal" | "printedTotal" | "printedTax";
+    evidence: NonNullable<ReturnType<typeof recoverInvalidPrice>>;
+  }[] = [];
   const scalar = (
     field: "subtotal" | "printedTotal" | "printedTax",
     predicate: (text: string) => boolean,
   ) => {
     fieldSources[field] = sourceIndices(predicate);
     if (!receipt[field]) return;
+    const regions = lines.filter(
+      (line): line is EvidenceLine => !!line && predicate(line.text),
+    );
     const values = new Map<string, string>();
     for (const line of lines) {
       if (!line || !predicate(line.text) || !reliable(line, recognition))
@@ -779,9 +789,42 @@ export function verifyIndependentReadings(
       )
     )
       globalCheck(field, "unsupported");
-    else if (!sameAmount(receipt[field], ocr[field], receipt.currency))
-      globalCheck(field, "different", ocr[field]);
-    else agreements++;
+    else {
+      const evidence =
+        sourceRecoveryAllowed &&
+        !options.blockedScalarFields?.includes(field) &&
+        regions.every(
+          (line) =>
+            reliable(line, recognition) &&
+            /^[*\s]*(?:sub\s*total|grand total|total(?:\s+refund)?|refund total|amount (?:due|refunded)|balance due|vat amount|tax amount|sales tax|vat|tax)\b/i.test(
+              line.text,
+            ),
+        )
+          ? recoverInvalidPrice(
+              receipt[field],
+              ocr[field],
+              receipt.currency,
+              regions,
+              recognition,
+            )
+          : null;
+      if (evidence) {
+        receipt[field] = evidence.value;
+        globalCheck(field, "recovered", evidence.previous);
+        checks.find(
+          (check) => check.scope === "receipt" && check.field === field,
+        )!.details = [
+          {
+            label: "Printed OCR amount — check its meaning",
+            value: evidence.value,
+          },
+          { label: "Previous invalid vision amount", value: evidence.previous },
+        ];
+        scalarRecoveries.push({ field, evidence });
+      } else if (!sameAmount(receipt[field], ocr[field], receipt.currency))
+        globalCheck(field, "different", ocr[field]);
+      else agreements++;
+    }
   };
   scalar("subtotal", (text) =>
     /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(text),
@@ -1013,6 +1056,7 @@ export function verifyIndependentReadings(
     sourceLines: assembled.sourceLines,
     corrections,
     priceRecoveries,
+    scalarRecoveries,
     removedAdjustments,
     agreements,
     matchedPurchases: pairs.length,

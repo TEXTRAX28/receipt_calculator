@@ -87,7 +87,7 @@ export default function ReviewChecks({
           </p>
           {check.details && (
             <>
-              <p className="hint">Removed from the original vision read:</p>
+              <p className="hint">Source comparison:</p>
               <ul>
                 {check.details.map((detail, index) => (
                   <li key={index}>
