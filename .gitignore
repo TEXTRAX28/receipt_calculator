@@ -11,6 +11,7 @@ public/pdf-assets/
 *.tsbuildinfo
 uploads/
 private-receipts/
+.receipt-reader-state/
 *.traineddata
 *.traineddata.gz
 *.sqlite*

@@ -69,6 +69,7 @@ import {
   localReaderConfiguration,
 } from "./lib/local-model";
 import { extractWithLocalVision } from "./lib/local-vision";
+import { receiptFromVeryfiText, veryfiOcrProvider } from "./lib/veryfi";
 import { extractComparedReceipt } from "./lib/compared-reader";
 import {
   applyItemEdit,
@@ -284,7 +285,7 @@ export default function App() {
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
   const [reader, setReader] = useState<
-    "local" | "computer" | "vision" | "gemini" | "pdf"
+    "local" | "computer" | "vision" | "gemini" | "veryfi" | "pdf"
   >("local");
   const readerChosen = useRef(false);
   const pdfTextAvailable = canReadPdfText(images);
@@ -298,6 +299,11 @@ export default function App() {
     name: string;
   } | null>(null);
   const [aiConsented, setAiConsented] = useState(false);
+  const [veryfiConfig, setVeryfiConfig] = useState<{
+    configured: boolean;
+    remaining: number;
+    maxPanels: 15;
+  } | null>(null);
   const [visionConfig, setVisionConfig] = useState<{
     configured: boolean;
     name: string;
@@ -369,6 +375,7 @@ export default function App() {
         if (check.signal.aborted) return;
         setComputerConfig(config.localModel);
         setVisionConfig(config.localVision || null);
+        setVeryfiConfig(config.veryfi || null);
         if (config.localModel.configured && !readerChosen.current)
           setReader("computer");
       })
@@ -607,6 +614,8 @@ export default function App() {
   async function scan() {
     if (busyRef.current || !images.length || !canReplace()) return;
     if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
+    if (reader === "veryfi" && (!aiConsented || !veryfiConfig?.configured))
+      return;
     if (reader === "computer" && !computerConfig?.configured) return;
     if (reader === "vision" && !visionConfig?.configured) return;
     busyRef.current = true;
@@ -683,6 +692,22 @@ export default function App() {
         );
         return;
       }
+      if (reader === "veryfi") {
+        const output = await veryfiOcrProvider.extract(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
+        const parsed = receiptFromVeryfiText(output.text, readingContext);
+        setRawText(output.text);
+        replaceReceipt(parsed);
+        setNotice(
+          output.cleanup === "provider-reported-success"
+            ? "Veryfi finished and reported deletion of its new receipt record. Check the draft against every photo. Deletion does not guarantee zero retention or exclude model improvement."
+            : "Veryfi finished, but deletion of its new receipt record could not be confirmed. Check the draft against every photo.",
+        );
+        return;
+      }
       if (reader === "gemini") {
         const parsed = await extractWithGemini(
           images,
@@ -751,6 +776,12 @@ export default function App() {
           : "OCR could not start or finish. Try another image or use manual entry.",
       );
     } finally {
+      if (reader === "veryfi") {
+        setAiConsented(false);
+        await localReaderConfiguration(AbortSignal.timeout(5000))
+          .then((config) => setVeryfiConfig(config.veryfi || null))
+          .catch(() => setVeryfiConfig(null));
+      }
       busyRef.current = false;
       setBusy(false);
       setScanStatus("");
@@ -877,9 +908,9 @@ export default function App() {
       <div className="small-note">
         <ShieldCheck size={18} />
         <p>
-          Original photos are kept in memory. Gemini scans send the chosen
-          photos to Google only with your agreement; the editable draft is saved
-          in this browser.
+          Original photos are kept in memory. Cloud readers send receipt
+          sections to the selected provider only with your agreement. The
+          editable draft is saved in this browser.
         </p>
       </div>
       {images.length > 0 ? (
@@ -1259,6 +1290,20 @@ export default function App() {
                       <Sparkles size={17} />
                       Gemini AI
                     </button>
+                    {(veryfiConfig?.configured || reader === "veryfi") && (
+                      <button
+                        type="button"
+                        className={`button ${reader === "veryfi" ? "button-primary" : "button-outline"}`}
+                        aria-pressed={reader === "veryfi"}
+                        onClick={() => {
+                          readerChosen.current = true;
+                          setReader("veryfi");
+                          setAiConsented(false);
+                        }}
+                      >
+                        <ReceiptText size={17} /> Veryfi OCR
+                      </button>
+                    )}
                   </div>
                   {reader === "local" ? (
                     <p className="hint">
@@ -1309,6 +1354,47 @@ export default function App() {
                       sections, which can take several minutes. Check every
                       amount and overlapping row.
                     </p>
+                  ) : reader === "veryfi" ? (
+                    <div className="ai-reader-info">
+                      <p>
+                        Reads these sections as one receipt and prepares a text
+                        draft. Check the purchases, prices, discounts and tax
+                        settings against every original before splitting.
+                      </p>
+                      <p className="hint" role="status">
+                        {veryfiConfig?.configured
+                          ? `App allowance: ${veryfiConfig.remaining} scan ${veryfiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. A failed scan can still use an attempt.`
+                          : "The app's Veryfi allowance is unavailable or used up. Choose another reader."}
+                      </p>
+                      <p className="hint">
+                        Up to 15 receipt sections per scan; a long photo can use
+                        several sections. Crop out membership and payment
+                        details. Veryfi normally processes and stores data in
+                        the US and may use submitted data to improve its
+                        proprietary models. After reading, we request deletion
+                        of the new record; this does not guarantee zero
+                        retention or exclude model improvement.{" "}
+                        <a
+                          href="https://www.veryfi.com/privacy/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Veryfi’s privacy policy
+                        </a>
+                      </p>
+                      <label className="check-line">
+                        <input
+                          type="checkbox"
+                          checked={aiConsented}
+                          disabled={!veryfiConfig?.configured}
+                          onChange={(event) =>
+                            setAiConsented(event.target.checked)
+                          }
+                        />
+                        Send these receipt sections to Veryfi for this scan. I
+                        have read the data-use notice above.
+                      </label>
+                    </div>
                   ) : (
                     <div className="ai-reader-info">
                       <p>
@@ -1387,6 +1473,8 @@ export default function App() {
                       disabled={
                         busy ||
                         (reader === "vision" && !visionConfig?.configured) ||
+                        (reader === "veryfi" &&
+                          (!aiConsented || !veryfiConfig?.configured)) ||
                         (reader === "gemini" &&
                           (!aiConsented || !aiConfig?.configured || checkingAi))
                       }
@@ -1403,11 +1491,13 @@ export default function App() {
                           ? "Read PDF text on this device"
                           : reader === "gemini"
                             ? "Read receipt with Gemini"
-                            : reader === "computer"
-                              ? "Read receipt on this computer"
-                              : reader === "vision"
-                                ? "Read receipt with local vision"
-                                : "Read receipt on this device"}
+                            : reader === "veryfi"
+                              ? "Read receipt with Veryfi"
+                              : reader === "computer"
+                                ? "Read receipt on this computer"
+                                : reader === "vision"
+                                  ? "Read receipt with local vision"
+                                  : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -1427,7 +1517,11 @@ export default function App() {
                       ? "On-device OCR keeps your photos on this device."
                       : reader === "computer" || reader === "vision"
                         ? "Photos are processed on this computer and temporary files are removed after reading."
-                        : "Gemini only receives photos when you agree and start a scan."}
+                        : reader === "veryfi"
+                          ? "Veryfi receives receipt sections only when you agree and start a scan."
+                          : reader === "pdf"
+                            ? "PDF text is read on this device."
+                            : "Gemini only receives photos when you agree and start a scan."}
                   </span>
                 </div>
                 <div className="or-divider">
@@ -2821,6 +2915,14 @@ export default function App() {
               requests. Google processes requests under its own data-use terms.
             </p>
             <p>
+              Veryfi OCR is optional and requires a separate server allowance.
+              Selecting it and consenting sends the prepared receipt sections to
+              Veryfi, which normally stores data in the US and may use it to
+              improve its proprietary models. We request deletion of the new
+              record after reading, but this does not guarantee zero retention
+              or exclude model improvement. No automatic retry is made.
+            </p>
+            <p>
               Your extracted draft and names are saved in this browser’s local
               storage so you can continue after a refresh. People with access to
               this browser profile can read them. Photos and raw OCR text are
@@ -2830,9 +2932,10 @@ export default function App() {
             <p>
               Delete / reset receipt removes this app’s saved draft and current
               image previews. Exported or copied summaries remain wherever you
-              save or send them. There are no accounts, analytics, remote
-              receipt databases. A server API key is required only for the
-              optional Gemini reader.
+              save or send them. Gather has no user accounts or analytics. Cloud
+              providers handle submitted data under their own policies. API
+              credentials stay on the local server, which keeps only minimal
+              Veryfi request and allowance records, without photos or text.
             </p>
             <p>
               Camera availability depends on your browser. A phone accessing the

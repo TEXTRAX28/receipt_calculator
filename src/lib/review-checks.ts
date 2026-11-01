@@ -80,7 +80,7 @@ export function checkIsApplicable(
     return false;
   if (
     check.scope === "receipt" &&
-    !["coverage", "recovered"].includes(check.reason) &&
+    !["coverage", "recovered", "source"].includes(check.reason) &&
     (check.field === "taxCodes" || check.field === "adjustments") &&
     receipt[check.field].length === 0
   )
@@ -96,6 +96,8 @@ export function checkIsPending(receipt: Receipt, check: ReviewCheck): boolean {
 }
 
 export function reviewMessage(check: ReviewCheck): string {
+  if (check.reason === "source")
+    return `This draft uses a single text reading. Check ${reviewFieldLabels[check.field]} against every original photo, including missing or repeated rows and discounts.`;
   if (check.reason === "classification")
     return "The negative row could be a discount or a refund. Check its type and ownership against the original before confirming the receipt adjustments.";
   if (check.reason === "document")

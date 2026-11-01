@@ -8,6 +8,8 @@ export const privateFileDeny = [
   "**/.git",
   "**/.git/**",
   "**/private-receipts/**",
+  "**/.receipt-reader-state",
+  "**/.receipt-reader-state/**",
   "**/receipt_training/**",
   "**/qa-artifacts/**",
   "**/graphify-out/**",

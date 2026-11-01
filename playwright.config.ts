@@ -44,7 +44,14 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run preview -- --port 4173",
-    env: { LOCAL_OCR_PYTHON: "", GEMINI_API_KEY: "" },
+    env: {
+      LOCAL_OCR_PYTHON: "",
+      GEMINI_API_KEY: "",
+      VERYFI_CLIENT_ID: "",
+      VERYFI_BEARER_KEY: "",
+      VERYFI_ALLOWANCE_ID: "",
+      VERYFI_DOCUMENT_LIMIT: "0",
+    },
     url: "http://127.0.0.1:4173",
     reuseExistingServer: false,
     timeout: 30000,

@@ -5,6 +5,8 @@ import { createReceiptApi } from "./server/receipt-api.mjs";
 import { createLocalModelReader } from "./server/local-ocr.mjs";
 import { createLocalVisionReader } from "./server/local-vision.mjs";
 import { privateFileDeny } from "./server/private-paths.mjs";
+import { createVeryfiReader } from "./server/veryfi-reader.mjs";
+import { resolve } from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -25,6 +27,15 @@ export default defineConfig(({ mode }) => {
         model: env.GEMINI_MODEL || undefined,
         localReader,
         localVision,
+        veryfiReader: createVeryfiReader({
+          clientId: env.VERYFI_CLIENT_ID || "",
+          bearerKey: env.VERYFI_BEARER_KEY || "",
+          directory: resolve(
+            env.VERYFI_ALLOWANCE_DIRECTORY || ".receipt-reader-state",
+          ),
+          grant: env.VERYFI_ALLOWANCE_ID || "",
+          limit: Number(env.VERYFI_DOCUMENT_LIMIT || 0),
+        }),
       }),
     };
   };

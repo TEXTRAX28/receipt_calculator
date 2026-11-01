@@ -5,8 +5,10 @@ import { validateRecognition } from "./recognition-schema.mjs";
 import { assembleRecognition } from "./receipt-layout";
 import { extractionOutputSchema } from "./parser";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
+import { veryfiStatusSchema } from "./veryfi-schema.mjs";
 
 const capabilities = z.object({
+  veryfi: veryfiStatusSchema.optional(),
   localModel: z.object({
     configured: z.boolean(),
     name: z.enum(["PaddleOCR", "docTR"]),

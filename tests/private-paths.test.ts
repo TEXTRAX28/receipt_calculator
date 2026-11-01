@@ -26,6 +26,7 @@ it("serves public files but blocks private data through direct, encoded and abso
     "qa-artifacts/receipt-output.json",
     "graphify-out/graph.json",
     ".graphify/cache.json",
+    ".receipt-reader-state/synthetic-account/offline-grant/1.json",
     ".cache/model.bin",
     "test-results/screenshot.png",
     "playwright-report/index.html",
