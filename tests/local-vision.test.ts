@@ -18,6 +18,8 @@ import { createReceiptApi } from "../server/receipt-api.mjs";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { receiptFromAi } from "../src/lib/gemini";
 import { calculateReceipt } from "../src/lib/engine";
+import { aiReceiptSchema } from "../src/lib/extraction-schema.mjs";
+import { z } from "zod";
 
 const ownedBase = resolve("qa-artifacts/local-vision-tests");
 const fixture = resolve("tests/fixtures/local-vision-process.mjs");
@@ -44,6 +46,7 @@ async function reader(timeoutMs = 10000) {
   const root = await ownedRoot();
   const starts: string[] = [];
   const formats: boolean[] = [];
+  const schemas: unknown[] = [];
   const model = createLocalVisionReader({
     enabled: true,
     python: process.execPath,
@@ -69,6 +72,7 @@ async function reader(timeoutMs = 10000) {
           ),
         );
         formats.push(!!schema.properties.items.items.prefixItems);
+        schemas.push(schema);
         expect(program).toMatch(/runtime-b11960[\\/]llama-mtmd-cli.exe$/);
         expect(args[args.indexOf("--ctx-size") + 1]).toBe("8192");
         expect(args[args.indexOf("--n-predict") + 1]).toBe("4000");
@@ -77,7 +81,7 @@ async function reader(timeoutMs = 10000) {
     },
   });
   readers.push(model);
-  return { model, root, starts, formats };
+  return { model, root, starts, formats, schemas };
 }
 async function api(options: Parameters<typeof createReceiptApi>[0] = {}) {
   const handler = createReceiptApi(options);
@@ -129,6 +133,34 @@ afterEach(async () => {
 });
 
 describe("bounded local vision bridge (synthetic process protocol, not recognition accuracy)", () => {
+  it("generates the printed row amount first while preserving the canonical schema constraints", async () => {
+    const { model, schemas } = await reader();
+    await model.extract(panels());
+    const schema = JSON.parse(JSON.stringify(schemas[0]));
+    const item = schema.properties.items.items;
+    const order = [
+      "description",
+      "lineTotal",
+      "quantity",
+      "unitPrice",
+      "discount",
+      "taxCode",
+      "note",
+      "sourcePhotos",
+    ];
+    expect(Object.keys(item.properties)).toEqual(order);
+    expect(item.required).toEqual(order);
+    const expected = JSON.parse(
+      JSON.stringify(z.toJSONSchema(aiReceiptSchema)),
+    );
+    expected.properties.items.items.required = order;
+    expected.properties.items.items.properties.note = {
+      type: "string",
+      const: "",
+    };
+    expected.properties.warnings.maxItems = 4;
+    expect(schema).toEqual(expected);
+  });
   it("allows a long canonical one-photo reading the same bounded model time as multiple photos", async () => {
     const timeout = vi.spyOn(AbortSignal, "timeout");
     const { model, formats, root } = await reader(200000);

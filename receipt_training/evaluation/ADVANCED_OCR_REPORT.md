@@ -453,6 +453,49 @@ A new actual two-photo UK attempt reaches primary review after **150.42 seconds*
 
 Current verification passes **455 unit tests, 167 browser tests and one existing skip**, production build/typecheck and formatting. Phone controls fit 320/390 px and pass automated accessibility checks. The [detailed methods and limitations](AUTOMATIC_LOCAL_COMPARISON.md) and [782-file evidence checkpoint](advanced-automatic-local-v1.json), verified with `python receipt_training/scripts/build_automatic_local_report.py --check`, keep the failed diagnostics, saved-response measurements and actual model attempts distinct. No new cloud upload or paid activation occurred; earlier cloud approval scopes remain consumed. The thirteen old evidence gaps remain disclosed. The full goal remains active.
 
+### Original-fifty decoder order and actual long-receipt checks
+
+The canonical native decoder now copies each printed row total before generating
+quantity and unit price. An order-only comparison across all original fifty
+transactions improves known line prices **105/143 → 115/143**, with no scored
+per-case regressions. The 38-development/12-evaluation membership stays fixed;
+evaluation prices improve **16/22 → 17/22**. These are already inspected regression
+cases, not a new holdout. Forty-eight new candidates extend two retained pilot
+candidates; controls combine two fresh pilot reads and 48 retained same-pixel
+successful original-cohort reads. Names, quantities, known unit prices, totals,
+tax and charge counts remain unchanged. Unsupported unit/discount/charge
+proposals remain explicitly checked; no complete financial success is certified.
+
+The first actual phone-emulated scan timed out with vision HTTP504 and preserved
+its OCR draft. A subsequent instrumented pipeline completed HTTP200/200, and a
+separate phone-emulated app run showed all four targeted long-receipt prices
+correctly after 172.19 seconds. Source checks and blocked confirmation remain;
+there were no financial edits or external requests. The failed and successful
+runs are retained. No p95, speedup or handset reliability is inferred. See
+[methods, price gains and limitations](ROW_FIRST_DECODER.md), the
+[1,043-file cohort result](advanced-row-first-original50-v1.json) and
+[125-file pilot](advanced-row-first-pilot-v2.json).
+
+### Consumed Azure comparison against the same six crops
+
+The user configured a UK South F0 resource, confirmed six unused free pages and
+separately approved the bounded Azure upload. All six extraction POSTs succeeded,
+eight status GETs were made and all six matching deletion requests returned204.
+No retries, other-provider uploads, custom training or paid activation occurred.
+The approval is consumed; actual billing, quota and region were not inspected
+through management APIs.
+
+On the unchanged 26-row/25-known-price crop reference, native Azure matches all
+26 names and 23 prices, versus native Veryfi's 22 names and 18 prices. Azure gets
+all 15 known quantities and 11 known units, but returns wrong currency codes on
+four cases, attaches none of three known coupons and misassociates two Tesco
+prices. Its copied final totals match five of six; none is certified a complete
+payable receipt. A same-current-parser literal-text ablation reads 25/25 prices
+from Veryfi with explicit currency; Azure's split-column plain content reads0/25
+and needs a genuine word-geometry adapter before that path can be judged.
+No Azure app/default switch is made. See the [detailed comparison](AZURE_SIX_RESULT.md)
+and [103-file result checkpoint](advanced-azure-screening-result-v2.json).
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |
@@ -462,7 +505,7 @@ Current verification passes **455 unit tests, 167 browser tests and one existing
 | 3 — Technology comparison | Full neural OCR comparisons, Qwen3-VL cohort, PaddleOCR-VL, GLM modes and Qwen3.5 profiles measured. Veryfi's one UK and six-case live screens are complete; native fields underperform its text/parser path on these cases. Two Gemini attempts returned 503, without an accuracy draft. No general provider winner or full financial accuracy is certified. |
 | 4 — Hybrid pipeline | Bounded streamed local batches, source-based joins, local PDF/direct text, actual scanned-PDF OCR-to-split, advisory photo-quality checks, selected-area rereads and explicit user currency work within tested limits. Automatic local comparison routes uncertain drafts to independent vision and preserves checks on failure. Six old oversized cases now complete fresh current preparation/native inference. Compact multi-photo output completed actual two-photo Costco and four-photo synthetic checked splits, while prior canonical timeouts remain preserved. Broader document classification, genuine long-photo/PDF accuracy, overlap coverage, calibrated quality/edges/deskew/perspective and general recovery remain open. |
 | 5 — Costco/general retail | Supplied UK receipt finances/source rows/split pass; strict global/general-retailer reliability remains insufficient. Unknown VAT legends are not guessed. |
-| 6 — Credentials/services | Keys remain server-only. Both Gemini scopes and both Veryfi live-test scopes are consumed. The user confirmed sufficient Free credits before each Veryfi run; all seven extraction requests and matching deletions succeeded. Account billing was not inspected and no paid activation was made. New app uploads require a deliberately configured finite allowance plus per-scan consent; current allowance is zero. No broader corpus upload is authorized. |
+| 6 — Credentials/services | Keys remain server-only. Both Gemini scopes, both Veryfi live-test scopes and the separately approved six-crop Azure scope are consumed. The user confirmed sufficient Free credits before each Veryfi run; all seven extraction requests and matching deletions succeeded. Account billing was not inspected and no paid activation was made. New app uploads require a deliberately configured finite allowance plus per-scan consent; current allowance is zero. No broader corpus upload is authorized. |
 | 7 — Git protection | Stable baseline and separate improvement branch preserved; incremental local commits; no merge/push/deploy. |
 | 8 — Splitting | Exact purchase/refund-credit allocation, signed tax, coupon reversal, currency/rounding and conservation regressions pass. Unresolved currency and ambiguous negative-row classification block confirmation. Genuine refund truth, unsupported input representations and broader financial coverage remain open. |
 | 9 — Mobile UX | Capture/reorder/crop/progress, local quality advice, PDF import/cancellation, responsive source review, area rereading/manual correction and sharing work in browser tests. Optional bounded receipt-edge suggestions preserve originals and need Apply. Veryfi consent/review controls fit 320/390 px browser emulation. Perspective/arbitrary rotation, live-camera guidance and physical-device testing remain open. |

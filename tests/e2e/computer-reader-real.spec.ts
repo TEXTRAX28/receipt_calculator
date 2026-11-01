@@ -2,6 +2,194 @@ import { test, expect } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { appSchema } from "../../src/lib/model";
+import { calculateReceipt } from "../../src/lib/engine";
+
+test("real row-first native comparison preserves printed prices and blocks unsupported fields on a phone", async ({
+  page,
+}) => {
+  test.setTimeout(300000);
+  const file = process.env.GATHER_LOCAL_ROW_FIRST_RECEIPT;
+  test.skip(!file, "Supply the local row-first development receipt");
+  const base = process.env.GATHER_LOCAL_MODEL_URL;
+  const run = process.env.GATHER_LOCAL_ROW_FIRST_RUN || "";
+  if (
+    !base ||
+    !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base) ||
+    !/^[\w-]+$/.test(run)
+  )
+    throw new Error(
+      "Supply a loopback model URL and a new private QA run name",
+    );
+  const folder = path.resolve("qa-artifacts", run, "ui");
+  await mkdir(folder);
+  const bytes = await readFile(file!);
+  const imageSha = createHash("sha256").update(bytes).digest("hex");
+  expect(imageSha).toBe(
+    "a7efa7596757d7916c5e454e8bd98e3371cdf476ac737a269693804484cfc193",
+  );
+  const blocked: string[] = [],
+    posts: string[] = [];
+  await page.route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (
+      url.origin === new URL(base).origin &&
+      (request.method() !== "POST" ||
+        ["/api/receipts/recognize", "/api/receipts/vision"].includes(
+          url.pathname,
+        ))
+    )
+      return route.continue();
+    if (["data:", "blob:"].includes(url.protocol)) return route.continue();
+    blocked.push(url.origin + url.pathname);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await page
+    .getByRole("button", { name: "This computer", exact: true })
+    .click();
+  await page
+    .getByLabel("Local vision comparison", { exact: true })
+    .selectOption("always");
+  await page
+    .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
+    .selectOption("IDR");
+  await page.getByLabel("Upload receipt images").setInputFiles(file!);
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/receipts/vision",
+    { timeout: 260000 },
+  );
+  const started = Date.now();
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  const response = await responsePromise;
+  const native = await response.json();
+  const body = response.request().postData()!;
+  expect(Object.keys(JSON.parse(body))).toEqual(["panels"]);
+  const panels = JSON.parse(body).panels;
+  for (const [index, panel] of panels.entries())
+    await writeFile(
+      path.join(folder, `panel-${index + 1}.jpg`),
+      Buffer.from(panel.data, "base64"),
+      { flag: "wx" },
+    );
+  await writeFile(
+    path.join(folder, "vision-response.json"),
+    JSON.stringify(native, null, 2),
+    { flag: "wx" },
+  );
+  await writeFile(
+    path.join(folder, "response-status.json"),
+    JSON.stringify({
+      status: response.status(),
+      request_sha256: createHash("sha256").update(body).digest("hex"),
+      elapsed_ms: Date.now() - started,
+    }),
+    { flag: "wx" },
+  );
+  expect(response.status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 260000 });
+  const elapsedMs = Date.now() - started;
+  const state = appSchema.parse(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+    ),
+  );
+  const calculation = calculateReceipt(state.receipt);
+  expect(state.receipt.items).toHaveLength(22);
+  const expected = [
+    ["Tahu Goreng", "2", "36000"],
+    ["Tempe Goreng", "2", "36000"],
+    ["Bbk Panggang Sam", "3", "366000"],
+    ["Hot Tea", "2", "44000"],
+  ];
+  const reviewed = [];
+  for (const [name, quantity, lineTotal] of expected) {
+    const index = state.receipt.items.findIndex(
+      (item) => item.description.toLowerCase() === name.toLowerCase(),
+    );
+    expect(index).toBeGreaterThanOrEqual(0);
+    const item = state.receipt.items[index];
+    expect(item).toMatchObject({ quantity, lineTotal });
+    const checks = state.receipt.reviewChecks.filter(
+      (check) => check.scope === "item" && check.itemId === item.id,
+    );
+    expect(
+      checks.some(
+        (check) =>
+          check.field === "quantity" &&
+          check.reason === "source" &&
+          check.confirmedValue === "",
+      ),
+    ).toBe(true);
+    expect(
+      checks.some(
+        (check) =>
+          check.field === "unitPrice" &&
+          check.reason === "unsupported" &&
+          check.confirmedValue === "",
+      ),
+    ).toBe(true);
+    const card = page.getByTestId(`review-item-${index}`);
+    await expect(
+      page.getByLabel(`Item ${index + 1} line price`, { exact: true }),
+    ).toHaveValue(lineTotal);
+    reviewed.push({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+      checks,
+    });
+    if (name === "Hot Tea") {
+      await card.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(folder, "phone-review.png") });
+    }
+  }
+  await expect(
+    page.getByRole("button", { name: "Confirm receipt & add people" }),
+  ).toBeDisabled();
+  expect(calculation.issues.length).toBeGreaterThan(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
+  expect(blocked).toEqual([]);
+  await writeFile(
+    path.join(folder, "result.json"),
+    JSON.stringify(
+      {
+        scope:
+          "One source-inspected development receipt, actual installed Paddle and native Qwen with HTTP/UI on desktop Chrome phone emulation. Currency supplied after extraction; no blind holdout, complete financial success or physical-phone claim.",
+        image_sha256: imageSha,
+        request_sha256: createHash("sha256").update(body).digest("hex"),
+        posts,
+        blocked,
+        elapsed_ms: elapsedMs,
+        receipt: state.receipt,
+        reviewed,
+        calculation,
+        external_requests: 0,
+        financial_fields_edited: false,
+      },
+      (_, value) => (typeof value === "bigint" ? String(value) : value),
+      2,
+    ),
+    { flag: "wx" },
+  );
+});
 
 test("real leading-count receipt preserves its row price and source review on a phone", async ({
   page,

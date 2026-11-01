@@ -36,6 +36,23 @@ const manifest = JSON.parse(
   ),
 );
 const schema = z.toJSONSchema(aiReceiptSchema);
+// The native decoder follows property order. Copy the printed row amount before
+// generating quantity/unit price: original-fifty testing recovered 10 prices.
+const itemSchema = schema.properties.items.items;
+const itemOrder = [
+  "description",
+  "lineTotal",
+  "quantity",
+  "unitPrice",
+  "discount",
+  "taxCode",
+  "note",
+  "sourcePhotos",
+];
+itemSchema.properties = Object.fromEntries(
+  itemOrder.map((key) => [key, itemSchema.properties[key]]),
+);
+itemSchema.required = itemOrder;
 schema.properties.items.items.properties.note = { type: "string", const: "" };
 schema.properties.warnings.maxItems = 4;
 const unavailable = () =>
