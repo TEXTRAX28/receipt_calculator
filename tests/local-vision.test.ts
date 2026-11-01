@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
@@ -42,6 +43,7 @@ async function ownedRoot() {
 async function reader(timeoutMs = 10000) {
   const root = await ownedRoot();
   const starts: string[] = [];
+  const formats: boolean[] = [];
   const model = createLocalVisionReader({
     enabled: true,
     python: process.execPath,
@@ -60,6 +62,13 @@ async function reader(timeoutMs = 10000) {
       expect(options.env?.GEMINI_API_KEY).toBeUndefined();
       expect(options.env?.OTHER_SECRET_KEY).toBeUndefined();
       if (mode === "vision") {
+        const schema = JSON.parse(
+          readFileSync(
+            String(args[args.indexOf("--json-schema-file") + 1]),
+            "utf8",
+          ),
+        );
+        formats.push(!!schema.properties.items.items.prefixItems);
         expect(program).toMatch(/runtime-b11960[\\/]llama-mtmd-cli.exe$/);
         expect(args[args.indexOf("--ctx-size") + 1]).toBe("8192");
         expect(args[args.indexOf("--n-predict") + 1]).toBe("4000");
@@ -68,7 +77,7 @@ async function reader(timeoutMs = 10000) {
     },
   });
   readers.push(model);
-  return { model, root, starts };
+  return { model, root, starts, formats };
 }
 async function api(options: Parameters<typeof createReceiptApi>[0] = {}) {
   const handler = createReceiptApi(options);
@@ -119,6 +128,36 @@ afterEach(async () => {
 });
 
 describe("bounded local vision bridge (synthetic process protocol, not recognition accuracy)", () => {
+  it("expands distinct multi-photo item values without swapping positions and retains the one-photo format for detail sections", async () => {
+    const { model, root, formats } = await reader();
+    const draft = await model.extract([
+      panels("DISTINCT")[0],
+      { ...panels()[0], photo: 2 },
+    ]);
+    expect(draft.items[0]).toMatchObject({
+      quantity: "2",
+      unitPrice: "3.25",
+      lineTotal: "6.50",
+      taxCode: "A",
+      discount: "1.10",
+      sourcePhotos: [2, 1],
+      note: "",
+    });
+    expect(formats).toEqual([true]);
+    await model.extract([panels()[0], { ...panels()[0], part: 2 }]);
+    expect(formats).toEqual([true, false]);
+    expect(await readdir(root)).toEqual([]);
+  });
+  it.each(["BADTUPLE", "OBJECT", "OUTSIDE"])(
+    "rejects an invalid multi-photo %s response without accepting or retaining a prefix",
+    async (marker) => {
+      const { model, root } = await reader();
+      await expect(
+        model.extract([panels(marker)[0], { ...panels()[0], photo: 2 }]),
+      ).rejects.toThrow(/reader/);
+      expect(await readdir(root)).toEqual([]);
+    },
+  );
   it("checks images/assets, preserves strict fields, strips credentials and cleans all temporary files", async () => {
     vi.stubEnv("GEMINI_API_KEY", "must-not-reach-model");
     vi.stubEnv("OTHER_SECRET_KEY", "must-not-reach-model");
@@ -214,6 +253,51 @@ describe("local vision shares the existing private API boundary", () => {
     name: "Qwen3-VL 4B",
     maxPanels: 3,
     extract,
+  });
+  it("uses its explicit vision budget after a bounded request body and cancels a stalled model at that budget", async () => {
+    const slow = localVision(
+      vi.fn(async () => {
+        await new Promise((done) => setTimeout(done, 150));
+        return aiCostcoDraft();
+      }),
+    );
+    const ready = await api({
+      timeoutMs: 80,
+      visionTimeoutMs: 500,
+      localVision: slow,
+    });
+    expect(
+      (
+        await ready.post({
+          panels: [panels()[0], { ...panels()[0], photo: 2 }],
+        })
+      ).status,
+    ).toBe(200);
+    let cancelled = false;
+    const stalled = localVision(
+      vi.fn(
+        ((_panels: unknown, { signal }: { signal: AbortSignal }) =>
+          new Promise<ReturnType<typeof aiCostcoDraft>>((_, reject) => {
+            signal.addEventListener(
+              "abort",
+              () => {
+                cancelled = true;
+                reject(new Error("stalled"));
+              },
+              { once: true },
+            );
+          })) as typeof slow.extract,
+      ),
+    );
+    const stopped = await api({
+      timeoutMs: 80,
+      visionTimeoutMs: 150,
+      localVision: stalled,
+    });
+    const response = await stopped.post();
+    expect(response.status).toBe(504);
+    expect(cancelled).toBe(true);
+    expect((await response.json()).error).toMatch(/vision.*timed out/i);
   });
   it("reports an unconfigured provider honestly and does not expose server paths", async () => {
     const { base, post } = await api();

@@ -154,13 +154,14 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>}} [options]
+ * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
   model = DEFAULT_GEMINI_MODEL,
   fetcher = globalThis.fetch,
   timeoutMs = 120000,
+  visionTimeoutMs = timeoutMs,
   visionJobTimeoutMs = LOCAL_VISION_JOB_TIMEOUT_MS,
   localReader,
   localVision,
@@ -334,9 +335,12 @@ export function createReceiptApi({
         });
         return send(200, result);
       }
-      if (isBatchedVision) {
+      if (isVision) {
         clearTimeout(deadline);
-        deadline = setTimeout(() => abort.abort(), visionJobTimeoutMs);
+        deadline = setTimeout(
+          () => abort.abort(),
+          isBatchedVision ? visionJobTimeoutMs : visionTimeoutMs,
+        );
       }
       if (isVision) {
         // Release the idle CPU model before loading the GPU vision model on this host.
@@ -443,7 +447,9 @@ export function createReceiptApi({
             ? "The Veryfi scan was cancelled or took too long. It may have reached the provider; its allowance remains reserved. Cleanup may be unconfirmed."
             : isBatchedVision
               ? "The long receipt was cancelled or took too long. Your photos are still available; no partial result was accepted."
-              : "The scan was cancelled or took longer than two minutes. Your photos are still available.",
+              : isVision
+                ? "The local vision scan was cancelled or timed out. Your photos are still available."
+                : "The scan was cancelled or took longer than two minutes. Your photos are still available.",
         });
       else if (error instanceof ScanError || error instanceof LocalOcrError)
         send(error.status, { error: error.message });

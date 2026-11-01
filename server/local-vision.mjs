@@ -14,6 +14,16 @@ import {
 import { LocalOcrError, removeOwnedJob } from "./local-ocr.mjs";
 import { runPrivateProcess } from "./private-process.mjs";
 import { RECEIPT_INSTRUCTIONS } from "./extraction-instructions.mjs";
+import {
+  compactVisionJsonSchema,
+  compactVisionPrompt,
+  expandCompactVision,
+} from "./local-vision-format.mjs";
+import {
+  hasMultipleSourcePhotos,
+  LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
+  LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS,
+} from "../src/lib/vision-plan.mjs";
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(
@@ -41,7 +51,7 @@ export function createLocalVisionReader({
   enabled = false,
   python = "",
   runtimeRoot = resolve(PROJECT, "private-receipts/runtime"),
-  timeoutMs = 120000,
+  timeoutMs = LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
   // Protocol-test dependencies only; these are not environment/request options.
   requireAssets = true,
   spawnProcess = launchProcess,
@@ -105,10 +115,16 @@ export function createLocalVisionReader({
           413,
           "These photos are too large together. Choose fewer sections.",
         );
+      const compact = hasMultipleSourcePhotos(panels);
       current = new AbortController();
       const combined = AbortSignal.any([
         current.signal,
-        AbortSignal.timeout(timeoutMs),
+        AbortSignal.timeout(
+          Math.min(
+            timeoutMs,
+            compact ? LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS : 120000,
+          ),
+        ),
         ...(signal ? [signal] : []),
       ]);
       inflight = (async () => {
@@ -186,57 +202,72 @@ export function createLocalVisionReader({
             verified = true;
           }
           const schemaPath = join(directory, "schema.json");
-          await writeFile(schemaPath, JSON.stringify(schema), {
-            flag: "wx",
-            mode: 0o600,
-          });
+          await writeFile(
+            schemaPath,
+            JSON.stringify(compact ? compactVisionJsonSchema : schema),
+            {
+              flag: "wx",
+              mode: 0o600,
+            },
+          );
           const prompt =
-            RECEIPT_INSTRUCTIONS +
+            (compact ? compactVisionPrompt : RECEIPT_INSTRUCTIONS) +
             images
               .map(
                 (panel, index) =>
                   `\nImage ${index + 1} is original photo ${panel.photo}, detail panel ${panel.part}.`,
               )
               .join("");
-          const output = await run(cli, [
-            "-m",
-            models[0],
-            "--mmproj",
-            models[1],
-            "--image",
-            images.map((image) => image.path).join(","),
-            "-p",
-            prompt,
-            "--ctx-size",
-            "8192",
-            "--n-predict",
-            "4000",
-            "--image-max-tokens",
-            "1536",
-            "--gpu-layers",
-            "auto",
-            "--batch-size",
-            "256",
-            "--ubatch-size",
-            "128",
-            "--threads",
-            "4",
-            "--threads-batch",
-            "4",
-            "--temp",
-            "0",
-            "--seed",
-            "20261031",
-            "--json-schema-file",
-            schemaPath,
-          ]);
+          const output = await run(
+            cli,
+            [
+              "-m",
+              models[0],
+              "--mmproj",
+              models[1],
+              "--image",
+              images.map((image) => image.path).join(","),
+              "-p",
+              prompt,
+              "--ctx-size",
+              "8192",
+              "--n-predict",
+              "4000",
+              "--image-max-tokens",
+              "1536",
+              "--gpu-layers",
+              "auto",
+              "--batch-size",
+              "256",
+              "--ubatch-size",
+              "128",
+              "--threads",
+              "4",
+              "--threads-batch",
+              "4",
+              "--temp",
+              "0",
+              "--seed",
+              "20261031",
+              "--json-schema-file",
+              schemaPath,
+            ],
+            {
+              timeoutMs: compact
+                ? LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS
+                : 120000,
+            },
+          );
           if (
             /JSON schema conversion was incomplete|accepting any string/.test(
               output.stderr,
             )
           )
             throw unavailable();
-          const draft = aiReceiptSchema.parse(JSON.parse(output.stdout));
+          const value = JSON.parse(output.stdout);
+          const draft = compact
+            ? expandCompactVision(value)
+            : aiReceiptSchema.parse(value);
           const supplied = new Set(panels.map((panel) => panel.photo));
           if (
             draft.warnings.length > 4 ||

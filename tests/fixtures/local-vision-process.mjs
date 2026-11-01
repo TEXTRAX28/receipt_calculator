@@ -64,6 +64,31 @@ if (mode === "verify") {
       adjustments: [],
       warnings: [],
     };
+    if (marker === "DISTINCT")
+      Object.assign(draft.items[0], {
+        quantity: "2",
+        unitPrice: "3.25",
+        lineTotal: "6.50",
+        taxCode: "A",
+        discount: "1.10",
+        sourcePhotos: [2, 1],
+      });
+    if (marker === "OUTSIDE") draft.items[0].sourcePhotos = [12];
+    const schema = JSON.parse(
+      readFileSync(args[args.indexOf("--json-schema-file") + 1], "utf8"),
+    );
+    if (schema.properties.items.items.prefixItems && marker !== "OBJECT") {
+      draft.items = draft.items.map((item) => [
+        item.description,
+        item.quantity,
+        item.unitPrice,
+        item.lineTotal,
+        item.taxCode,
+        item.discount,
+        item.sourcePhotos,
+      ]);
+      if (marker === "BADTUPLE") draft.items[0].pop();
+    }
     console.log(JSON.stringify(draft));
   }
 }

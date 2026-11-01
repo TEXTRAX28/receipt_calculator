@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { qaArtifactPath } from "./qa-artifacts";
 import { appSchema } from "../../src/lib/model";
 import { calculateReceipt } from "../../src/lib/engine";
 import { costcoDemo } from "../../src/lib/demo";
@@ -79,9 +81,8 @@ test("real independent readers → original two-photo review → exact checked s
   const financialRowsMatch =
     JSON.stringify(financial(state.receipt)) ===
     JSON.stringify(financial(costcoDemo()));
-  await mkdir("qa-artifacts/advanced-ocr", { recursive: true });
   await writeFile(
-    `qa-artifacts/advanced-ocr/independent-real-costco-${info.project.name}.json`,
+    await qaArtifactPath(info, "independent-real-costco.json"),
     JSON.stringify(
       {
         scope:
@@ -129,7 +130,7 @@ test("real independent readers → original two-photo review → exact checked s
     .locator(".verification-checks")
     .last()
     .screenshot({
-      path: `qa-artifacts/advanced-ocr/independent-real-costco-review-${info.project.name}.png`,
+      path: await qaArtifactPath(info, "independent-real-costco-review.png"),
     });
   // The test's image-checked development reference verifies the financial vector above.
   // These clicks exercise mandatory review; they do not assert that model agreement proves correctness.
@@ -163,7 +164,7 @@ test("real independent readers → original two-photo review → exact checked s
   expect(external).toEqual([]);
   expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
   await writeFile(
-    `qa-artifacts/advanced-ocr/independent-real-costco-split-${info.project.name}.json`,
+    await qaArtifactPath(info, "independent-real-costco-split.json"),
     JSON.stringify(
       {
         elapsedMs,
@@ -188,16 +189,35 @@ test("real four-section local vision completes bounded batches and retains actua
     throw new Error("Supply a loopback GATHER_LOCAL_COMPARISON_URL");
   const external: string[] = [],
     posts: string[] = [];
+  const packets: {
+    path: string;
+    body: { panels: { photo: number; part: number; data: string }[] };
+  }[] = [];
   await page.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith(new URL(base).origin) || /^(data:|blob:)/.test(url))
+    const request = route.request(),
+      url = request.url();
+    if (
+      /^(data:|blob:)/.test(url) ||
+      (new URL(url).origin === new URL(base).origin &&
+        (request.method() === "GET" ||
+          (request.method() === "POST" &&
+            [
+              "/api/receipts/recognize",
+              "/api/receipts/vision-batches",
+            ].includes(new URL(url).pathname))))
+    )
       return route.continue();
     external.push(url);
     return route.abort();
   });
   page.on("request", (request) => {
-    if (request.method() === "POST")
+    if (request.method() === "POST") {
       posts.push(new URL(request.url()).pathname);
+      packets.push({
+        path: new URL(request.url()).pathname,
+        body: request.postDataJSON(),
+      });
+    }
   });
   await page.goto(base);
   await page.evaluate(() => {
@@ -345,10 +365,27 @@ test("real four-section local vision completes bounded batches and retains actua
     accuracyScope:
       "One predeclared synthetic receipt; not original-cohort or complete-receipt accuracy",
   };
-  await mkdir("qa-artifacts/advanced-ocr", { recursive: true });
+  expect(packets).toHaveLength(2);
+  expect(packets[1].body).toEqual(packets[0].body);
+  expect(Object.keys(packets[0].body)).toEqual(["panels"]);
+  const sha = (bytes: Buffer) =>
+    createHash("sha256").update(bytes).digest("hex");
+  const prepared = [];
+  for (const [index, panel] of packets[0].body.panels.entries()) {
+    const bytes = Buffer.from(panel.data, "base64");
+    const path = await qaArtifactPath(info, `long-panel-${index + 1}.jpg`);
+    await writeFile(path, bytes, { flag: "wx" });
+    prepared.push({
+      photo: panel.photo,
+      part: panel.part,
+      path,
+      sha256: sha(bytes),
+    });
+  }
   await writeFile(
-    `qa-artifacts/advanced-ocr/long-vision-real-four-${info.project.name}.json`,
-    JSON.stringify(evidence, null, 2) + "\n",
+    await qaArtifactPath(info, "long-vision-real-four.json"),
+    JSON.stringify({ ...evidence, prepared }, null, 2) + "\n",
+    { flag: "wx" },
   );
   expect(evidence.completeStream).toBe(true);
   expect(evidence.batchCount).toBe(2);
@@ -365,4 +402,52 @@ test("real four-section local vision completes bounded batches and retains actua
     "/api/receipts/recognize",
     "/api/receipts/vision-batches",
   ]);
+  for (const checkbox of await page
+    .locator(".verification-checks")
+    .getByRole("checkbox")
+    .all())
+    if (await checkbox.isEnabled()) await checkbox.check();
+  const confirm = page.getByRole("button", {
+    name: "Confirm receipt & add people",
+    exact: true,
+  });
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  for (const name of ["Alice", "Bob", "Charlie"]) {
+    await page
+      .getByRole("textbox", { name: "Person’s name", exact: true })
+      .fill(name);
+    await page.getByRole("button", { name: "Add person", exact: true }).click();
+  }
+  await page
+    .getByRole("button", { name: "Let’s share it", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Whole receipt", exact: true })
+    .click();
+  for (const checkbox of await page
+    .getByTestId("whole-assignment")
+    .getByRole("checkbox")
+    .all())
+    await checkbox.check();
+  await page
+    .getByRole("button", { name: "Finalize split", exact: true })
+    .click();
+  for (const index of [0, 1, 2])
+    await expect(page.getByTestId(`person-total-${index}`)).toHaveText("£6.50");
+  await writeFile(
+    await qaArtifactPath(info, "long-vision-split.json"),
+    JSON.stringify(
+      {
+        noFinancialEdits: true,
+        participants: ["6.50", "6.50", "6.50"],
+        totalMinor: "1950",
+        externalBrowserRequests: external.length,
+        postEndpoints: posts,
+      },
+      null,
+      2,
+    ),
+    { flag: "wx" },
+  );
 });

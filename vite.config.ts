@@ -7,6 +7,7 @@ import { createLocalVisionReader } from "./server/local-vision.mjs";
 import { privateFileDeny } from "./server/private-paths.mjs";
 import { createVeryfiReader } from "./server/veryfi-reader.mjs";
 import { resolve } from "node:path";
+import { LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS } from "./src/lib/vision-plan.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -27,6 +28,7 @@ export default defineConfig(({ mode }) => {
         model: env.GEMINI_MODEL || undefined,
         localReader,
         localVision,
+        visionTimeoutMs: LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
         veryfiReader: createVeryfiReader({
           clientId: env.VERYFI_CLIENT_ID || "",
           bearerKey: env.VERYFI_BEARER_KEY || "",
