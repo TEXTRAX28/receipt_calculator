@@ -209,7 +209,9 @@ describe("Veryfi route with a synthetic upstream and no live requests", () => {
     expect((await s.reader.getStatus()).remaining).toBe(1);
   });
   it("applies the API deadline, reserves the failed attempt and never retries an uncertain upload", async () => {
-    const s = await setup({ stalled: true, timeoutMs: 80 });
+    // Allow HTTP/filesystem setup before exercising a stalled upstream. A very
+    // short deadline can correctly cancel before the provider is ever called.
+    const s = await setup({ stalled: true, timeoutMs: 1500 });
     const result = await s.post();
     expect(result.status).toBe(504);
     const body = await result.json();

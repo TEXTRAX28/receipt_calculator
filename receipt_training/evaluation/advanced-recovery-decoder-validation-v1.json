@@ -1,0 +1,64 @@
+{
+  "consumer_code_and_six_build_assets_identical_to": "b732f244ddcd6335f0355200e953a7b8f18998e7",
+  "unit_tests_passed": 436,
+  "production_build_typecheck": "passed",
+  "format": "passed",
+  "built_assets": [
+    {
+      "name": "index-CI0ELRwy.js",
+      "sha256": "abfdcd8c9a5f483ad86499724903afcde81444a43268f65a18cd7896e5f7ea8e"
+    },
+    {
+      "name": "index-DarNsuzf.css",
+      "sha256": "bcaaf6ee6225e157f6581c542507941b87a59c1c2f67af0866bbbcc7fedb5179"
+    },
+    {
+      "name": "pdf-7dG_8HVI.js",
+      "sha256": "a84f589bf931b5731cbdc4be14b191d3d20105168398384c4dd4d347dd13942c"
+    },
+    {
+      "name": "pdf.worker.min-CjEcRF4W.mjs",
+      "sha256": "9536359f1b8367850d485731ca1d5e45c159a7b7a0912325e539937aa21ceb18"
+    },
+    {
+      "name": "receipt-edges.worker-BXPFlDVb.js",
+      "sha256": "85406d87c6d68d3c5fad9588a8404aed29766a9caceae9625cfee5a1fe7a8fef"
+    },
+    {
+      "name": "src-DPnshKtZ.js",
+      "sha256": "462b711519d8794899d1478da4722fd15003cc93d99ea8551e2488dbea50053d"
+    }
+  ],
+  "schemas_regenerated_identically_after_formatting": 3,
+  "real_outputs_with_intrinsic_blocking_issues_before_research_guard": 12,
+  "browser_scope": "Consumer sources and built assets unchanged; prior b732f24 browser result is 157 passed/1 existing skip. Browser suite was not rerun for research-only files or the unit-fixture timeout.",
+  "fixture_correction": "80ms could cancel before upload; 1500ms gives HTTP/allowance setup time to exercise the stalled-upstream deadline. Production deadlines/behavior unchanged.",
+  "stable_head": "ee725ba45e799bee8501d3de034e0302c0127afd",
+  "original_head": "29a187af7347be94c0728f4785be674500833748",
+  "original_diff_sha256": "72fe803bf341a3052a441b7144838d06e7f4cbea5b59d612feb649368442e31b",
+  "staged_files_secret_checked": 10,
+  "built_assets_secret_checked": 6,
+  "credential_hits": 0,
+  "cloud_uploads": 0,
+  "paid_activation": false,
+  "actual_native_calls_recorded_in_benchmark": 8,
+  "evidence_sha256": {
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/scripts/currency_decoder_profile.mjs": "8232d32aa3cd2266bb6d3c1a30e67d7222307e8739ee1b7adf3a73b698537b02",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/scripts/prepare_currency_decoder_trial.mjs": "3df3cb47d174022ea6f1bd7a00e548683d4ec81a6b9cac06709f684bcffb0470",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/scripts/run_currency_decoder_trial.mjs": "e918dd85452087f60767322ff1ccce4eb7f6a30992094c5a9d5205d15661a65d",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/scripts/postprocess_currency_decoder_trial.mjs": "4d45f8e124c00fc2785c506ee3ac6726b6a07d2d7bb537d013e5b60b8945816b",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/scripts/build_decoder_trial_report.py": "99a387e48160d332b96081dd10f54fda65d27e4fde550fa4c4a86c14af2fc588",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/tests/currency-decoder-profile.test.ts": "294e96a139acb159420f7a7c4014f3d2e1d24772fa821e34cba6f7d20052d34b",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/tests/veryfi-api.test.ts": "62e598a3e1e7e24121ba06a2ff390e5e8e57e71a950a7dda8352f29002a6da5e",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/evaluation/RECOVERY_DECODER_TRIALS.md": "6ad81b8f872d90ec8eb9dc9029e2b95f0aa92bcd48cdb113602c0df193beca1c",
+    "qa-artifacts/recovery-decoder-validation-v1/current-source/receipt_training/evaluation/ADVANCED_OCR_REPORT.md": "6b83045c2570a76d5c93063dd09973583c19f8759c0fde27ad895eecd119290c",
+    "qa-artifacts/recovery-decoder-validation-v1/full-unit.log": "2c33e9959133622b2829742b14b20813e60250275ee8b182d011770030e83d95",
+    "qa-artifacts/recovery-decoder-validation-v1/full-unit-v2.log": "462a262c57e70279301a8c3be6e486082eb22b180f813440d3c4cd8ebff0dc3f",
+    "qa-artifacts/recovery-decoder-validation-v1/build.log": "70b3d80ec1790383c8bd420bec31ca924758d6278ff66e24f2c016aabd801f4f",
+    "qa-artifacts/recovery-decoder-validation-v1/format.log": "d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41",
+    "qa-artifacts/recovery-decoder-validation-v1/graph-update-v2.log": "ede31cba7366cbfa48e55b525eb4f447fed362ad7928ce0dece77fd41c1b7a36",
+    "qa-artifacts/recovery-decoder-validation-v1/veryfi-api-before-timeout-fixture.ts": "da9493e9ee571b59c628d465acf563321527c1462cc0a78f890da74a6021bc1e",
+    "qa-artifacts/recovery-decoder-validation-v1/verify.mjs": "63672f97e204ba8f1deb8b16ba220c932b92f47cc03c2ef8692e4197a0be756f",
+    "receipt_training/evaluation/advanced-recovery-decoder-trials-v1.json": "1acf7c049fcb04fbb6e8e3152310eb1d17b97fe1ea013d1f78b0ece0d927d7b6"
+  }
+}
