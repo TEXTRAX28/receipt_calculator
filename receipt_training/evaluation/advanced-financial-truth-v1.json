@@ -1,0 +1,53 @@
+{
+  "revision": "source-financial-summaries-v1",
+  "reviewed_at": "2026-11-01T22:22:19.679139+00:00",
+  "labels": "receipt_training/annotations/private/priced-rows-v5-financial-labels.jsonl",
+  "supplement_labels": "receipt_training/annotations/private/supplement-financial-v2-labels.jsonl",
+  "changed_original_receipts": 9,
+  "new_known_tax_basis": 9,
+  "new_known_printed_rounding": 1,
+  "source_confirmed_existing_service_amounts": 8,
+  "new_known_payment_tender_not_scored": 1,
+  "uk_separate_fee_and_rounding_absence_checked": true,
+  "zero_tax_controls_still_unknown_basis": {
+    "cord-v2-train-023": "1X S-Lemon Macchiato @21,000 21,000; Less Ice; 50%; PB1 0; Subtotal 21,000; Total 21,000; Cash 21,000; CHANGE 0",
+    "cord-v2-validation-003": "1X M-Caramel Black Tea @28,000 28,000; 70%; Less Ice; PB1 0; Subtotal 28,000; Total 28,000; Cash 28,000; CHANGE 0"
+  },
+  "summary_transcriptions": {
+    "cord-v2-train-000": "Sub-Total 1,346,000; Service 100,950; PB1 144,695; Rounding -45; Grand Total 1,591,600",
+    "cord-v2-train-001": "SUBTOTAL 503,000; PB1 52,815; SVC CHRG 25,150; DUE 580,965",
+    "cord-v2-train-003": "Sub Total 259,000; Service 9,600; Tax 52,416; Discount 19,000; TOTAL 302,016",
+    "cord-v2-train-005": "SUBTOTAL 221,000; Service 16,575; PB1 23,758; TOTAL 261,333; payment section: Coupon 100,000, BCA Card 161,333",
+    "cord-v2-train-011": "SUBTOTAL 214.500; Service 12.870; Pajak Restoran 22.737; TOTAL 250.107",
+    "cord-v2-train-013": "SUBTTL 212,500; SVC CHG 6% 12,750; PB1 10% 22,525; TOTAL 247,775",
+    "cord-v2-train-015": "SUBTTL 261,000; SVC CHG 6% 15,660; PB1 10% 27,666; TOTAL 304,326",
+    "cord-v2-train-019": "FOOD 1,213,000; BEVERAGES 60,000; OTHERS 70,000; SUBTOTAL 1,343,000; SERVICE CHARGE 80,580; Tax 10% 142,358; DU 1,565,938"
+  },
+  "scope": "Source-informed assistant reference revision. Original labels, amounts, item identities, image bytes, splits, permissions and all model predictions remain unchanged. Not an OCR accuracy gain or independent human truth.",
+  "limits": "Publisher-blurred headers remain unknown; no original receipt is declared completely labelled. UK is a separate supplement and its new absence evidence does not become a numeric zero or change the strict scorer.",
+  "new_model_requests": 0,
+  "external_requests": 0,
+  "evidence_sha256": {
+    "receipt_training/annotations/private/priced-rows-v4-labels.jsonl": "04752d6e8b836ce54b388866d53769572e4fbf81b9ada71a8914da34132b312a",
+    "receipt_training/annotations/private/supplement-labels.jsonl": "d81abf83edfb6a1bdc167cca359dabf14c3b2f20a84b4dcce7e54dad7e69430c",
+    "receipt_training/manifest.jsonl": "2a28b64096cfff5de8dd6ca857f016e95a4a7316674b96a7dda6916c2c3ccd53",
+    "receipt_training/annotations/private/supplement-manifest.jsonl": "0db26f2a263479a28dd3c67258b885104bea3d5254a76ddde978f8915de44594",
+    "receipt_training/scripts/record_financial_summary_review.py": "f9417a4d2093a4e1861b15b5aac75857957f4e9d5e4d235653a7adca7c2db3d8",
+    "receipt_training/annotations/schema.json": "a811aa56ae4fe646e75e1af18a911f51408aaa8e955bf2d037a7c8015ac82218",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-000.jpg": "a7efa7596757d7916c5e454e8bd98e3371cdf476ac737a269693804484cfc193",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-001.jpg": "4eeef6f59cc6ed5be9c84914498aa8acb3f5a98ac5978382247e4c26e1f2c94e",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-003.jpg": "81391bfa6ad7f593f6175117f46d906b09c7c5d47a388335cb7d7c4c0e383ffd",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-005.jpg": "893039ec50d04a6d8d151ebfa47a98528f4e8cb5abfc0097183b64dafbd10895",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-011.jpg": "2005a94dc149c44d2ae49348b9bbf669675060f42a30d68d1ebe4af6b738c7e3",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-013.jpg": "d9336c340dd09ca3752a571b092bf3233fa7487f6fee1c4abdb33c17ac5e63dd",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-015.jpg": "07ddf9a9c75266fe267be4e3293d827c1e4214cdb0e479e14f34a906092e39c4",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-019.jpg": "3f060e8846266912fb5f99755e38cafde84eefdf54507a5e5270bd8e4ab9989c",
+    "receipt_training/non_costco/physical/cord/cord-v2-test-008.jpg": "910372079a2bbafc0857931d252608876e3ba6e3ab1b99947f159192f42c9676",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-023.jpg": "933403a39678cba7302f0f9b89c7ff257332ae5699dfc48d3094c4cbd60ec11c",
+    "receipt_training/non_costco/physical/cord/cord-v2-validation-003.jpg": "b928fbfa32d7b79973faf1dbd49e49cd57f7059dfbf3e5e09739371274193a15",
+    "receipt_training/costco/physical/user-uk-20261026-1.jpeg": "293a13103f6df29c7f3c09f1cf6a8a1a55d4c61f8c31d393f0d2e3b5daef90cf",
+    "receipt_training/costco/physical/user-uk-20261026-2.jpeg": "8aa9e5fcd18f47e9fc4e4132a7f14089c176886e38b66f2659409261c7229aff",
+    "receipt_training/annotations/private/priced-rows-v5-financial-labels.jsonl": "2a233ec9e5dce77a3c546ef5e65afa6e54a00db71a14633718b7f7415a4598c9",
+    "receipt_training/annotations/private/supplement-financial-v2-labels.jsonl": "776961f0a6151862ac7aa7e61cde85dd0fc01a13e90056a3ab4de4aaed4ae0e1"
+  }
+}
