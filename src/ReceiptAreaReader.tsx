@@ -153,6 +153,7 @@ export default function ReceiptAreaReader({
           title="Choose the item area"
           description={`Keep the complete purchase, quantity, price and any coupon inside the frame. This reads on ${reader === "computer" ? "this computer" : "your device"}. Compare the new text, then correct the fields below.`}
           applyLabel="Read selected area"
+          allowEdgeSuggestion={false}
           onCancel={dismiss}
           onApply={(cropped) => void read(cropped)}
         />

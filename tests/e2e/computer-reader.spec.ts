@@ -392,6 +392,9 @@ test("a selected purchase area is reread locally, preserves the draft and fits p
     name: "Trim left percent",
     exact: true,
   });
+  await expect(
+    dialog.getByRole("button", { name: "Find receipt edges", exact: true }),
+  ).toHaveCount(0);
   await expect(firstSlider).toBeFocused();
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 850 });
