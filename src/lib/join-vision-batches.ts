@@ -177,6 +177,8 @@ export function joinVisionBatches(
     aiReceiptSchema.parse(draft),
     recognition,
     context,
+    // A batch's original currency must not be reinterpreted using another's.
+    { allowPriceRecovery: !conflicts.has("currency") },
   );
   for (const field of new Set<ReceiptReviewField>(["items", ...conflicts])) {
     const existing = result.receipt.reviewChecks.find(

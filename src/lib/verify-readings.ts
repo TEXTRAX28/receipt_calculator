@@ -23,6 +23,7 @@ import {
 } from "./receipt-layout";
 import { normalizeReceiptDate } from "./receipt-date";
 import { matchInformationalAdjustment } from "./receipt-summaries";
+import { recoverInvalidPrice } from "./recover-invalid-price";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -157,6 +158,7 @@ export function verifyIndependentReadings(
   output: unknown,
   recognition: Recognition,
   context?: ReadingContext,
+  options: { allowPriceRecovery?: boolean } = {},
 ) {
   const raw = aiReceiptSchema.parse(output);
   const receipt = receiptFromAi(raw, "Local vision", context);
@@ -406,6 +408,81 @@ export function verifyIndependentReadings(
     });
   };
 
+  const priceRecoveries: {
+    itemId: string;
+    sourceIndices: number[];
+    evidence: NonNullable<ReturnType<typeof recoverInvalidPrice>>;
+  }[] = [];
+  if (
+    options.allowPriceRecovery !== false &&
+    !receipt.currencyUnresolved &&
+    !ocr.currencyUnresolved &&
+    receipt.currency === ocr.currency &&
+    (!raw.currency || raw.currency === receipt.currency)
+  ) {
+    for (const [nativeIndex, sourceIndex] of pairs) {
+      const owner = receipt.items[nativeIndex];
+      const source = sourceRows[sourceIndex];
+      const leading = source.item.description.match(
+        /^(\d+(?:[.,]\d+)?)\s+(.+)$/,
+      );
+      const sameName =
+        nameKey(owner.description) === nameKey(source.item.description) ||
+        (!source.item.quantity &&
+          leading &&
+          sameAmount(owner.quantity, leading[1], receipt.currency, true) &&
+          nameKey(owner.description) === nameKey(leading[2]));
+      if (!sameName || !source.fieldGood("lineTotal")) continue;
+      const unitOnlyHeader = lines.some(
+        (line) =>
+          line &&
+          source.regions.some(
+            (region) =>
+              line.photo === region.photo &&
+              line.part === region.part &&
+              line.box[3] < region.box[1],
+          ) &&
+          /\b(?:unit\s*price|price\s*each|price\s*per\s*unit|per\s*item)\b/i.test(
+            line.text,
+          ) &&
+          !/\b(?:total|amount|extension)\b/i.test(line.text),
+      );
+      if (unitOnlyHeader) continue;
+      const evidence = recoverInvalidPrice(
+        owner.lineTotal,
+        source.item.lineTotal,
+        receipt.currency,
+        source.regions,
+        recognition,
+      );
+      if (
+        !evidence ||
+        !raw.items[nativeIndex].sourcePhotos.includes(evidence.region.photo)
+      )
+        continue;
+      owner.lineTotal = evidence.value;
+      itemCheck(owner, "lineTotal", "recovered", evidence.previous);
+      const check = checks.find(
+        (check) =>
+          check.scope === "item" &&
+          check.itemId === owner.id &&
+          check.field === "lineTotal",
+      )!;
+      check.details = [
+        {
+          label: "Printed OCR row price — check its meaning",
+          value: evidence.value,
+        },
+        { label: "Previous invalid vision price", value: evidence.previous },
+      ];
+      priceRecoveries.push({
+        itemId: owner.id,
+        sourceIndices: source.indices,
+        evidence,
+      });
+    }
+  }
+
   if (costcoSource) {
     for (const [nativeIndex, sourceIndex] of pairs) {
       const owner = receipt.items[nativeIndex],
@@ -534,6 +611,12 @@ export function verifyIndependentReadings(
       )
         continue;
       if (item[field] === "") continue;
+      // A copied source proposal is pending review, not independent agreement.
+      if (
+        field === "lineTotal" &&
+        priceRecoveries.some((row) => row.itemId === item.id)
+      )
+        continue;
       if (field === "discount" && correctedOwners.has(item.id)) continue;
       if (!source || source.item[field] === "")
         itemCheck(item, field, "unsupported");
@@ -929,6 +1012,7 @@ export function verifyIndependentReadings(
     text: assembled.text,
     sourceLines: assembled.sourceLines,
     corrections,
+    priceRecoveries,
     removedAdjustments,
     agreements,
     matchedPurchases: pairs.length,

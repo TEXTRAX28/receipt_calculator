@@ -1,5 +1,10 @@
 # Six-crop Azure and Veryfi comparison
 
+**Later local analysis:** a [word-orientation adapter](SOURCE_PRICE_RECOVERY.md)
+reads 25/25 known prices with explicit currency from these same saved responses,
+without further uploads. The structured-field and plain-text results below are
+preserved; no Azure app/default switch or complete-financial success is implied.
+
 The approved Azure screen completed on 1 November 2026 using the configured
 resource, reported by the user as **UK South, Free F0**, with six unused pages.
 All six extraction POSTs succeeded. There were eight status GETs and six matching

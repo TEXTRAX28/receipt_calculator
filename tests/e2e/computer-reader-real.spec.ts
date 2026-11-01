@@ -4,6 +4,223 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { appSchema } from "../../src/lib/model";
 import { calculateReceipt } from "../../src/lib/engine";
+import { money } from "../../src/lib/money";
+
+test("real invalid-price recovery preserves source proposals on a phone", async ({
+  page,
+}) => {
+  test.setTimeout(300000);
+  const file = process.env.GATHER_LOCAL_RECOVERY_RECEIPT;
+  test.skip(!file, "Supply the local recovery development receipt");
+  const base = process.env.GATHER_LOCAL_MODEL_URL;
+  const run = process.env.GATHER_LOCAL_RECOVERY_RUN || "";
+  if (
+    !base ||
+    !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base) ||
+    !/^[\w-]+$/.test(run)
+  )
+    throw new Error("Supply loopback model URL and a new private QA run name");
+  const folder = path.resolve("qa-artifacts", run, "ui");
+  await mkdir(folder);
+  const bytes = await readFile(file!);
+  const imageSha = createHash("sha256").update(bytes).digest("hex");
+  expect(imageSha).toBe(
+    "893039ec50d04a6d8d151ebfa47a98528f4e8cb5abfc0097183b64dafbd10895",
+  );
+  const blocked: string[] = [],
+    posts: string[] = [];
+  await page.route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (
+      url.origin === new URL(base).origin &&
+      (request.method() !== "POST" ||
+        ["/api/receipts/recognize", "/api/receipts/vision"].includes(
+          url.pathname,
+        ))
+    )
+      return route.continue();
+    if (["data:", "blob:"].includes(url.protocol)) return route.continue();
+    blocked.push(url.origin + url.pathname);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await page
+    .getByRole("button", { name: "This computer", exact: true })
+    .click();
+  await page
+    .getByLabel("Local vision comparison", { exact: true })
+    .selectOption("always");
+  await page
+    .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
+    .selectOption("IDR");
+  await page.getByLabel("Upload receipt images").setInputFiles(file!);
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/receipts/vision",
+    { timeout: 260000 },
+  );
+  const started = Date.now();
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  const response = await responsePromise;
+  const native = await response.json();
+  const body = response.request().postData()!;
+  expect(Object.keys(JSON.parse(body))).toEqual(["panels"]);
+  for (const [index, panel] of JSON.parse(body).panels.entries())
+    await writeFile(
+      path.join(folder, `panel-${index + 1}.jpg`),
+      Buffer.from(panel.data, "base64"),
+      { flag: "wx" },
+    );
+  await writeFile(
+    path.join(folder, "vision-response.json"),
+    JSON.stringify(native, null, 2),
+    { flag: "wx" },
+  );
+  await writeFile(
+    path.join(folder, "response-status.json"),
+    JSON.stringify({
+      status: response.status(),
+      elapsed_ms: Date.now() - started,
+    }),
+    { flag: "wx" },
+  );
+  expect(response.status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 260000 });
+  const elapsed = Date.now() - started;
+  const state = appSchema.parse(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+    ),
+  );
+  expect(state.receipt.items).toHaveLength(5);
+  const expected = [
+    ["Lasagna", "45000"],
+    ["Spaghetti ChickPesto", "55000"],
+    ["BangBang Chick Wings", "49000"],
+    ["Iced Cappuccino", "33000"],
+    ["Gypsy Gelato Ice Tea", "39000"],
+  ];
+  const key = (text: string) =>
+    text
+      .replace(/^\d+\s+/, "")
+      .toUpperCase()
+      .replace(/[^\p{L}\p{N}]/gu, "");
+  let recoveries = 0;
+  const reviewed = [];
+  for (const [name, price] of expected) {
+    const index = state.receipt.items.findIndex(
+      (item) => key(item.description) === key(name),
+    );
+    expect(index).toBeGreaterThanOrEqual(0);
+    const item = state.receipt.items[index];
+    expect(item.lineTotal).toBe(price);
+    const original = native.receipt.items.find(
+      (row: { description: string }) => key(row.description) === key(name),
+    );
+    expect(original).toBeDefined();
+    let invalid = false;
+    try {
+      money(original.lineTotal, "IDR", true);
+    } catch {
+      invalid = true;
+    }
+    const checks = state.receipt.reviewChecks.filter(
+      (check) => check.scope === "item" && check.itemId === item.id,
+    );
+    if (invalid) {
+      recoveries++;
+      expect(
+        checks.some(
+          (check) =>
+            check.field === "lineTotal" &&
+            check.reason === "recovered" &&
+            check.confirmedValue === "",
+        ),
+      ).toBe(true);
+      expect(
+        checks.some(
+          (check) =>
+            check.field === "lineTotal" && check.other === original.lineTotal,
+        ),
+      ).toBe(true);
+    }
+    const input = page.getByLabel(`Item ${index + 1} line price`, {
+      exact: true,
+    });
+    await expect(input).toHaveValue(price);
+    reviewed.push({
+      name: item.description,
+      lineTotal: item.lineTotal,
+      originalLineTotal: original.lineTotal,
+      checks,
+    });
+  }
+  expect(recoveries).toBeGreaterThan(0);
+  const input = page.getByLabel("Item 1 line price", { exact: true });
+  await input.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(folder, "phone-price.png") });
+  const view = page.getByRole("button", {
+    name: "View source for item 1",
+    exact: true,
+  });
+  await view.click();
+  await expect(
+    page.getByRole("dialog", {
+      name: "Receipt source for purchase 1",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({ path: path.join(folder, "phone-source.png") });
+  await page
+    .getByRole("dialog", { name: "Receipt source for purchase 1", exact: true })
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Confirm receipt & add people" }),
+  ).toBeDisabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
+  expect(blocked).toEqual([]);
+  const calculation = calculateReceipt(state.receipt);
+  expect(calculation.issues.length).toBeGreaterThan(0);
+  await writeFile(
+    path.join(folder, "result.json"),
+    JSON.stringify(
+      {
+        scope:
+          "One source-inspected development image, actual local Paddle/Qwen HTTP and Chrome phone emulation. Explicit IDR is post-extraction context, not a model hint. No financial edits, complete-financial or physical-phone claim.",
+        image_sha256: imageSha,
+        request_sha256: createHash("sha256").update(body).digest("hex"),
+        elapsed_ms: elapsed,
+        recoveries,
+        reviewed,
+        receipt: state.receipt,
+        calculation,
+        posts,
+        blocked,
+        external_requests: 0,
+        financial_fields_edited: false,
+      },
+      (_, value) => (typeof value === "bigint" ? String(value) : value),
+      2,
+    ),
+    { flag: "wx" },
+  );
+});
 
 test("real row-first native comparison preserves printed prices and blocks unsupported fields on a phone", async ({
   page,

@@ -496,6 +496,40 @@ and needs a genuine word-geometry adapter before that path can be judged.
 No Azure app/default switch is made. See the [detailed comparison](AZURE_SIX_RESULT.md)
 and [103-file result checkpoint](advanced-azure-screening-result-v2.json).
 
+### Invalid vision-price proposals and Azure word orientation
+
+The hybrid now proposes a literal source row price when the model's nonempty
+amount is invalid, identity/currency agree and the actual monetary OCR word has
+confidence at least 0.98. It preserves the previous value and leaves a blocking
+source-recovery check. Valid conflicts, currency/sign/identity ambiguity and
+unit-only tables are not overridden. Source proposals are not counted as
+independent agreement; bill totals never select them.
+
+The isolated saved-reading replay on all original fifty improves known prices
+**115/143 → 126/143 with explicit post-extraction currency**. Automatic-currency
+results stay 115/143. Eleven changed fields match existing source labels, with
+no scored per-case regression or change to other financial vectors. A real
+five-item installed-model/HTTP phone-emulated workflow proposes all five correct
+prices, preserves source/previous-value details and blocked confirmation, and
+reaches editable review in 84.57 seconds. A first run's ambiguous test close
+selector and its artifacts remain; the scoped-selector rerun passes. Unsupported
+units/headers/charges and complete financial truth remain unresolved.
+
+The saved six Azure responses also support a research-only word-layout adapter.
+Using actual word-edge orientation instead of horizontal baselines raises known
+prices 19/25 → 25/25 and matched names 21/26 → 26/26 with explicit currency. Every
+word/source box and real repeated purchase remains. The retained Qwen hybrid
+still reads 22/25; name/size/confidence guards withhold three source proposals.
+This is a tuned development screen, not a new holdout or registered Azure app
+reader. There are no further model/provider calls in the replays, and all old
+upload scopes stay consumed.
+
+Current validation passes 520 unit tests, 167 browser tests with one existing skip,
+typecheck/build, formatting and graph refresh. Fourteen new recovery and nine
+geometry invariant tests support the change. See the
+[methods, actual UI evidence and remaining limits](SOURCE_PRICE_RECOVERY.md) and
+[873-file comparison checkpoint](advanced-source-price-recovery-v2.json).
+
 ## Requirement status against the full objective
 
 | Phase | Current evidence and unfinished acceptance work |

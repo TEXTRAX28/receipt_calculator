@@ -80,6 +80,7 @@ export async function extractComparedReceipt(
       text: primary.text,
       sourceLines: primary.sourceLines,
       corrections: [],
+      priceRecoveries: [],
       removedAdjustments: [],
       agreements: 0,
       matchedPurchases: 0,
