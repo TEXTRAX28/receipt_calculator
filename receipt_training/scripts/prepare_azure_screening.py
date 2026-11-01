@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -24,12 +25,42 @@ def remember(path, expected=None):
     return value
 
 
+def verify_historical_evidence(root, declarations):
+    """Past build/source bytes may be archived; this never grants upload authority."""
+    root = root.resolve()
+    result = []
+    for name, expected in declarations.items():
+        path = (root / name).resolve()
+        path.relative_to(root)
+        assert not path.name.startswith(".env") and re.fullmatch(r"[a-f0-9]{64}", expected)
+        if path.is_file() and sha(path) == expected:
+            resolved, kind = path, "current"
+        else:
+            resolved, kind = root / "qa-artifacts/evidence-blobs" / expected, "exact_archive"
+            assert resolved.is_file() and sha(resolved) == expected, "Historical bytes unavailable: " + name
+        result.append({"path": name, "expected_sha256": expected,
+                       "resolved": resolved.relative_to(root).as_posix(), "kind": kind})
+    return result
+
+
+def execution_inputs_current(root, plan):
+    """The live protocol, reviewed crops and review records cannot use archives."""
+    required = {**plan["protocol_sha256"], **plan["review_sha256"],
+                **{row["image"]: row["image_sha256"] for row in plan["cases"]}}
+    return all((root / name).is_file() and sha(root / name) == expected
+               for name, expected in required.items())
+
+
 def main():
     if "--check" in sys.argv:
         plan = json.loads(OUT.read_text(encoding="utf-8"))
-        for name, expected in plan["evidence_sha256"].items():
-            remember(ROOT / name, expected)
-        print(json.dumps({"verified_files": len(EVIDENCE), "prepared_cases": 6, "external_requests": 0}))
+        resolved = verify_historical_evidence(ROOT, plan["evidence_sha256"])
+        current = execution_inputs_current(ROOT, plan)
+        print(json.dumps({"historical_files_verified": len(resolved),
+                          "exact_archives_used": sum(row["kind"] == "exact_archive" for row in resolved),
+                          "live_execution_inputs_current": current, "prepared_cases": 6,
+                          "authorizes_upload": False, "external_requests": 0}))
+        assert current, "Live upload inputs changed; historical verification cannot authorize them"
         return
     assert not OUT.exists() and not FOLDER.exists(), "Use --check; preserve the scope"
     manifest_path, review_path = SOURCE / "manifest.json", SOURCE / "source-review.json"

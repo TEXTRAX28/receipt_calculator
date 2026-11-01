@@ -1,4 +1,11 @@
-# Azure receipt comparison: prepared, not yet run
+# Azure receipt comparison setup
+
+**Completed 1 November 2026:** the configured UK South F0 resource completed
+the separately approved six-crop test, with six successful responses and six
+reported deletions. That approval is consumed. See the
+[measured comparison and remaining limits](AZURE_SIX_RESULT.md). The instructions
+below preserve how this research-only setup and approval were prepared; they do
+not authorize another upload.
 
 The next candidate is **Azure Document Intelligence, `prebuilt-receipt`, API `2024-11-30`**. Its documented fields include purchased quantity, unit price, line price, product code and receipt totals; its receipt schema lists English, Traditional Chinese and Indonesian among supported languages. These are reasons to test it, not proof that it beats Veryfi or the local hybrid. [Receipt model and schema](https://github.com/Azure-Samples/document-intelligence-code-samples/blob/main/schema/2024-11-30-ga/receipt.md).
 
@@ -47,4 +54,9 @@ python -X utf8 receipt_training/scripts/prepare_azure_screening.py --check
 node receipt_training/scripts/benchmark_azure_screening.mjs
 ```
 
-The full twelve-phase goal remains active. Azure accuracy, latency, reliability and actual region/quota are currently unmeasured. The existing application remains the version verified with 484 unit tests and 167 desktop/mobile browser passes, plus one existing skip; no new app test run is claimed for this research-only preparation.
+At the original research-only preparation checkpoint, Azure accuracy was unmeasured
+and app verification had 484 unit and 167 browser passes, plus one existing skip.
+The later [six-crop result](AZURE_SIX_RESULT.md) and
+[local decoder verification](ROW_FIRST_DECODER.md) supersede those status counts.
+Actual account billing, quota and region have not been independently inspected.
+The full twelve-phase goal remains active.
