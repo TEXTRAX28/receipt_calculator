@@ -7,6 +7,7 @@ import {
 } from "./model";
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
+import { separatePurchaseRows } from "./purchase-expression";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -248,6 +249,20 @@ export function parseReceiptWithSources(
   let pendingDescription = "";
   let pendingSource: number | undefined;
   let itemSectionEnded = false;
+  const separate = separatePurchaseRows(lines, PHOTO_SEPARATOR, isFinalTotal);
+  const separateTitles = new Set(
+    [...separate.rows.values()].map((row) => row.titleIndex),
+  );
+  const unmatchedSeparateRows = new Set(separate.unmatched);
+  if (separate.unmatched.length)
+    receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "items",
+      reason: "coverage",
+      other:
+        "Some separate quantity/price rows could not be associated with a product. Check the complete receipt.",
+      confirmedValue: "",
+    });
   for (const [lineIndex, line] of lines.entries()) {
     if (line === PHOTO_SEPARATOR) {
       itemSectionEnded = false;
@@ -256,6 +271,64 @@ export function parseReceiptWithSources(
       continue;
     }
     if (isFinalTotal(line)) itemSectionEnded = true;
+    if (itemSectionEnded) continue;
+    if (separateTitles.has(lineIndex)) {
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
+    if (unmatchedSeparateRows.has(lineIndex)) {
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
+    const separated = separate.rows.get(lineIndex);
+    if (separated) {
+      const item = newItem();
+      item.description = lines[separated.titleIndex].slice(0, 180);
+      item.quantity = separated.expression.quantity.replace(",", ".");
+      item.unitPrice = normalize(separated.expression.unitPrice);
+      item.lineTotal = normalize(separated.expression.lineTotal);
+      item.taxCode = separated.expression.taxCode;
+      item.note =
+        "Quantity, unit price and total read from a separate printed row. Check its product match; pack contents are separate.";
+      receipt.items.push(item);
+      sources[item.id] = [separated.titleIndex, lineIndex].sort(
+        (a, b) => a - b,
+      );
+      receipt.reviewChecks.push({
+        scope: "item",
+        itemId: item.id,
+        field: "description",
+        reason: "source",
+        other:
+          "Confirm this product belongs to the adjacent printed quantity/price row.",
+        confirmedValue: "",
+      });
+      receipt.reviewChecks.push({
+        scope: "item",
+        itemId: item.id,
+        field: "quantity",
+        reason: "source",
+        other:
+          "Confirm the purchased count and unit-price roles in the separate printed expression; pack contents are separate.",
+        confirmedValue: "",
+      });
+      for (const field of ["unitPrice", "lineTotal"] as const)
+        if (!item[field])
+          receipt.reviewChecks.push({
+            scope: "item",
+            itemId: item.id,
+            field,
+            reason: "unclear",
+            other:
+              "The printed number format is ambiguous. Check currency and the original amount.",
+            confirmedValue: "",
+          });
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     if (
       itemSectionEnded ||
       /bottom of basket|BOB count|vat code|^\s*[A-Z]\s+\d+[.,]\d+%|subtotal|sub total|total.*excl|vat amount|^tax\b|^vat\b|service (?:charge|fee)|^delivery fee|^shipping|^tip\b|^gratuity\b|^deposit\b|^savings\b/i.test(

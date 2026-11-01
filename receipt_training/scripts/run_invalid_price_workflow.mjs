@@ -1,4 +1,4 @@
-// One real five-item phone workflow for invalid vision-price proposals.
+// One real local receipt workflow for source-based price proposals.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { once } from "node:events";
@@ -11,6 +11,11 @@ import { createServer, loadEnv } from "vite";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2];
 const checkScalars = process.argv.includes("--scalars");
+const checkExpressions = process.argv.includes("--expressions");
+assert(
+  !(checkScalars && checkExpressions),
+  "Choose one native workflow profile",
+);
 assert(/^[\w-]+$/.test(run || ""), "Use a new run name");
 const out = resolve(root, "qa-artifacts", run);
 await mkdir(out);
@@ -74,6 +79,7 @@ const meta = {
   external_uploads: 0,
   retries: 0,
   checks_scalar_proposals: checkScalars,
+  checks_separate_expressions: checkExpressions,
 };
 await json("plan.json", meta);
 let server;
@@ -101,7 +107,9 @@ try {
     "test",
     "tests/e2e/computer-reader-real.spec.ts",
     "--project=mobile",
-    "--grep=real invalid-price recovery",
+    checkExpressions
+      ? "--grep=real separate purchase expressions"
+      : "--grep=real invalid-price recovery",
     "--workers=1",
     "--reporter=line,json,html",
     "--output=" + resolve(out, "test-results"),
@@ -118,6 +126,12 @@ try {
       ),
       GATHER_LOCAL_RECOVERY_RUN: run,
       GATHER_LOCAL_RECOVERY_SCALARS: checkScalars ? "1" : "",
+      GATHER_LOCAL_EXPRESSION_RECEIPT: checkExpressions
+        ? resolve(
+            root,
+            "receipt_training/non_costco/physical/cord/cord-v2-train-021.jpg",
+          )
+        : "",
       PLAYWRIGHT_JSON_OUTPUT_FILE: resolve(out, "playwright.json"),
       PLAYWRIGHT_HTML_OUTPUT_DIR: resolve(out, "html"),
     },

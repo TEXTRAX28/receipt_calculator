@@ -9,6 +9,7 @@ import { createServer } from "vite";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2] || "invalid-line-recovery-v1";
 const scalarOnly = process.argv.includes("--scalar-only");
+const unitReplay = process.argv.includes("--unit-recovery");
 assert(/^[\w-]+$/.test(run));
 const out = resolve(root, "qa-artifacts", run);
 const resultFolder = resolve(out, "replay");
@@ -71,6 +72,7 @@ await writeFile(
 const self = await readFile(fileURLToPath(import.meta.url));
 await writeFile(resolve(resultFolder, "runner.mjs"), self, { flag: "wx" });
 const rows = [],
+  primaryRows = [],
   loaded = {};
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async () => {
@@ -117,6 +119,11 @@ try {
       );
       const { calculateReceipt } =
         await server.ssrLoadModule("/src/lib/engine.ts");
+      const { parseReceiptWithSources } =
+        await server.ssrLoadModule("/src/lib/parser.ts");
+      const { assembleRecognition } = await server.ssrLoadModule(
+        "/src/lib/receipt-layout.ts",
+      );
       for (const { item, draft, recognition } of cases) {
         const evidence = validateRecognition(recognition, item.panels);
         for (const mode of ["automatic", "known-currency"]) {
@@ -129,6 +136,24 @@ try {
             evidence,
             mode === "automatic" ? undefined : { currency },
           );
+          if (unitReplay) {
+            const primary = parseReceiptWithSources(
+              assembleRecognition(evidence).text,
+              mode === "automatic" ? undefined : { currency },
+            );
+            primaryRows.push({
+              receipt_id: item.id,
+              image_sha256: item.record.sha256,
+              split: item.record.split,
+              variant,
+              mode,
+              ...primary,
+              calculation: calculateReceipt(primary.receipt),
+              elapsed_ms: 0,
+              timing_scope:
+                "Offline retained-reading replay, not inference/workflow latency",
+            });
+          }
           for (const recovery of value.priceRecoveries || [])
             assert(
               value.receipt.reviewChecks.some(
@@ -151,6 +176,17 @@ try {
                   check.details.some(
                     (detail) => detail.value === recovery.evidence.previous,
                   ),
+              ),
+            );
+          for (const recovery of value.unitRecoveries || [])
+            assert(
+              value.receipt.reviewChecks.some(
+                (check) =>
+                  check.scope === "item" &&
+                  check.itemId === recovery.itemId &&
+                  check.field === "unitPrice" &&
+                  check.reason === "recovered" &&
+                  check.confirmedValue === "",
               ),
             );
           rows.push({
@@ -201,7 +237,7 @@ const financial = (receipt) => ({
     ({ description, quantity, unitPrice, lineTotal, discount, taxCode }) => ({
       description,
       quantity,
-      unitPrice,
+      ...(!unitReplay ? { unitPrice } : {}),
       ...(scalarOnly ? { lineTotal } : {}),
       discount,
       taxCode,
@@ -241,6 +277,17 @@ for (const before of rows.filter((r) => r.variant === "before")) {
               recovery.evidence.previous === before.receipt[field],
           ),
         );
+  if (unitReplay)
+    for (const [index, item] of after.receipt.items.entries())
+      if (item.unitPrice !== before.receipt.items[index].unitPrice)
+        assert(
+          after.unitRecoveries.some(
+            (recovery) =>
+              recovery.itemId === item.id &&
+              recovery.evidence.previous ===
+                before.receipt.items[index].unitPrice,
+          ),
+        );
 }
 const bytes = Buffer.from(
   rows
@@ -252,6 +299,19 @@ const bytes = Buffer.from(
 await writeFile(resolve(resultFolder, "predictions.jsonl"), bytes, {
   flag: "wx",
 });
+const primaryBytes = Buffer.from(
+  primaryRows
+    .map((row) =>
+      JSON.stringify(row, (_, v) => (typeof v === "bigint" ? String(v) : v)),
+    )
+    .join("\n") + "\n",
+);
+if (unitReplay)
+  await writeFile(
+    resolve(resultFolder, "primary-predictions.jsonl"),
+    primaryBytes,
+    { flag: "wx" },
+  );
 await writeFile(
   resolve(resultFolder, "metadata.json"),
   JSON.stringify(
@@ -263,10 +323,15 @@ await writeFile(
       predictions_sha256: sha(bytes),
       predictions: rows.length,
       unrelated_financial_vectors_unchanged: true,
-      unchanged_financial_vector_scope: scalarOnly
-        ? "All purchase fields including line totals, currency, metadata, tax basis/codes and adjustments; each changed subtotal/final/tax amount must have a pending literal-source proposal"
-        : "All financial fields except individually proposed item line totals",
+      unchanged_financial_vector_scope: unitReplay
+        ? "All hybrid fields except individually proposed line and unit prices; unchanged purchase identity, quantity, discount, receipt metadata, tax basis/codes and adjustments"
+        : scalarOnly
+          ? "All purchase fields including line totals, currency, metadata, tax basis/codes and adjustments; each changed subtotal/final/tax amount must have a pending literal-source proposal"
+          : "All financial fields except individually proposed item line totals",
       scalar_only_recovery_replay: scalarOnly,
+      unit_price_recovery_replay: unitReplay,
+      primary_predictions: primaryRows.length,
+      primary_predictions_sha256: unitReplay ? sha(primaryBytes) : null,
       recovery_checks_unconfirmed: true,
       new_model_requests: 0,
       external_requests: 0,

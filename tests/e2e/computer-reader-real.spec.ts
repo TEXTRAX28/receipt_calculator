@@ -1176,3 +1176,247 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
     JSON.stringify(areaOutcome, null, 2),
   );
 });
+
+test("real separate purchase expressions preserve literal unit prices on a phone", async ({
+  page,
+}) => {
+  test.setTimeout(300000);
+  const file = process.env.GATHER_LOCAL_EXPRESSION_RECEIPT;
+  test.skip(!file, "Supply the local separate-expression receipt");
+  const base = process.env.GATHER_LOCAL_MODEL_URL,
+    run = process.env.GATHER_LOCAL_RECOVERY_RUN || "";
+  if (
+    !base ||
+    !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base) ||
+    !/^[\w-]+$/.test(run)
+  )
+    throw new Error("Supply loopback model URL and a new private QA run name");
+  const folder = path.resolve("qa-artifacts", run, "ui");
+  await mkdir(folder);
+  const bytes = await readFile(file!);
+  const imageSha = createHash("sha256").update(bytes).digest("hex");
+  expect(imageSha).toBe(
+    "7316212ee8a682fddf14f7aecb084fd8cab3159b905326bffe9dd1aa84e6f996",
+  );
+  const blocked: string[] = [],
+    posts: string[] = [];
+  await page.route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (
+      url.origin === new URL(base).origin &&
+      (request.method() !== "POST" ||
+        ["/api/receipts/recognize", "/api/receipts/vision"].includes(
+          url.pathname,
+        ))
+    )
+      return route.continue();
+    if (["data:", "blob:"].includes(url.protocol)) return route.continue();
+    blocked.push(url.origin + url.pathname);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await page
+    .getByRole("button", { name: "This computer", exact: true })
+    .click();
+  await page
+    .getByLabel("Local vision comparison", { exact: true })
+    .selectOption("always");
+  await page
+    .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
+    .selectOption("IDR");
+  await page.getByLabel("Upload receipt images").setInputFiles(file!);
+  const waitFor = (part: string) =>
+    page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" && new URL(r.url()).pathname === part,
+      { timeout: 260000 },
+    );
+  const ocrPromise = waitFor("/api/receipts/recognize"),
+    visionPromise = waitFor("/api/receipts/vision");
+  const started = Date.now();
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  const [ocr, vision] = await Promise.all([ocrPromise, visionPromise]);
+  const native = await vision.json(),
+    primary = await ocr.json();
+  for (const [name, value] of [
+    ["vision-response.json", native],
+    ["primary-response.json", primary],
+    [
+      "response-status.json",
+      {
+        ocr: ocr.status(),
+        vision: vision.status(),
+        elapsed_ms: Date.now() - started,
+      },
+    ],
+  ])
+    await writeFile(
+      path.join(folder, name as string),
+      JSON.stringify(value, null, 2),
+      { flag: "wx" },
+    );
+  for (const response of [ocr, vision])
+    expect(Object.keys(JSON.parse(response.request().postData()!))).toEqual([
+      "panels",
+    ]);
+  const body = vision.request().postData()!;
+  for (const [index, panel] of JSON.parse(body).panels.entries())
+    await writeFile(
+      path.join(folder, `panel-${index + 1}.jpg`),
+      Buffer.from(panel.data, "base64"),
+      { flag: "wx" },
+    );
+  expect(ocr.status()).toBe(200);
+  expect(vision.status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 260000 });
+  const elapsed = Date.now() - started;
+  const state = appSchema.parse(
+    await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+    ),
+  );
+  const key = (value: string) =>
+    value
+      .replace(/^\d+-/, "")
+      .toUpperCase()
+      .replace(/[^\p{L}\p{N}]/gu, "");
+  const unitRecoveries = [],
+    reviewed = [];
+  let firstIndex = -1;
+  for (const name of ["Choco Bun", "Hokkaido Milk Toast"]) {
+    const index = state.receipt.items.findIndex(
+      (item) => key(item.description) === key(name),
+    );
+    expect(index).toBeGreaterThanOrEqual(0);
+    if (firstIndex < 0) firstIndex = index;
+    const item = state.receipt.items[index],
+      original = native.receipt.items.find(
+        (row: { description: string }) => key(row.description) === key(name),
+      );
+    expect(original).toBeDefined();
+    expect(item).toMatchObject({
+      quantity: "1",
+      unitPrice: "22000",
+      lineTotal: "22000",
+    });
+    await expect(
+      page.getByLabel(`Item ${index + 1} unit price (optional)`, {
+        exact: true,
+      }),
+    ).toHaveValue("22000");
+    let invalid = false;
+    try {
+      money(original.unitPrice, "IDR");
+    } catch {
+      invalid = true;
+    }
+    const checks = state.receipt.reviewChecks.filter(
+      (check) => check.scope === "item" && check.itemId === item.id,
+    );
+    if (invalid) {
+      const check = checks.find((check) => check.field === "unitPrice");
+      expect(check).toMatchObject({
+        reason: "recovered",
+        other: original.unitPrice,
+        confirmedValue: "",
+      });
+      unitRecoveries.push({
+        name: item.description,
+        original: original.unitPrice,
+        proposed: item.unitPrice,
+        check,
+      });
+    }
+    expect(checks).toContainEqual(
+      expect.objectContaining({
+        field: "quantity",
+        reason: "source",
+        confirmedValue: "",
+      }),
+    );
+    reviewed.push({
+      name: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+      originalUnitPrice: original.unitPrice,
+      checks,
+    });
+  }
+  expect(unitRecoveries.length).toBeGreaterThan(0);
+  await page
+    .getByLabel(`Item ${firstIndex + 1} unit price (optional)`, { exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(folder, "phone-unit.png") });
+  await page
+    .getByRole("button", {
+      name: `View source for item ${firstIndex + 1}`,
+      exact: true,
+    })
+    .click();
+  const source = page.getByRole("dialog", {
+    name: `Receipt source for purchase ${firstIndex + 1}`,
+    exact: true,
+  });
+  await expect(source).toBeVisible();
+  await expect(source.getByTestId("source-region").first()).toBeVisible();
+  await expect(
+    source.getByLabel("I checked unit price against the original", {
+      exact: true,
+    }),
+  ).not.toBeChecked();
+  await source
+    .getByText("Recognized text in this area", { exact: true })
+    .click();
+  await expect(
+    source.getByText(/22[.,]000\s*[x×]1\s*22[.,]000/i).first(),
+  ).toBeVisible();
+  await page.screenshot({ path: path.join(folder, "phone-unit-source.png") });
+  await source
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Confirm receipt & add people" }),
+  ).toBeDisabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
+  expect(blocked).toEqual([]);
+  const calculation = calculateReceipt(state.receipt);
+  expect(calculation.issues.length).toBeGreaterThan(0);
+  await writeFile(
+    path.join(folder, "result.json"),
+    JSON.stringify(
+      {
+        scope:
+          "One source-inspected development image, actual local Paddle/Qwen HTTP and Chrome phone emulation. Explicit IDR only after extraction; no edits, blind holdout, complete financial or physical-handset claim.",
+        image_sha256: imageSha,
+        request_sha256: createHash("sha256").update(body).digest("hex"),
+        elapsed_ms: elapsed,
+        unitRecoveries,
+        reviewed,
+        receipt: state.receipt,
+        calculation,
+        posts,
+        blocked,
+        external_requests: 0,
+        financial_fields_edited: false,
+      },
+      (_, value) => (typeof value === "bigint" ? String(value) : value),
+      2,
+    ),
+    { flag: "wx" },
+  );
+});

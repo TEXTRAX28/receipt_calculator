@@ -9,21 +9,29 @@ import { loadEnv } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const scalars = process.argv.includes("--scalars");
-const expectedUnit = scalars ? 537 : 520;
+const expressions = process.argv.includes("--expressions");
+assert(!(scalars && expressions), "Choose one validation profile");
+const expectedUnit = expressions ? 585 : scalars ? 537 : 520;
 const output = resolve(
   root,
-  scalars
-    ? "qa-artifacts/scalar-source-release-v1"
-    : "qa-artifacts/source-price-release-v1",
+  expressions
+    ? "qa-artifacts/purchase-expression-release-v1"
+    : scalars
+      ? "qa-artifacts/scalar-source-release-v1"
+      : "qa-artifacts/source-price-release-v1",
 );
-const validation = scalars
-  ? "qa-artifacts/invalid-scalar-validation-v2"
-  : "qa-artifacts/invalid-line-recovery-validation-v2";
+const validation = expressions
+  ? "qa-artifacts/purchase-expression-validation-v3"
+  : scalars
+    ? "qa-artifacts/invalid-scalar-validation-v2"
+    : "qa-artifacts/invalid-line-recovery-validation-v2";
 const report = resolve(
   root,
-  scalars
-    ? "receipt_training/evaluation/advanced-scalar-validation-v1.json"
-    : "receipt_training/evaluation/advanced-source-price-validation-v1.json",
+  expressions
+    ? "receipt_training/evaluation/advanced-purchase-expressions-validation-v1.json"
+    : scalars
+      ? "receipt_training/evaluation/advanced-scalar-validation-v1.json"
+      : "receipt_training/evaluation/advanced-source-price-validation-v1.json",
 );
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const name = (path) => relative(root, path).replaceAll("\\", "/");
@@ -84,6 +92,9 @@ if (process.argv.includes("--check")) {
     "index.html",
     "tsconfig.json",
     "receipt_training/evaluation/SOURCE_PRICE_RECOVERY.md",
+    ...(expressions
+      ? ["receipt_training/evaluation/PURCHASE_EXPRESSIONS.md"]
+      : []),
     ...(scalars
       ? ["receipt_training/evaluation/SCALAR_SOURCE_RECOVERY.md"]
       : []),
@@ -123,7 +134,10 @@ if (process.argv.includes("--check")) {
   for (const [file, pattern] of [
     [scalars ? "build-final.log" : "build.log", /built in/],
     ["format.log", /All matched files use Prettier/],
-    [scalars ? "graph-check.log" : "graph.log", /Graph is current/],
+    [
+      scalars || expressions ? "graph-check.log" : "graph.log",
+      /Graph is current/,
+    ],
   ])
     assert(
       pattern.test((await remember(validation + "/" + file)).toString("utf8")),
@@ -151,26 +165,34 @@ if (process.argv.includes("--check")) {
   await include(validation);
   for (const folder of browserFolders) await include(folder);
 
-  const comparisonPath = scalars
-    ? "receipt_training/evaluation/advanced-scalar-recovery-v2.json"
-    : "receipt_training/evaluation/advanced-source-price-recovery-v2.json";
+  const comparisonPath = expressions
+    ? "receipt_training/evaluation/advanced-purchase-expressions-v3.json"
+    : scalars
+      ? "receipt_training/evaluation/advanced-scalar-recovery-v2.json"
+      : "receipt_training/evaluation/advanced-source-price-recovery-v2.json";
   const comparison = JSON.parse(await remember(comparisonPath));
   assert(
     comparison.known_field_regressions.length === 0 &&
-      comparison.proposals.length === 11,
+      (expressions
+        ? comparison.changes.length === 9
+        : comparison.proposals.length === 11),
   );
   for (const [path, expected] of Object.entries(comparison.evidence_sha256)) {
     await remember(path);
     assert.equal(evidence[path], expected, path);
   }
   const ui = await json(
-    scalars
-      ? "qa-artifacts/invalid-scalar-native-phone-v1/ui/result.json"
-      : "qa-artifacts/invalid-price-native-phone-v2/ui/result.json",
+    expressions
+      ? "qa-artifacts/purchase-expression-native-phone-v2/ui/result.json"
+      : scalars
+        ? "qa-artifacts/invalid-scalar-native-phone-v1/ui/result.json"
+        : "qa-artifacts/invalid-price-native-phone-v2/ui/result.json",
   );
   assert.equal(
     ui.image_sha256,
-    "893039ec50d04a6d8d151ebfa47a98528f4e8cb5abfc0097183b64dafbd10895",
+    expressions
+      ? "7316212ee8a682fddf14f7aecb084fd8cab3159b905326bffe9dd1aa84e6f996"
+      : "893039ec50d04a6d8d151ebfa47a98528f4e8cb5abfc0097183b64dafbd10895",
   );
   assert.deepEqual(ui.posts, [
     "/api/receipts/recognize",
@@ -180,7 +202,9 @@ if (process.argv.includes("--check")) {
     ui.external_requests === 0 &&
       ui.blocked.length === 0 &&
       ui.financial_fields_edited === false &&
-      ui.recoveries === 5,
+      (expressions
+        ? ui.unitRecoveries.length === 2 && ui.reviewed.length === 2
+        : ui.recoveries === 5),
   );
   if (scalars)
     assert(
@@ -230,9 +254,11 @@ if (process.argv.includes("--check")) {
     new_external_requests_by_capture: 0,
     native_phone_observations: comparison.native_phone_observations,
     successful_native_scan_to_review_ms: ui.elapsed_ms,
-    limits: scalars
-      ? "One actual installed-model phone-emulated workflow verifies pending subtotal/final-total and purchase-price proposals without edits. It precedes the isolated final batch-header-conflict guard; final replay and synthetic per-field tests verify that guard. Unreadable units/charges remain blocked. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active."
-      : "Actual native phone observations precede the isolated final conflicting-batch-currency guard; final replay and synthetic batch tests verify that guard. Price proposals remain unconfirmed. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active.",
+    limits: expressions
+      ? "Two native observations repeat the same source-inspected receipt; only the second uses the final label/footer and short-title guards. Unit and line proposals remain unconfirmed, and remaining header/bag-code/coverage issues block confirmation. No p95, physical-handset, blind-holdout, complete-financial, deployment, push or merge claim. Full objective remains active."
+      : scalars
+        ? "One actual installed-model phone-emulated workflow verifies pending subtotal/final-total and purchase-price proposals without edits. It precedes the isolated final batch-header-conflict guard; final replay and synthetic per-field tests verify that guard. Unreadable units/charges remain blocked. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active."
+        : "Actual native phone observations precede the isolated final conflicting-batch-currency guard; final replay and synthetic batch tests verify that guard. Price proposals remain unconfirmed. No p95, physical-device, complete-financial, deployment, push or merge claim. Full objective remains active.",
     evidence_sha256: evidence,
   };
   await writeFile(report, JSON.stringify(result, null, 2) + "\n", {

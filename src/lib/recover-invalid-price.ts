@@ -3,6 +3,7 @@ import type { EvidenceLine, Recognition } from "./receipt-layout";
 import { money } from "./money";
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
+import { matchPurchaseExpression } from "./purchase-expression";
 
 const tokens = (text: string) =>
   [...text.matchAll(/[-−]?[£$€]?\s*\d[\d,.]*[.,]\d{2,3}-?/g)].map((match) =>
@@ -11,7 +12,7 @@ const tokens = (text: string) =>
 
 /** Propose a literal OCR row price only when the vision price is invalid.
  * Identity, currency and row-role checks belong to the independent verifier.
- * No subtotal, final total or arithmetic-derived amount enters this helper.
+ * No receipt-wide arithmetic or derived amount selects a value here.
  */
 export function recoverInvalidPrice(
   current: string,
@@ -19,6 +20,7 @@ export function recoverInvalidPrice(
   currency: Currency,
   regions: EvidenceLine[],
   recognition: Recognition,
+  role: "lineTotal" | "unitPrice" = "lineTotal",
 ) {
   if (!current || !sourceValue) return null;
   try {
@@ -34,16 +36,62 @@ export function recoverInvalidPrice(
     const purchases = regions.filter(
       (region) => matchCostcoRow(region.text)?.deduction === false,
     );
-    const priced = regions.filter((region) => tokens(region.text).length);
+    const priced = regions.filter((region) =>
+      role === "unitPrice"
+        ? matchPurchaseExpression(region.text)
+        : tokens(region.text).length,
+    );
     const candidates = purchases.length === 1 ? purchases : priced;
     if (candidates.length !== 1) return null;
     const region = candidates[0];
-    const literal = tokens(region.text).at(-1)!;
+    const expression =
+      role === "unitPrice" ? matchPurchaseExpression(region.text) : null;
+    const costcoUnit =
+      role === "unitPrice" && matchCostcoRow(region.text)
+        ? region.text.match(/(?:\d+(?:[.,]\d+)?|[Il])\s*[x×]\s+([\d,.]+)/di)
+        : null;
+    const span = expression?.unitSpan || costcoUnit?.indices?.[1];
+    const literal =
+      role === "unitPrice"
+        ? expression?.unitPrice || costcoUnit?.[1]
+        : tokens(region.text).at(-1);
+    if (!literal) return null;
     const value = printedAmount(literal, { currency });
     if (money(value, currency, true) !== expected) return null;
     const panel = recognition.panels.find(
       (panel) => panel.photo === region.photo && panel.part === region.part,
     );
+    if (role === "unitPrice") {
+      if (!span) return null;
+      const compact = (text: string) => text.replace(/\s/g, "");
+      const inside = (panel?.words || [])
+        .filter((word) => {
+          const x = (word.box[0] + word.box[2]) / 2,
+            y = (word.box[1] + word.box[3]) / 2;
+          return (
+            x >= region.box[0] &&
+            x <= region.box[2] &&
+            y >= region.box[1] &&
+            y <= region.box[3]
+          );
+        })
+        .sort((a, b) => a.box[0] - b.box[0]);
+      if (
+        inside.map((word) => compact(word.text)).join("") !==
+        compact(region.text)
+      )
+        return null;
+      const start = compact(region.text.slice(0, span[0])).length;
+      const end = compact(region.text.slice(0, span[1])).length;
+      let offset = 0;
+      const monetary = inside.filter((word) => {
+        const left = offset;
+        offset += compact(word.text).length;
+        return left <= start && offset >= end;
+      });
+      if (monetary.length !== 1 || monetary[0].confidence < 0.98) return null;
+      return { value, previous: current, literal, region, word: monetary[0] };
+    }
     const words = (panel?.words || []).filter((word) => {
       const x = (word.box[0] + word.box[2]) / 2;
       const y = (word.box[1] + word.box[3]) / 2;

@@ -24,6 +24,7 @@ import {
 import { normalizeReceiptDate } from "./receipt-date";
 import { matchInformationalAdjustment } from "./receipt-summaries";
 import { recoverInvalidPrice } from "./recover-invalid-price";
+import { isPurchaseExpressionLine } from "./purchase-expression";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -416,6 +417,7 @@ export function verifyIndependentReadings(
     sourceIndices: number[];
     evidence: NonNullable<ReturnType<typeof recoverInvalidPrice>>;
   }[] = [];
+  const unitRecoveries: typeof priceRecoveries = [];
   const sourceRecoveryAllowed =
     options.allowPriceRecovery !== false &&
     !receipt.currencyUnresolved &&
@@ -435,7 +437,48 @@ export function verifyIndependentReadings(
           leading &&
           sameAmount(owner.quantity, leading[1], receipt.currency, true) &&
           nameKey(owner.description) === nameKey(leading[2]));
-      if (!sameName || !source.fieldGood("lineTotal")) continue;
+      if (!sameName) continue;
+      if (
+        source.fieldGood("unitPrice") &&
+        sameField(owner, source.item, "quantity", receipt.currency)
+      ) {
+        const unit = recoverInvalidPrice(
+          owner.unitPrice,
+          source.item.unitPrice,
+          receipt.currency,
+          source.regions,
+          recognition,
+          "unitPrice",
+        );
+        if (
+          unit &&
+          raw.items[nativeIndex].sourcePhotos.includes(unit.region.photo)
+        ) {
+          owner.unitPrice = unit.value;
+          itemCheck(owner, "unitPrice", "recovered", unit.previous);
+          checks.find(
+            (check) =>
+              check.scope === "item" &&
+              check.itemId === owner.id &&
+              check.field === "unitPrice",
+          )!.details = [
+            {
+              label: "Printed unit-price token — check its role",
+              value: unit.value,
+            },
+            {
+              label: "Previous invalid vision unit price",
+              value: unit.previous,
+            },
+          ];
+          unitRecoveries.push({
+            itemId: owner.id,
+            sourceIndices: source.indices,
+            evidence: unit,
+          });
+        }
+      }
+      if (!source.fieldGood("lineTotal")) continue;
       const unitOnlyHeader = lines.some(
         (line) =>
           line &&
@@ -620,6 +663,11 @@ export function verifyIndependentReadings(
         priceRecoveries.some((row) => row.itemId === item.id)
       )
         continue;
+      if (
+        field === "unitPrice" &&
+        unitRecoveries.some((row) => row.itemId === item.id)
+      )
+        continue;
       if (field === "discount" && correctedOwners.has(item.id)) continue;
       if (!source || source.item[field] === "")
         itemCheck(item, field, "unsupported");
@@ -636,6 +684,26 @@ export function verifyIndependentReadings(
   fieldSources.items = sourceRows.flatMap((source, index) =>
     !pairedSource.has(index) ? source.indices : [],
   );
+  if (
+    ocr.reviewChecks.some(
+      (check) =>
+        check.scope === "receipt" &&
+        check.field === "items" &&
+        check.reason === "coverage",
+    )
+  ) {
+    globalCheck(
+      "items",
+      "coverage",
+      "Some separate quantity/price rows could not be associated with a product. Check the complete receipt.",
+    );
+    fieldSources.items = [
+      ...new Set([
+        ...fieldSources.items,
+        ...sourceIndices(isPurchaseExpressionLine),
+      ]),
+    ];
+  }
   const removedAdjustments: {
     id: string;
     label: string;
@@ -1056,6 +1124,7 @@ export function verifyIndependentReadings(
     sourceLines: assembled.sourceLines,
     corrections,
     priceRecoveries,
+    unitRecoveries,
     scalarRecoveries,
     removedAdjustments,
     agreements,
