@@ -1,0 +1,45 @@
+{
+  "scope": "Offline preparation of an optional Azure receipt comparison. No Azure extraction, quality/latency result, paid activation or application provider change.",
+  "protocol_tests_passed": 16,
+  "actual_cli_checks": {
+    "results": [
+      {
+        "mode": "dry-run",
+        "exit_code": 0,
+        "network_calls": 0,
+        "synthetic_configured_key": true
+      },
+      {
+        "mode": "unapproved-execute",
+        "exit_code": 1,
+        "network_calls": 0,
+        "synthetic_configured_key": true
+      }
+    ],
+    "authorization_absent": true,
+    "consumption_marker_absent": true,
+    "cloud_requests": 0
+  },
+  "missing": [
+    "Azure Document Intelligence F0 endpoint/key",
+    "User-confirmed resource region and six unused Free pages",
+    "Separate Azure private-upload approval"
+  ],
+  "default_execution": "Offline dry run. Explicit execution without its separate authorization file fails before any request.",
+  "private_receipt_uploads": 0,
+  "azure_api_requests": 0,
+  "stable_commit": "ee725ba45e799bee8501d3de034e0302c0127afd",
+  "app_source_commit": "c3856c0927246e2757c187aa9401ce57f621a160",
+  "evidence_sha256": {
+    "receipt_training/evaluation/azure-screening-plan-v1.json": "1d0428b2bba6918f2ec000426ca19508309aa95d09b41c0e6864fd7d78438d4f",
+    "qa-artifacts/azure-probe-validation-v1/cli-results.json": "825afaac593361dbad6366824820f3f7fa42e3442315d75ce1b4239f29f9842c",
+    "qa-artifacts/azure-probe-validation-v1/deny-network.mjs": "3ea3de660608ca8eb975be6ffb84949295cfccc4ae0d9738bd08d2de5ecb50bb",
+    "qa-artifacts/azure-probe-validation-v1/dry-run.log": "e0d8a4e657cc39635e554f1243c42a0a39600c8d9562159f02fa5dcd5ee63b0e",
+    "qa-artifacts/azure-probe-validation-v1/fixture-before.mjs": "be56ea2c44e58269a809face9a9d7274a95bbc5e99f737c8f8df90896e73f8f0",
+    "qa-artifacts/azure-probe-validation-v1/protocol-final.log": "47827f1039672a9e14b1199c74911cc8586b2024ab44f217572cba1ea3853d15",
+    "qa-artifacts/azure-probe-validation-v1/publish-preparation.py": "474ff63bccae28bb9a1f42117b5aa544555af5c25d0ddc55d76a2823e081dc54",
+    "qa-artifacts/azure-probe-validation-v1/run-cli-checks.mjs": "cb2b3cce4f6aab3460c569a91135e1a2a7bdd6c606bbd98efa13fff9938a1deb",
+    "qa-artifacts/azure-probe-validation-v1/unapproved-execute.log": "c476497b7abe9b300664e9c62629af2029507cf7972c7a74d8cc87b8c3ab60d3",
+    "qa-artifacts/azure-probe-validation-v1/setup.md": "354552f4bd57415d0054b89d5f7a7e545fc30a076f88e5e56f1eb3adc12b03e1"
+  }
+}
