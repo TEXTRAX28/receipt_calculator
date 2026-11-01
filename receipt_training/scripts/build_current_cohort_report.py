@@ -68,6 +68,10 @@ def main():
         remember(DATA / row["file_path"], row["sha256"])
         assert row["external_processing_allowed"] is False
     config = load(DATA / "evaluation/config.json")
+    for name in ("advanced-priced-row-truth-v2.json", "advanced-tesco-full-truth-v1.json", "advanced-rounding-truth-v1.json"):
+        review = load(DATA / "evaluation" / name)
+        for path, expected in review["evidence_sha256"].items():
+            remember(ROOT / path, expected)
     truth = {name: {row["receipt_id"]: row for row in lines(DATA / path)} for name, path in (
         ("original", "annotations/labels.jsonl"),
         ("priced_rows_v2", "annotations/private/priced-rows-v2-labels.jsonl"),
@@ -154,7 +158,7 @@ def main():
         "preparation_through_draft_ms_where_returned": timing([case["pipeline_elapsed_ms"] for case in cases if case["pipeline_elapsed_ms"] is not None]),
         "timing_limits": "Worker lifetime includes fresh Node/Vite/Chrome startup, reader/asset setup, native extraction, observation, cached-response primary reference and teardown. The preparation timer excludes that host startup/reference/teardown and includes comparison failures returning a safe primary draft. Conditional timer coverage is shown explicitly. One serial laptop run, existing OS/GPU caches and host load; not physical-phone timing, shared-server throughput, isolated model ablation or a controlled before/after speed ratio. API instances keep 2/minute and 10/hour limits per case.",
         "selection_limits": "Original already inspected development/evaluation data, not a new untouched holdout. Original, v2, v3 and v4 annotations are all scored separately on identical new predictions. V4 adds one source-checked signed rounding value. Versioned scoring additionally measures eight known service charges, rounding and known tax-price basis, and strengthens complete-score coverage for fees/rounding. Historical scorer/results are unchanged. Unknown fields stay excluded; original complete financial accuracy remains unscorable. Item/total agreement does not establish financial correctness or clear source checks.",
-        "no_labels_or_currency_hints_in_inference": True, "new_cloud_requests": 0, "automatic_retries": 0,
+        "no_receipt_specific_labels_ocr_text_or_currency_hints_in_vision": True, "new_cloud_requests": 0, "automatic_retries": 0,
         "api_cost": "0", "compute_cost": None, "source_unchanged_during_run": True,
         "evidence_sha256": EVIDENCE}
     with OUT.open("x", encoding="utf-8", newline="\n") as output:
