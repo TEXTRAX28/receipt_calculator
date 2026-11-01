@@ -25,6 +25,7 @@ import { normalizeReceiptDate } from "./receipt-date";
 import { matchInformationalAdjustment } from "./receipt-summaries";
 import { recoverInvalidPrice } from "./recover-invalid-price";
 import { isPurchaseExpressionLine } from "./purchase-expression";
+import { recoverExclusivePriceBasis } from "./financial-basis";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -951,7 +952,36 @@ export function verifyIndependentReadings(
   const exclusive = supported((text) =>
     /prices?\s+(?:exclude|excl)|total\s*\(?\s*excl/i.test(text),
   );
-  if ((!inclusive && !exclusive) || (inclusive && exclusive))
+  const taxBasisRecovery =
+    sourceRecoveryAllowed &&
+    raw.pricesIncludeTax === null &&
+    !inclusive &&
+    !exclusive &&
+    !lines.some(
+      (line) =>
+        line &&
+        /\b(?:includ|inclus|exclud|exclus|excl)[a-z]*\b/i.test(line.text),
+    )
+      ? recoverExclusivePriceBasis(lines, recognition, receipt.currency)
+      : null;
+  if (taxBasisRecovery) {
+    receipt.pricesIncludeTax = false;
+    globalCheck(
+      "pricesIncludeTax",
+      "recovered",
+      "Printed subtotal, added tax and final total indicate net prices. Check the source.",
+    );
+    checks.find(
+      (check) =>
+        check.scope === "receipt" && check.field === "pricesIncludeTax",
+    )!.details = [
+      { label: "Previous vision tax basis", value: "Unknown" },
+      ...taxBasisRecovery.rows.map((row) => ({
+        label: row.label.slice(0, 100),
+        value: row.literal.slice(0, 80),
+      })),
+    ];
+  } else if ((!inclusive && !exclusive) || (inclusive && exclusive))
     globalCheck("pricesIncludeTax", "unsupported");
   else if (receipt.pricesIncludeTax !== inclusive)
     globalCheck(
@@ -960,11 +990,13 @@ export function verifyIndependentReadings(
       inclusive ? "Prices include tax" : "Prices exclude tax",
     );
   else agreements++;
-  fieldSources.pricesIncludeTax = sourceIndices((text) =>
-    /prices?\s+(?:already\s+)?(?:include|exclude|excl)|(?:vat|tax)\s+included|total\s*\(?\s*excl/i.test(
-      text,
-    ),
-  );
+  fieldSources.pricesIncludeTax =
+    taxBasisRecovery?.sourceIndices ||
+    sourceIndices((text) =>
+      /prices?\s+(?:already\s+)?(?:include|exclude|excl)|(?:vat|tax)\s+included|total\s*\(?\s*excl/i.test(
+        text,
+      ),
+    );
   const suppliedRates = receipt.taxCodes.filter((entry) => entry.rate !== "");
   const rateWitnesses = lines.flatMap((line) => {
     const match = line?.text.match(
@@ -1126,6 +1158,7 @@ export function verifyIndependentReadings(
     priceRecoveries,
     unitRecoveries,
     scalarRecoveries,
+    taxBasisRecovery,
     removedAdjustments,
     agreements,
     matchedPurchases: pairs.length,

@@ -96,6 +96,12 @@ export function checkIsPending(receipt: Receipt, check: ReviewCheck): boolean {
 }
 
 export function reviewMessage(check: ReviewCheck): string {
+  if (
+    check.scope === "receipt" &&
+    check.field === "pricesIncludeTax" &&
+    check.reason === "recovered"
+  )
+    return "The printed subtotal and tax section suggest that item prices exclude tax. Check this interpretation against the original receipt.";
   if (check.reason === "source")
     return `Compare ${reviewFieldLabels[check.field]} with the original receipt.${
       check.scope === "receipt" && check.field === "items"

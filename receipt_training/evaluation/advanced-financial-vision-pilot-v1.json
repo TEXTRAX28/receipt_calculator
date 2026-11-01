@@ -1,0 +1,287 @@
+{
+  "scope": "Three source-informed development diagnostics: service/tax summary, coupon/card tender, zero-tax unknown-basis control. Same prepared original pixels as prior row-first model work; not a blind holdout or fresh full-receipt replacement trial.",
+  "cases": [
+    {
+      "receipt_id": "cord-v2-train-013",
+      "counts": {
+        "known_summary_rows": 4,
+        "returned_summary_rows": 4,
+        "literal_amount_multiset_matches": 4,
+        "role_and_amount_multiset_matches": 3,
+        "unknown_roles": 0,
+        "known_basis": 1,
+        "known_basis_correct": 0,
+        "unknown_basis_controls": 0,
+        "unknown_basis_controls_preserved": 0
+      },
+      "expected_role_amount_rows": [
+        [
+          "subtotal",
+          "212500"
+        ],
+        [
+          "tax",
+          "22525"
+        ],
+        [
+          "total",
+          "247775"
+        ],
+        [
+          "fee",
+          "12750"
+        ]
+      ],
+      "predicted_role_amount_rows": [
+        [
+          "subtotal",
+          "212500"
+        ],
+        [
+          "tax",
+          "12750"
+        ],
+        [
+          "tax",
+          "22525"
+        ],
+        [
+          "total",
+          "247775"
+        ]
+      ],
+      "expected_basis": "exclusive",
+      "predicted_basis": "unknown",
+      "elapsed_ms": 35421,
+      "peak_process_working_set_bytes": 3161812992
+    },
+    {
+      "receipt_id": "cord-v2-train-005",
+      "counts": {
+        "known_summary_rows": 6,
+        "returned_summary_rows": 6,
+        "literal_amount_multiset_matches": 6,
+        "role_and_amount_multiset_matches": 4,
+        "unknown_roles": 0,
+        "known_basis": 1,
+        "known_basis_correct": 0,
+        "unknown_basis_controls": 0,
+        "unknown_basis_controls_preserved": 0
+      },
+      "expected_role_amount_rows": [
+        [
+          "subtotal",
+          "221000"
+        ],
+        [
+          "tax",
+          "23758"
+        ],
+        [
+          "total",
+          "261333"
+        ],
+        [
+          "fee",
+          "16575"
+        ],
+        [
+          "payment",
+          "161333"
+        ],
+        [
+          "payment",
+          "100000"
+        ]
+      ],
+      "predicted_role_amount_rows": [
+        [
+          "subtotal",
+          "221000"
+        ],
+        [
+          "fee",
+          "16575"
+        ],
+        [
+          "fee",
+          "23758"
+        ],
+        [
+          "total",
+          "261333"
+        ],
+        [
+          "discount",
+          "100000"
+        ],
+        [
+          "payment",
+          "161333"
+        ]
+      ],
+      "expected_basis": "exclusive",
+      "predicted_basis": "unknown",
+      "elapsed_ms": 36171,
+      "peak_process_working_set_bytes": 4161945600
+    },
+    {
+      "receipt_id": "cord-v2-train-023",
+      "counts": {
+        "known_summary_rows": 5,
+        "returned_summary_rows": 5,
+        "literal_amount_multiset_matches": 5,
+        "role_and_amount_multiset_matches": 0,
+        "unknown_roles": 5,
+        "known_basis": 0,
+        "known_basis_correct": 0,
+        "unknown_basis_controls": 1,
+        "unknown_basis_controls_preserved": 1
+      },
+      "expected_role_amount_rows": [
+        [
+          "subtotal",
+          "21000"
+        ],
+        [
+          "tax",
+          "0"
+        ],
+        [
+          "total",
+          "21000"
+        ],
+        [
+          "payment",
+          "21000"
+        ],
+        [
+          "change",
+          "0"
+        ]
+      ],
+      "predicted_role_amount_rows": [
+        [
+          "unknown",
+          "0"
+        ],
+        [
+          "unknown",
+          "21000"
+        ],
+        [
+          "unknown",
+          "21000"
+        ],
+        [
+          "unknown",
+          "21000"
+        ],
+        [
+          "unknown",
+          "0"
+        ]
+      ],
+      "expected_basis": "unknown",
+      "predicted_basis": "unknown",
+      "elapsed_ms": 34660,
+      "peak_process_working_set_bytes": 3997995008
+    }
+  ],
+  "counts": {
+    "known_summary_rows": 15,
+    "returned_summary_rows": 15,
+    "literal_amount_multiset_matches": 15,
+    "role_and_amount_multiset_matches": 7,
+    "unknown_roles": 5,
+    "known_basis": 2,
+    "known_basis_correct": 0,
+    "unknown_basis_controls": 1,
+    "unknown_basis_controls_preserved": 1
+  },
+  "promotion": "rejected: financial roles and positive-tax price basis fail the frozen gate",
+  "new_local_native_requests": 3,
+  "external_receipt_uploads": 0,
+  "external_provider_requests": 0,
+  "api_cost_usd": "0",
+  "app_source_changed": false,
+  "larger_model_downloaded_or_run": false,
+  "limitations": [
+    "Three previously inspected development cases, not a blind holdout, full-receipt score or new provider comparison.",
+    "Amounts are multiset matches in explicit post-extraction IDR reference context; this does not score row identity or exact labels.",
+    "Role/amount matching counts unknown as an abstention and does not certify absent financial rows or arithmetic reconciliation.",
+    "No OCR or reference enters inference. The specialist uses the same Qwen weights as the existing vision reader, not an independent second model.",
+    "Latency is fresh CLI load plus this smaller output task; it cannot demonstrate speedup against full-receipt extraction or a useful p95.",
+    "Available-memory snapshot defers an 8B download; it is not an accuracy result or proof that another deployment cannot run it."
+  ],
+  "evidence_sha256": {
+    "qa-artifacts/financial-vision-pilot-v1/plan.json": "fdaaeb1200560abe459748ad284bdcdaefadec55002844d375476d94248db03f",
+    "qa-artifacts/row-first-original50-v1/plan.json": "ea2fb16624db3b6f4211400e7b15ad62ca0e19cd62fd9ea2b9db0e0e8f7380ac",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-013/panel-1.jpg": "b66a79d2826bc62a1ee3b66dc9c0158dddacc57be6eb1ea73d51013ec7512987",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-005/panel-1.jpg": "c289cde71d7a4f2fb7da23b8bd465281e0f5c0f32a514bbaf96ac58a011c163a",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-023/panel-1.jpg": "394c6260c4bd5d8d900fa04be2bf784a6445762d8fd7bd90afd557a0c1c37e3c",
+    "receipt_training/scripts/financial_vision_profile.mjs": "8878f74c5e6fe48764843cfee9153da755e82fb37d395d378acd3bc2666d0e56",
+    "receipt_training/scripts/prepare_financial_vision_trial.mjs": "5cd65029fa4bafa15d88f4e812393da0e63ed5df9356b35c23aa79be42b35be7",
+    "receipt_training/scripts/benchmark_vision_cli.py": "6eff8731dea50679011a5b0d34615c98101876a2f3929686d10f11be430c9381",
+    "receipt_training/evaluation/vision-candidate-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "receipt_training/evaluation/advanced-financial-truth-v1.json": "eb4ea3e971a077ce0995029936587fc017df4e13df60e12b87611c398c27ff04",
+    "receipt_training/annotations/private/priced-rows-v4-labels.jsonl": "04752d6e8b836ce54b388866d53769572e4fbf81b9ada71a8914da34132b312a",
+    "receipt_training/annotations/private/supplement-labels.jsonl": "d81abf83edfb6a1bdc167cca359dabf14c3b2f20a84b4dcce7e54dad7e69430c",
+    "receipt_training/manifest.jsonl": "2a28b64096cfff5de8dd6ca857f016e95a4a7316674b96a7dda6916c2c3ccd53",
+    "receipt_training/annotations/private/supplement-manifest.jsonl": "0db26f2a263479a28dd3c67258b885104bea3d5254a76ddde978f8915de44594",
+    "receipt_training/scripts/record_financial_summary_review.py": "f9417a4d2093a4e1861b15b5aac75857957f4e9d5e4d235653a7adca7c2db3d8",
+    "receipt_training/annotations/schema.json": "a811aa56ae4fe646e75e1af18a911f51408aaa8e955bf2d037a7c8015ac82218",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-000.jpg": "a7efa7596757d7916c5e454e8bd98e3371cdf476ac737a269693804484cfc193",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-001.jpg": "4eeef6f59cc6ed5be9c84914498aa8acb3f5a98ac5978382247e4c26e1f2c94e",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-003.jpg": "81391bfa6ad7f593f6175117f46d906b09c7c5d47a388335cb7d7c4c0e383ffd",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-005.jpg": "893039ec50d04a6d8d151ebfa47a98528f4e8cb5abfc0097183b64dafbd10895",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-011.jpg": "2005a94dc149c44d2ae49348b9bbf669675060f42a30d68d1ebe4af6b738c7e3",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-013.jpg": "d9336c340dd09ca3752a571b092bf3233fa7487f6fee1c4abdb33c17ac5e63dd",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-015.jpg": "07ddf9a9c75266fe267be4e3293d827c1e4214cdb0e479e14f34a906092e39c4",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-019.jpg": "3f060e8846266912fb5f99755e38cafde84eefdf54507a5e5270bd8e4ab9989c",
+    "receipt_training/non_costco/physical/cord/cord-v2-test-008.jpg": "910372079a2bbafc0857931d252608876e3ba6e3ab1b99947f159192f42c9676",
+    "receipt_training/non_costco/physical/cord/cord-v2-train-023.jpg": "933403a39678cba7302f0f9b89c7ff257332ae5699dfc48d3094c4cbd60ec11c",
+    "receipt_training/non_costco/physical/cord/cord-v2-validation-003.jpg": "b928fbfa32d7b79973faf1dbd49e49cd57f7059dfbf3e5e09739371274193a15",
+    "receipt_training/costco/physical/user-uk-20261026-1.jpeg": "293a13103f6df29c7f3c09f1cf6a8a1a55d4c61f8c31d393f0d2e3b5daef90cf",
+    "receipt_training/costco/physical/user-uk-20261026-2.jpeg": "8aa9e5fcd18f47e9fc4e4132a7f14089c176886e38b66f2659409261c7229aff",
+    "receipt_training/annotations/private/priced-rows-v5-financial-labels.jsonl": "2a233ec9e5dce77a3c546ef5e65afa6e54a00db71a14633718b7f7415a4598c9",
+    "receipt_training/annotations/private/supplement-financial-v2-labels.jsonl": "776961f0a6151862ac7aa7e61cde85dd0fc01a13e90056a3ab4de4aaed4ae0e1",
+    "qa-artifacts/financial-vision-pilot-v1/schema-validation.json": "f568ecd15adc9793a863d1a43b959472680eff36552750d739767622c58f84e2",
+    "qa-artifacts/financial-vision-pilot-v1/request-1.json": "151db58c52512ad60f8562181c2727d3e4716d193e6c9ebf706cfa7e5ebbde0a",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/metadata.json": "f21d8fda588b52c7ada299e93c5dd1de8bb0ac99b2ba93400687877734742f6b",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/harness.py": "6eff8731dea50679011a5b0d34615c98101876a2f3929686d10f11be430c9381",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/model-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/model-output.json": "69f86a87c01a387735c5f174fa350fd5077c6c7a03c62c5854a729977ecde412",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/request.json": "151db58c52512ad60f8562181c2727d3e4716d193e6c9ebf706cfa7e5ebbde0a",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/schema.json": "e17378ced4c5e4f3d907d35ad0fc604c8d30592f70e1e05f5c51bf49703a3042",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/stderr.txt": "04d08c4d5dc8969e371a404e11d75419fee0fbdb56ce343ae9b926c29aacf197",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/stdout.txt": "7582f2a3ed286edf635a32e51d03a1de96e2d883a7a822f8c5fa1e8f59d5b527",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-1/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "qa-artifacts/financial-vision-pilot-v1/run-1.log": "f73928d108f6a0aede317afb1a20e634186b41454782898120e2b710652aaa3d",
+    "qa-artifacts/financial-vision-pilot-v1/request-2.json": "5036e05a60205365a6c122f57c51482a0d6c890fdcf5a5971ebccb24865f6de0",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/metadata.json": "b9151e522ab3b7514f4a24d36f62c35c1cdf1b3471c1694a3ea7ddda890efca2",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/harness.py": "6eff8731dea50679011a5b0d34615c98101876a2f3929686d10f11be430c9381",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/model-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/model-output.json": "7a60127a14ba3bef9396ccad99769073ec251ac3cd03666a480038010e26d936",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/request.json": "5036e05a60205365a6c122f57c51482a0d6c890fdcf5a5971ebccb24865f6de0",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/schema.json": "e17378ced4c5e4f3d907d35ad0fc604c8d30592f70e1e05f5c51bf49703a3042",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/stderr.txt": "bf354fa62f9138878c7f0861f06a93139b464a077226963538e315a72990a2b0",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/stdout.txt": "7a551286cd38a9d3b7859ec2b2240ca8074d2cd93e9f5dd3ed5f1d4ec4b22f6f",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-2/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "qa-artifacts/financial-vision-pilot-v1/run-2.log": "986a38681fdde5344aa7374d5fb96c92b33863481ec1dde396824db2fc550946",
+    "qa-artifacts/financial-vision-pilot-v1/request-3.json": "631b0433546bf11d8229cbcb8710888c402d2c69224961e9be6484b0bec8d8cf",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/metadata.json": "642d6fae4780d8d8f4eaf5b9ea37e4206564a612343fbb4337042d8faa78b0eb",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/harness.py": "6eff8731dea50679011a5b0d34615c98101876a2f3929686d10f11be430c9381",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/model-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/model-output.json": "27e7427540ace159c67d67176a13aefd9c3797b475eb7bec7ea71a9a5d8024df",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/request.json": "631b0433546bf11d8229cbcb8710888c402d2c69224961e9be6484b0bec8d8cf",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/schema.json": "e17378ced4c5e4f3d907d35ad0fc604c8d30592f70e1e05f5c51bf49703a3042",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/stderr.txt": "eea67b09513484d14add23cea9470ee5bba53afd466feb5d437f65368cbced0e",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/stdout.txt": "b41009ac753b430731fdd5f3a373b0c91c632e18674c240243a7a389fbaa099c",
+    "qa-artifacts/advanced-ocr/financial-vision-pilot-v1-3/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "qa-artifacts/financial-vision-pilot-v1/run-3.log": "2e518345bd23b2deeb5720b35a0041842831c8027629553651da12b11eedf450",
+    "receipt_training/scripts/score_financial_vision_trial.py": "bb6fde64c8e5e1df7c758147cd4ab165f5055111776f0610786fd9cc90da74a1",
+    "qa-artifacts/financial-reader-next-v1/hardware-preflight.json": "1eaf9033f69b993e7c669948ac54833c1c76efe5f229543c4a7f19a4bab253e1",
+    "qa-artifacts/financial-reader-next-v1/official-qwen8-metadata.json": "29327b9db1ecc76649a44c7d5d44a097a74636bd768d0a150f988c70f4723c39"
+  }
+}

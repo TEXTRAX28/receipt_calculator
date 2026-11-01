@@ -575,7 +575,7 @@ this guard, which is covered by current replay and synthetic batch checks. See
 | 8 — Splitting | Exact purchase/refund-credit allocation, signed tax, coupon reversal, currency/rounding and conservation regressions pass. Unresolved currency and ambiguous negative-row classification block confirmation. Genuine refund truth, unsupported input representations and broader financial coverage remain open. |
 | 9 — Mobile UX | Capture/reorder/crop/progress, local quality advice, PDF import/cancellation, responsive source review, area rereading/manual correction and sharing work in browser tests. Optional bounded receipt-edge suggestions preserve originals and need Apply. Veryfi consent/review controls fit 320/390 px browser emulation. Perspective/arbitrary rotation, live-camera guidance and physical-device testing remain open. |
 | 10 — Public security | Local host/origin/body/rate/timeout/cleanup/secret, PDF worker-error/import and development private-file HTTP boundaries tested. Public authentication/TLS, crash recovery/OS isolation, production quotas/spend/provider privacy review remain open. |
-| 11 — Complete verification | The earlier full native run attempted all fifty: fifty OCR successes, forty-nine vision successes and one single-photo timeout, with primary fallback; mean preparation-to-draft time was 50.56 seconds and p95 107.34 seconds. Later row-first evidence retains fifty candidate readings, with 48 fresh calls plus two protocol-matched pilots. The latest same-reading verifier replay matches 41/49 copied totals with explicit currency and 34/49 automatically; it does not replace the earlier latency cohort. Current checks pass 615 unit tests and 173 standard browser tests with one existing skip. Azure controls use the actual local HTTP API with synthetic provider responses; the six retained real responses have an unchanged same-reading score. Two actual local-model phone observations repeat one inspected development receipt; the second uses the final source-expression code. Complete original financial truth, genuine input types, physical-device and broader provider/recovery verification remain incomplete. Thirteen overwritten historical artifacts remain disclosed. |
+| 11 — Complete verification | The earlier full native run attempted all fifty: fifty OCR successes, forty-nine vision successes and one single-photo timeout, with primary fallback; mean preparation-to-draft time was 50.56 seconds and p95 107.34 seconds. Later row-first evidence retains fifty candidate readings, with 48 fresh calls plus two protocol-matched pilots. The latest same-reading verifier replay matches 41/49 copied totals with explicit currency and 34/49 automatically; it does not replace the earlier latency cohort. Current checks pass 645 unit tests and 175 standard browser tests with one existing skip. The guarded financial-layout proposal improves known net-price basis from 0/9 to 4/9 with explicit currency; all such proposals retain mandatory source checks. Azure controls use the actual local HTTP API with synthetic provider responses; the six retained real responses have an unchanged same-reading score. Two actual local-model phone observations repeat one inspected development receipt; the second uses the final source-expression code. Complete original financial truth, genuine input types, physical-device and broader provider/recovery verification remain incomplete. Thirteen overwritten historical artifacts remain disclosed. |
 | 12 — Final report | This is a maintained evidence report with limitations and reproduction. Final requirement-by-requirement acceptance is not yet achieved. |
 
 ## Remaining requirements
@@ -587,3 +587,43 @@ The original model/schema lacked IDR/TWD and treated Indonesian thousands as dec
 All original manifest records still disallow external processing. Two identifier-removed crops reached Gemini under two separate one-use approvals; both returned 503 and consumed their scopes. Veryfi completed the separately approved UK transaction and six exact prepared crops, with seven successful extraction responses and seven reported deletions of matching new records. Both scopes are consumed. The new app integration used only synthetic transports and saved responses; no additional private upload, original-corpus permission or paid activation is implied. Current allowance is zero. Provider deletion is not zero-retention or training-exclusion proof. Google's UK/EEA/Swiss terms and Veryfi's default US hosting/proprietary model-improvement policy still require public-release review. [Google terms](https://ai.google.dev/gemini-api/terms), [Veryfi privacy](https://www.veryfi.com/privacy/).
 
 Final acceptance still needs complete ground truth where available, additional genuine digital/PDF cases, fair cloud/VLM trials where accessible/approved, independent recovery measurements, meaningful uncertainty evidence, exact split regression checks, full upload-to-summary E2E tests, error/security/memory/cost checks, stable-reference verification and the final requirement-by-requirement report. This goal must remain active.
+
+### Financial interpretation: guarded net-price proposal, rejected specialist
+
+An original-image financial-summary specialist using the installed Qwen weights
+copied 15/15 amounts but correctly classified only 7/15 role/amount pairs and
+0/2 known positive-tax price bases. Five roles were unknown. The three fixed
+development calls completed without schema errors in 34.660–36.171 seconds each,
+including CLI loading. The specialist is rejected and is not an independent
+second model or a new app reader. Public metadata for a larger local candidate
+was inspected, but no larger weight was downloaded or benchmarked under the
+observed memory constraints.
+
+The implemented recovery instead uses a strongly read, complete original OCR
+subtotal/tax/total section to propose net prices only when the vision basis is
+unknown. Literal labels and amounts must agree with real OCR words; financial
+arithmetic only rejects inconsistent interpretations. Conflicting inclusion text,
+zero tax, missing rows, multiple summaries and unresolved currency prevent the
+proposal. A dedicated unconfirmed source check and actual highlights remain.
+No amount, charge kind, rate, tax mode, coupon, purchase or receipt metadata is
+changed, and a valid vision boolean is preserved.
+
+The same-reading frozen replay covers all fifty original receipts in both
+currency modes: 200 before/after views with no new inference. Explicit-currency
+net-basis correctness improves from **0/9 to 4/9**. A fifth proposal has unknown
+basis truth and is not counted as another success. Automatic-currency results,
+all known monetary-field counts and trusted reconciliation **0/49** are unchanged.
+All receipts still require checking; original complete financial accuracy remains
+unscorable. This is a source-informed development result, not a blind holdout.
+
+Current validation passes **645 unit tests**, build/typecheck, formatting and
+**175 standard browser tests with one existing skip**. The synthetic net-price
+workflow stays blocked until checked and then shares £21.00 as £10.50 each.
+The final geometry-corrected fixture passes both browser projects and fits
+320/390 px emulation; this is not native-reader or physical-handset evidence.
+The 601-file packet retains source, predictions, references, checks and the
+earlier failed setup/fixture evidence. Thirteen legacy overwritten artifacts
+remain disclosed. The protected branches/original dirty checkout are unchanged.
+No private cloud upload, allowance change, paid activation, merge, push or deploy
+occurred. [Method, measured limits and reproduction](FINANCIAL_BASIS_RECOVERY.md).
+The full production-upgrade goal remains active.
