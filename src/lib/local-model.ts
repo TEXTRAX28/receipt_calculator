@@ -6,9 +6,11 @@ import { assembleRecognition } from "./receipt-layout";
 import { extractionOutputSchema } from "./parser";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 import { veryfiStatusSchema } from "./veryfi-schema.mjs";
+import { azureStatusSchema } from "./azure-schema.mjs";
 
 const capabilities = z.object({
   veryfi: veryfiStatusSchema.optional(),
+  azure: azureStatusSchema.optional(),
   localModel: z.object({
     configured: z.boolean(),
     name: z.enum(["PaddleOCR", "docTR"]),

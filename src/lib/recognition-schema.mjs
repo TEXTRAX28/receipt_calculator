@@ -35,6 +35,7 @@ export const recognitionSchema = z.strictObject({
   engine: z.enum([
     "paddle-ppocrv6-medium-onnx",
     "doctr-db-resnet50-parseq-cpu",
+    "azure-document-intelligence-2024-11-30-receipt-words",
   ]),
   panels: z
     .array(

@@ -6,6 +6,7 @@ import { createLocalModelReader } from "./server/local-ocr.mjs";
 import { createLocalVisionReader } from "./server/local-vision.mjs";
 import { privateFileDeny } from "./server/private-paths.mjs";
 import { createVeryfiReader } from "./server/veryfi-reader.mjs";
+import { createAzureReader } from "./server/azure-reader.mjs";
 import { resolve } from "node:path";
 import { LOCAL_VISION_TIMEOUT_MS } from "./src/lib/vision-plan.mjs";
 
@@ -29,6 +30,15 @@ export default defineConfig(({ mode }) => {
         localReader,
         localVision,
         visionTimeoutMs: LOCAL_VISION_TIMEOUT_MS,
+        azureReader: createAzureReader({
+          endpoint: env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT || "",
+          key: env.AZURE_DOCUMENT_INTELLIGENCE_KEY || "",
+          directory: resolve(
+            env.AZURE_ALLOWANCE_DIRECTORY || ".receipt-reader-state/azure",
+          ),
+          grant: env.AZURE_ALLOWANCE_ID || "",
+          limit: Number(env.AZURE_SECTION_LIMIT || 0),
+        }),
         veryfiReader: createVeryfiReader({
           clientId: env.VERYFI_CLIENT_ID || "",
           bearerKey: env.VERYFI_BEARER_KEY || "",

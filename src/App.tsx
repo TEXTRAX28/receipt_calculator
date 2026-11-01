@@ -70,6 +70,7 @@ import {
 } from "./lib/local-model";
 import { extractWithLocalVision } from "./lib/local-vision";
 import { receiptFromVeryfiText, veryfiOcrProvider } from "./lib/veryfi";
+import { receiptFromAzureWords, azureOcrProvider } from "./lib/azure";
 import { extractComparedReceipt } from "./lib/compared-reader";
 import type { LocalCheckMode } from "./lib/local-check-policy";
 import {
@@ -286,7 +287,7 @@ export default function App() {
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
   const [reader, setReader] = useState<
-    "local" | "computer" | "vision" | "gemini" | "veryfi" | "pdf"
+    "local" | "computer" | "vision" | "gemini" | "veryfi" | "azure" | "pdf"
   >("local");
   const readerChosen = useRef(false);
   const pdfTextAvailable = canReadPdfText(images);
@@ -300,6 +301,11 @@ export default function App() {
     name: string;
   } | null>(null);
   const [aiConsented, setAiConsented] = useState(false);
+  const [azureConfig, setAzureConfig] = useState<{
+    configured: boolean;
+    remaining: number;
+    maxPanels: 24;
+  } | null>(null);
   const [veryfiConfig, setVeryfiConfig] = useState<{
     configured: boolean;
     remaining: number;
@@ -377,6 +383,7 @@ export default function App() {
         setComputerConfig(config.localModel);
         setVisionConfig(config.localVision || null);
         setVeryfiConfig(config.veryfi || null);
+        setAzureConfig(config.azure || null);
         if (config.localModel.configured && !readerChosen.current)
           setReader("computer");
       })
@@ -617,6 +624,8 @@ export default function App() {
     if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
     if (reader === "veryfi" && (!aiConsented || !veryfiConfig?.configured))
       return;
+    if (reader === "azure" && (!aiConsented || !azureConfig?.configured))
+      return;
     if (reader === "computer" && !computerConfig?.configured) return;
     if (reader === "vision" && !visionConfig?.configured) return;
     busyRef.current = true;
@@ -695,6 +704,33 @@ export default function App() {
         replaceReceipt(parsed);
         setNotice(
           "Local vision finished. This reader is experimental: check every purchase, discount, tax setting and amount against your photos before confirming.",
+        );
+        return;
+      }
+      if (reader === "azure") {
+        const output = await azureOcrProvider.extract(
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
+        const parsed = receiptFromAzureWords(
+          output.recognition,
+          readingContext,
+        );
+        const evidence = collectReceiptEvidence(
+          parsed.receipt,
+          parsed.text,
+          parsed.sources,
+          parsed.sourceLines,
+          output.recognition,
+          images,
+        );
+        setRawText(parsed.text);
+        replaceReceipt(parsed.receipt, evidence);
+        setNotice(
+          output.cleanup === "provider-reported-success"
+            ? "Azure finished and reported deletion of its results. Check every purchase and amount against the photos; a deletion response is not an independent erasure audit."
+            : "Azure finished, but deletion of uploaded sections could not be confirmed. Check every purchase and amount against the photos.",
         );
         return;
       }
@@ -782,11 +818,17 @@ export default function App() {
           : "OCR could not start or finish. Try another image or use manual entry.",
       );
     } finally {
-      if (reader === "veryfi") {
+      if (reader === "veryfi" || reader === "azure") {
         setAiConsented(false);
         await localReaderConfiguration(AbortSignal.timeout(5000))
-          .then((config) => setVeryfiConfig(config.veryfi || null))
-          .catch(() => setVeryfiConfig(null));
+          .then((config) => {
+            setVeryfiConfig(config.veryfi || null);
+            setAzureConfig(config.azure || null);
+          })
+          .catch(() => {
+            setVeryfiConfig(null);
+            setAzureConfig(null);
+          });
       }
       busyRef.current = false;
       setBusy(false);
@@ -1310,6 +1352,20 @@ export default function App() {
                         <ReceiptText size={17} /> Veryfi OCR
                       </button>
                     )}
+                    {(azureConfig?.configured || reader === "azure") && (
+                      <button
+                        type="button"
+                        className={`button ${reader === "azure" ? "button-primary" : "button-outline"}`}
+                        aria-pressed={reader === "azure"}
+                        onClick={() => {
+                          readerChosen.current = true;
+                          setReader("azure");
+                          setAiConsented(false);
+                        }}
+                      >
+                        <ReceiptText size={17} /> Azure receipt OCR
+                      </button>
+                    )}
                   </div>
                   {reader === "local" ? (
                     <p className="hint">
@@ -1366,6 +1422,47 @@ export default function App() {
                       sections, which can take several minutes. Check every
                       amount and overlapping row.
                     </p>
+                  ) : reader === "azure" ? (
+                    <div className="ai-reader-info">
+                      <p>
+                        Reads receipt words and their positions to prepare a
+                        draft with source highlights. Check every purchase,
+                        quantity, discount and tax setting before splitting.
+                      </p>
+                      <p className="hint" role="status">
+                        {azureConfig?.configured
+                          ? `App allowance: ${azureConfig.remaining} receipt ${azureConfig.remaining === 1 ? "section" : "sections"} remaining. A long photo can use several sections; a failed scan can still use the allowance.`
+                          : "The app's Azure allowance is unavailable or used up. Choose another reader."}
+                      </p>
+                      <p className="hint">
+                        Crop out membership and payment details. Azure processes
+                        these images in the app owner's configured resource
+                        region. Microsoft describes temporary storage for 24
+                        hours; we request earlier deletion after reading each
+                        section. A deletion response is not an independent
+                        erasure audit. No account-specific training-use
+                        commitment has been verified.{" "}
+                        <a
+                          href="https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/document-intelligence/data-privacy-security"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Microsoft’s data-use information
+                        </a>
+                      </p>
+                      <label className="check-line">
+                        <input
+                          type="checkbox"
+                          checked={aiConsented}
+                          disabled={!azureConfig?.configured}
+                          onChange={(event) =>
+                            setAiConsented(event.target.checked)
+                          }
+                        />
+                        Send these receipt sections to Azure for this scan. I
+                        have read the data-use notice above.
+                      </label>
+                    </div>
                   ) : reader === "veryfi" ? (
                     <div className="ai-reader-info">
                       <p>
@@ -1487,6 +1584,8 @@ export default function App() {
                         (reader === "vision" && !visionConfig?.configured) ||
                         (reader === "veryfi" &&
                           (!aiConsented || !veryfiConfig?.configured)) ||
+                        (reader === "azure" &&
+                          (!aiConsented || !azureConfig?.configured)) ||
                         (reader === "gemini" &&
                           (!aiConsented || !aiConfig?.configured || checkingAi))
                       }
@@ -1505,11 +1604,13 @@ export default function App() {
                             ? "Read receipt with Gemini"
                             : reader === "veryfi"
                               ? "Read receipt with Veryfi"
-                              : reader === "computer"
-                                ? "Read receipt on this computer"
-                                : reader === "vision"
-                                  ? "Read receipt with local vision"
-                                  : "Read receipt on this device"}
+                              : reader === "azure"
+                                ? "Read receipt with Azure"
+                                : reader === "computer"
+                                  ? "Read receipt on this computer"
+                                  : reader === "vision"
+                                    ? "Read receipt with local vision"
+                                    : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -1531,9 +1632,11 @@ export default function App() {
                         ? "Photos are processed on this computer and temporary files are removed after reading."
                         : reader === "veryfi"
                           ? "Veryfi receives receipt sections only when you agree and start a scan."
-                          : reader === "pdf"
-                            ? "PDF text is read on this device."
-                            : "Gemini only receives photos when you agree and start a scan."}
+                          : reader === "azure"
+                            ? "Azure receives receipt sections only when you agree and start a scan."
+                            : reader === "pdf"
+                              ? "PDF text is read on this device."
+                              : "Gemini only receives photos when you agree and start a scan."}
                   </span>
                 </div>
                 <div className="or-divider">
@@ -2942,12 +3045,23 @@ export default function App() {
               closes.
             </p>
             <p>
+              Azure receipt OCR is optional and needs a separate section
+              allowance. Each prepared image section is one uploaded page. After
+              you select it, consent and start a scan, Azure processes the
+              images in the configured resource region. Microsoft describes
+              24-hour temporary storage; we request earlier deletion once per
+              new result. Failed or cancelled scans can still use the allowance,
+              and deletion may be unconfirmed. No automatic retry is made. See
+              Microsoft’s data-use link beside the scan consent for details.
+            </p>
+            <p>
               Delete / reset receipt removes this app’s saved draft and current
               image previews. Exported or copied summaries remain wherever you
               save or send them. Gather has no user accounts or analytics. Cloud
               providers handle submitted data under their own policies. API
               credentials stay on the local server, which keeps only minimal
-              Veryfi request and allowance records, without photos or text.
+              cloud-reader request and allowance records, without photos or
+              text.
             </p>
             <p>
               Camera availability depends on your browser. A phone accessing the

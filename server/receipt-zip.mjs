@@ -111,7 +111,7 @@ export function validatePreparedJpeg(bytes) {
         throw new Error(
           "Receipt JPEG dimensions exceed the prepared-section limit",
         );
-      return;
+      return { width, height };
     }
     offset += size;
   }

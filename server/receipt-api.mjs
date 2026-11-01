@@ -13,6 +13,8 @@ import {
 } from "../src/lib/recognition-schema.mjs";
 import { LocalOcrError } from "./local-ocr.mjs";
 import { VeryfiError } from "./veryfi-reader.mjs";
+import { AzureError } from "./azure-reader.mjs";
+import { azureRequestSchema } from "../src/lib/azure-schema.mjs";
 import { veryfiRequestSchema } from "../src/lib/veryfi-schema.mjs";
 import { once } from "node:events";
 import {
@@ -154,7 +156,7 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>}} [options]
+ * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
@@ -166,6 +168,7 @@ export function createReceiptApi({
   localReader,
   localVision,
   veryfiReader,
+  azureReader,
 } = {}) {
   let active = false;
   let attempts = [];
@@ -227,13 +230,18 @@ export function createReceiptApi({
           supportsBatches: true,
         },
         ...(veryfiReader ? { veryfi: await veryfiReader.getStatus() } : {}),
+        ...(azureReader ? { azure: await azureReader.getStatus() } : {}),
       });
     const isVeryfi = pathname === "/api/receipts/veryfi";
+    const isAzure = pathname === "/api/receipts/azure";
     const isBatchedVision = pathname === "/api/receipts/vision-batches";
     const isVision = isBatchedVision || pathname === "/api/receipts/vision";
     const isLocal = isVision || pathname === "/api/receipts/recognize";
     if (
-      (!isLocal && !isVeryfi && pathname !== "/api/receipts/extract") ||
+      (!isLocal &&
+        !isVeryfi &&
+        !isAzure &&
+        pathname !== "/api/receipts/extract") ||
       req.method !== "POST"
     )
       return send(404, { error: "Receipt endpoint not found." });
@@ -252,7 +260,11 @@ export function createReceiptApi({
         error:
           "Veryfi is not enabled with a document allowance on this server.",
       });
-    if (!isLocal && !isVeryfi && !apiKey)
+    if (isAzure && !azureReader?.configured)
+      return send(503, {
+        error: "Azure is not enabled with a section allowance on this server.",
+      });
+    if (!isLocal && !isVeryfi && !isAzure && !apiKey)
       return send(503, {
         error:
           "Gemini is not connected yet. Add GEMINI_API_KEY to .env.local on this computer and restart Gather. You can still use the on-device reader.",
@@ -301,20 +313,24 @@ export function createReceiptApi({
         );
       }
       const parsed = (
-        isVeryfi
-          ? veryfiRequestSchema
-          : isLocal
-            ? localRequestSchema
-            : requestSchema
+        isAzure
+          ? azureRequestSchema
+          : isVeryfi
+            ? veryfiRequestSchema
+            : isLocal
+              ? localRequestSchema
+              : requestSchema
       ).safeParse(body);
       if (!parsed.success)
         throw new ScanError(
           400,
-          isVeryfi
-            ? "Confirm sending these receipt sections to Veryfi after reviewing its data-use notice."
-            : isLocal
-              ? "The receipt request is incomplete or invalid. Choose the photos again."
-              : "The receipt request is incomplete or invalid. Choose the photos again and confirm sending them to Gemini.",
+          isAzure
+            ? "Confirm sending these receipt sections to Azure after reviewing its data-use notice."
+            : isVeryfi
+              ? "Confirm sending these receipt sections to Veryfi after reviewing its data-use notice."
+              : isLocal
+                ? "The receipt request is incomplete or invalid. Choose the photos again."
+                : "The receipt request is incomplete or invalid. Choose the photos again and confirm sending them to Gemini.",
         );
       attempts = attempts.filter((time) => Date.now() - time < 3600000);
       if (
@@ -329,6 +345,16 @@ export function createReceiptApi({
       active = true;
       ownsActive = true;
       attempts.push(Date.now());
+      if (isAzure) {
+        clearTimeout(deadline);
+        deadline = setTimeout(() => abort.abort(), 180000);
+        return send(
+          200,
+          await azureReader.extract(parsed.data.panels, {
+            signal: abort.signal,
+          }),
+        );
+      }
       if (isVeryfi) {
         const result = await veryfiReader.extract(parsed.data.panels, {
           signal: abort.signal,
@@ -439,29 +465,33 @@ export function createReceiptApi({
       });
       send(200, { receipt: draft });
     } catch (error) {
-      if (error instanceof VeryfiError)
+      if (error instanceof VeryfiError || error instanceof AzureError)
         send(error.status, { error: error.message, cleanup: error.cleanup });
       else if (abort.signal.aborted)
         send(504, {
-          error: isVeryfi
-            ? "The Veryfi scan was cancelled or took too long. It may have reached the provider; its allowance remains reserved. Cleanup may be unconfirmed."
-            : isBatchedVision
-              ? "The long receipt was cancelled or took too long. Your photos are still available; no partial result was accepted."
-              : isVision
-                ? "The local vision scan was cancelled or timed out. Your photos are still available."
-                : "The scan was cancelled or took longer than two minutes. Your photos are still available.",
+          error: isAzure
+            ? "Azure reading was cancelled or took too long. Uploaded sections can use the allowance; deletion may be unconfirmed."
+            : isVeryfi
+              ? "The Veryfi scan was cancelled or took too long. It may have reached the provider; its allowance remains reserved. Cleanup may be unconfirmed."
+              : isBatchedVision
+                ? "The long receipt was cancelled or took too long. Your photos are still available; no partial result was accepted."
+                : isVision
+                  ? "The local vision scan was cancelled or timed out. Your photos are still available."
+                  : "The scan was cancelled or took longer than two minutes. Your photos are still available.",
         });
       else if (error instanceof ScanError || error instanceof LocalOcrError)
         send(error.status, { error: error.message });
       else
         send(502, {
-          error: isVeryfi
-            ? "Veryfi could not finish this receipt. Your photos are still available; no automatic retry was made."
-            : isVision
-              ? "Local vision could not return a complete receipt draft. Your photos are still available; choose another reader or try again."
-              : isLocal
-                ? "The computer reader could not return valid receipt evidence. Try clearer photos or use the on-device reader."
-                : "Gemini could not return a complete receipt draft. Try clearer photos or use the on-device reader. No items were invented.",
+          error: isAzure
+            ? "Azure could not finish this receipt. Your photos are still available; no automatic retry was made."
+            : isVeryfi
+              ? "Veryfi could not finish this receipt. Your photos are still available; no automatic retry was made."
+              : isVision
+                ? "Local vision could not return a complete receipt draft. Your photos are still available; choose another reader or try again."
+                : isLocal
+                  ? "The computer reader could not return valid receipt evidence. Try clearer photos or use the on-device reader."
+                  : "Gemini could not return a complete receipt draft. Try clearer photos or use the on-device reader. No items were invented.",
         });
     } finally {
       if (ownsActive) active = false;

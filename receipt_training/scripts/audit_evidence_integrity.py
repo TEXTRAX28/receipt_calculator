@@ -57,7 +57,10 @@ def main():
         for name, expected in hashes.items():
             path = ROOT / name
             path.resolve().relative_to(ROOT.resolve())
-            if path.name.startswith(".env") or not re.fullmatch(r"[a-f0-9]{64}", expected):
+            # The committed blank-key example is public source; live env files
+            # remain forbidden. Source/build secret scanning is a separate gate.
+            private_env = path.name.startswith(".env") and path.name != ".env.example"
+            if private_env or not re.fullmatch(r"[a-f0-9]{64}", expected):
                 raise ValueError("Invalid evidence declaration")
             if name not in cache:
                 cache[name] = sha(path) if path.is_file() else None
