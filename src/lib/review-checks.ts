@@ -97,7 +97,11 @@ export function checkIsPending(receipt: Receipt, check: ReviewCheck): boolean {
 
 export function reviewMessage(check: ReviewCheck): string {
   if (check.reason === "source")
-    return `This draft uses a single text reading. Check ${reviewFieldLabels[check.field]} against every original photo, including missing or repeated rows and discounts.`;
+    return `Compare ${reviewFieldLabels[check.field]} with the original receipt.${
+      check.scope === "receipt" && check.field === "items"
+        ? " Check for missing or repeated rows and discounts."
+        : ""
+    }${check.other ? ` ${check.other}` : ""}`;
   if (check.reason === "classification")
     return "The negative row could be a discount or a refund. Check its type and ownership against the original before confirming the receipt adjustments.";
   if (check.reason === "document")

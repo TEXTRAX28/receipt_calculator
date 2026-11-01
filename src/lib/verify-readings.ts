@@ -516,6 +516,15 @@ export function verifyIndependentReadings(
       sourceIndex === undefined ? undefined : sourceRows[sourceIndex];
     if (source) sources[item.id] = source.indices;
     for (const field of itemReviewFields) {
+      const sourceCheck =
+        source &&
+        ocr.reviewChecks.find(
+          (check) =>
+            check.scope === "item" &&
+            check.itemId === source.item.id &&
+            check.field === field &&
+            check.reason === "source",
+        );
       // Zero is the conservative no-deduction state, not a claim that a coupon was printed.
       if (
         field === "discount" &&
@@ -530,6 +539,8 @@ export function verifyIndependentReadings(
         itemCheck(item, field, "unsupported");
       else if (!sameField(item, source.item, field, receipt.currency))
         itemCheck(item, field, "different", source.item[field]);
+      else if (sourceCheck)
+        itemCheck(item, field, sourceCheck.reason, sourceCheck.other);
       else if (!source.fieldGood(field))
         itemCheck(item, field, "unclear", source.item[field]);
       else agreements++;

@@ -3,6 +3,164 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 
+test("real leading-count receipt preserves its row price and source review on a phone", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  const file = process.env.GATHER_LOCAL_LEADING_RECEIPT;
+  test.skip(
+    !file,
+    "Supply the local development receipt for this measured regression",
+  );
+  const base = process.env.GATHER_LOCAL_MODEL_URL;
+  const run = process.env.GATHER_LOCAL_LEADING_RUN || "";
+  if (
+    !base ||
+    !/^http:\/\/127\.0\.0\.1:\d+\/?$/.test(base) ||
+    !/^[\w-]+$/.test(run)
+  )
+    throw new Error(
+      "Supply a loopback model URL and a new private QA run name",
+    );
+  const folder = path.resolve("qa-artifacts", run);
+  await mkdir(folder);
+  const bytes = await readFile(file!);
+  const imageSha = createHash("sha256").update(bytes).digest("hex");
+  expect(imageSha).toBe(
+    "a7efa7596757d7916c5e454e8bd98e3371cdf476ac737a269693804484cfc193",
+  );
+  const blocked: string[] = [],
+    posts: string[] = [];
+  await page.route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (
+      url.origin === new URL(base).origin &&
+      (request.method() !== "POST" ||
+        url.pathname === "/api/receipts/recognize")
+    )
+      return route.continue();
+    if (["data:", "blob:"].includes(url.protocol)) return route.continue();
+    blocked.push(url.origin + url.pathname);
+    return route.abort();
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
+  await page.goto(base);
+  await page
+    .getByRole("button", { name: "This computer", exact: true })
+    .click();
+  const comparison = page.getByLabel("Local vision comparison", {
+    exact: true,
+  });
+  if (await comparison.isVisible()) await comparison.selectOption("off");
+  await page
+    .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
+    .selectOption("IDR");
+  await page.getByLabel("Upload receipt images").setInputFiles(file!);
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/receipts/recognize",
+    { timeout: 130000 },
+  );
+  const started = Date.now();
+  await page
+    .getByRole("button", { name: "Read receipt on this computer", exact: true })
+    .click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const recognized = await response.json();
+  const body = response.request().postData()!;
+  expect(Object.keys(JSON.parse(body))).toEqual(["panels"]);
+  await writeFile(
+    path.join(folder, "ocr-response.json"),
+    JSON.stringify(recognized, null, 2),
+    { flag: "wx" },
+  );
+  const panels = JSON.parse(body).panels;
+  for (const [index, panel] of panels.entries())
+    await writeFile(
+      path.join(folder, `panel-${index + 1}.jpg`),
+      Buffer.from(panel.data, "base64"),
+      { flag: "wx" },
+    );
+  await expect(
+    page.getByRole("heading", { name: "A quick check, then we share." }),
+  ).toBeVisible({ timeout: 130000 });
+  const elapsedMs = Date.now() - started;
+  const items = [];
+  const cards = page.locator('[data-testid^="review-item-"]');
+  for (let index = 1; index <= (await cards.count()); index++) {
+    const more = page.getByRole("button", {
+      name: `Edit details for item ${index}`,
+      exact: true,
+    });
+    if (await more.count()) await more.click();
+    items.push({
+      description: await page
+        .getByLabel(`Item ${index} description`, { exact: true })
+        .inputValue(),
+      quantity: await page
+        .getByLabel(`Item ${index} purchased quantity`, { exact: true })
+        .inputValue(),
+      unitPrice: await page
+        .getByLabel(`Item ${index} unit price (optional)`, { exact: true })
+        .inputValue(),
+      lineTotal: await page
+        .getByLabel(`Item ${index} line price`, { exact: true })
+        .inputValue(),
+    });
+  }
+  const teaIndex = items.findIndex((item) =>
+    /hot\s*tea/i.test(item.description),
+  );
+  expect(teaIndex).toBeGreaterThanOrEqual(0);
+  expect(items[teaIndex]).toMatchObject({
+    quantity: "2",
+    unitPrice: "",
+    lineTotal: "44000",
+  });
+  const tea = cards.nth(teaIndex);
+  const checks = tea.getByRole("checkbox");
+  expect(await checks.count()).toBeGreaterThan(0);
+  for (const check of await checks.all()) await expect(check).not.toBeChecked();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await tea.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(folder, "phone-review.png") });
+  expect(posts).toEqual(["/api/receipts/recognize"]);
+  expect(blocked).toEqual([]);
+  await writeFile(
+    path.join(folder, "result.json"),
+    JSON.stringify(
+      {
+        scope:
+          "One real installed Paddle/native HTTP/UI development regression on desktop Chrome phone emulation. IDR supplied explicitly after extraction, never sent to the backend. Not a complete financial success, untouched holdout or physical-phone measurement.",
+        image_sha256: imageSha,
+        request_sha256: createHash("sha256").update(body).digest("hex"),
+        posts,
+        blocked,
+        elapsed_ms: elapsedMs,
+        items,
+        hot_tea_index: teaIndex,
+        hot_tea_pending_source_checks: await checks.count(),
+        financial_fields_edited: false,
+        external_requests: 0,
+        completed_at: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+    { flag: "wx" },
+  );
+});
+
 test("real scanned PDF → installed computer OCR → exact split", async ({
   page,
 }) => {

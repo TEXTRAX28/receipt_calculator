@@ -422,6 +422,12 @@ export function parseReceiptWithSources(
       const quantity = description.match(
         /(?:^|\s)(\d+(?:[.,]\d+)?)\s*[x×@]\s*(\d[\d,.]*[.,]\d{2,3})?\s*$/i,
       );
+      // A leading count can be purchased quantity or part of a pack name.
+      // Numeric measurements and existing trailing purchase expressions win.
+      const leadingQuantity =
+        !quantity && !/[-−]/.test(generic[2])
+          ? description.match(/^(\d+(?:[.,]\d+)?)\s*[x×]\s+(\p{L}.*)$/u)
+          : null;
       const percentDeduction =
         /^(?:amount|amt)\b/i.test(description) &&
         /^DISC(?:OUNT)?\b.*%/i.test(lines[lineIndex - 1] || "");
@@ -470,15 +476,33 @@ export function parseReceiptWithSources(
         item.description = (
           quantity && quantity.index
             ? description.slice(0, quantity.index).trim()
-            : description
+            : leadingQuantity
+              ? leadingQuantity[2]
+              : description
         ).slice(0, 180);
-        item.quantity = quantity ? quantity[1].replace(",", ".") : "";
+        item.quantity = quantity
+          ? quantity[1].replace(",", ".")
+          : leadingQuantity
+            ? leadingQuantity[1].replace(",", ".")
+            : "";
         item.unitPrice = quantity?.[2] ? normalize(quantity[2]) : "";
         item.lineTotal = amount;
         item.taxCode = generic[3] || "";
-        item.note = quantity
-          ? "Check the extracted quantity and line total."
-          : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
+        if (leadingQuantity)
+          receipt.reviewChecks.push({
+            scope: "item",
+            itemId: item.id,
+            field: "quantity",
+            reason: "source",
+            other:
+              "Confirm that the leading count is purchased quantity, not part of the pack description.",
+            confirmedValue: "",
+          });
+        item.note = leadingQuantity
+          ? "Leading count read as purchased quantity. Confirm purchased packs against the original; pack contents are separate."
+          : quantity
+            ? "Check the extracted quantity and line total."
+            : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
         if (printedNegative) {
           item.note =
             "Signed credit line. Confirm this is a returned item, its positive quantity and any coupon or tax reversal.";
