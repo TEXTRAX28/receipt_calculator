@@ -21,8 +21,8 @@ import {
 } from "./local-vision-format.mjs";
 import {
   hasMultipleSourcePhotos,
-  LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
-  LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS,
+  LOCAL_VISION_TIMEOUT_MS,
+  LOCAL_VISION_MODEL_TIMEOUT_MS,
 } from "../src/lib/vision-plan.mjs";
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,7 +51,7 @@ export function createLocalVisionReader({
   enabled = false,
   python = "",
   runtimeRoot = resolve(PROJECT, "private-receipts/runtime"),
-  timeoutMs = LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
+  timeoutMs = LOCAL_VISION_TIMEOUT_MS,
   // Protocol-test dependencies only; these are not environment/request options.
   requireAssets = true,
   spawnProcess = launchProcess,
@@ -119,12 +119,7 @@ export function createLocalVisionReader({
       current = new AbortController();
       const combined = AbortSignal.any([
         current.signal,
-        AbortSignal.timeout(
-          Math.min(
-            timeoutMs,
-            compact ? LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS : 120000,
-          ),
-        ),
+        AbortSignal.timeout(Math.min(timeoutMs, LOCAL_VISION_TIMEOUT_MS)),
         ...(signal ? [signal] : []),
       ]);
       inflight = (async () => {
@@ -253,9 +248,7 @@ export function createLocalVisionReader({
               schemaPath,
             ],
             {
-              timeoutMs: compact
-                ? LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS
-                : 120000,
+              timeoutMs: LOCAL_VISION_MODEL_TIMEOUT_MS,
             },
           );
           if (

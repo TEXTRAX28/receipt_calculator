@@ -108,6 +108,7 @@ async function api(options: Parameters<typeof createReceiptApi>[0] = {}) {
   return { base, post };
 }
 afterEach(async () => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   await Promise.all(readers.splice(0).map((model) => model.dispose()));
   await Promise.all(
@@ -128,6 +129,15 @@ afterEach(async () => {
 });
 
 describe("bounded local vision bridge (synthetic process protocol, not recognition accuracy)", () => {
+  it("allows a long canonical one-photo reading the same bounded model time as multiple photos", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const { model, formats, root } = await reader(200000);
+    await model.extract([panels()[0], { ...panels()[0], part: 2 }]);
+    expect(formats).toEqual([false]);
+    expect(timeout).toHaveBeenCalledWith(200000);
+    expect(timeout).toHaveBeenCalledWith(180000);
+    expect(await readdir(root)).toEqual([]);
+  });
   it("expands distinct multi-photo item values without swapping positions and retains the one-photo format for detail sections", async () => {
     const { model, root, formats } = await reader();
     const draft = await model.extract([

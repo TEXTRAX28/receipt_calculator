@@ -5,10 +5,7 @@ import type { ReceiptImage } from "./images";
 import { panelsForImages } from "./panel-transport";
 import { MAX_AI_BODY_BYTES, MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 import type { ReadingContext } from "./reading-context.mjs";
-import {
-  hasMultipleSourcePhotos,
-  LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS,
-} from "./vision-plan.mjs";
+import { LOCAL_VISION_TIMEOUT_MS } from "./vision-plan.mjs";
 
 export async function extractLocalVisionEvidence(
   images: ReceiptImage[],
@@ -26,15 +23,10 @@ export async function extractLocalVisionEvidence(
     throw new Error(
       "These photos are too large together. Crop them or choose fewer sections.",
     );
-  const multiPhoto = hasMultipleSourcePhotos(panels);
   progress(
-    multiPhoto
-      ? "Local vision is reading your photos… Detailed receipts and the first scan can take several minutes."
-      : "Local vision is reading your photos… This also loads the model and can take a minute.",
+    "Local vision is reading your photos… Detailed receipts and the first scan can take several minutes.",
   );
-  const deadline = AbortSignal.timeout(
-    multiPhoto ? LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS + 5000 : 125000,
-  );
+  const deadline = AbortSignal.timeout(LOCAL_VISION_TIMEOUT_MS + 5000);
   try {
     const response = await fetch("./api/receipts/vision", {
       method: "POST",

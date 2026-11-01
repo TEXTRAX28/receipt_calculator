@@ -3,8 +3,12 @@ import { aiReceiptSchema } from "./extraction-schema.mjs";
 import { MAX_LOCAL_VISION_PANELS, MAX_READING_PANELS } from "./scan-limits.mjs";
 
 export const LOCAL_VISION_JOB_TIMEOUT_MS = 900000;
-export const LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS = 200000;
-export const LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS = 180000;
+export const LOCAL_VISION_TIMEOUT_MS = 200000;
+export const LOCAL_VISION_MODEL_TIMEOUT_MS = 180000;
+// Retain the exports used by the frozen multi-photo research runners.
+export const LOCAL_VISION_MULTI_PHOTO_TIMEOUT_MS = LOCAL_VISION_TIMEOUT_MS;
+export const LOCAL_VISION_MULTI_PHOTO_MODEL_TIMEOUT_MS =
+  LOCAL_VISION_MODEL_TIMEOUT_MS;
 export function hasMultipleSourcePhotos(panels) {
   return new Set(panels.map((panel) => panel.photo)).size > 1;
 }
