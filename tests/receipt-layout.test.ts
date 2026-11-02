@@ -3,7 +3,7 @@ import {
   assembleRecognition,
   type Recognition,
 } from "../src/lib/receipt-layout";
-import { parseReceiptText } from "../src/lib/parser";
+import { isFinalTotal, parseReceiptText } from "../src/lib/parser";
 
 // Synthetic transaction references; no original member/payment identifiers.
 const reference = "123456789012";
@@ -174,10 +174,99 @@ describe("source-backed receipt overlap", () => {
     expect(items(result)).toHaveLength(5);
   });
 
-  it("does not modify other retailers based on coincidental row formats", () => {
+  it("uses transaction and purchase evidence when the merchant heading is cropped", () => {
+    const a = full();
+    a.lines.shift();
+    const b = partial();
+    b.lines.find((line) => line.text.startsWith("Tran ID"))!.text =
+      `Tran ID：${reference}…`;
+    b.lines.unshift({
+      text: "053.",
+      box: [0.2, 0, 0.3, 0.01],
+      confidence: 0.5,
+    });
+    const result = run([a, b]);
+    expect(items(result)).toHaveLength(3);
+    expect(result.overlaps).toHaveLength(1);
+    expect(result.text).toContain("053.");
+    expect(result.overlaps[0].regions).toHaveLength(6);
+    expect(result.photos[1].lines).toEqual(
+      b.lines.map((line) => ({ ...line, photo: 2, part: 1 })),
+    );
+  });
+
+  it("supports another retailer only with the same exact transaction and SKU sequence", () => {
     const a = full();
     a.lines[0].text = "Another Market UK";
-    expect(run([a, partial()]).overlaps).toEqual([]);
+    const b = partial();
+    for (const p of [a, b])
+      for (const line of p.lines)
+        line.text = line.text.replace("KS ROTISS CHICKEN", "ROASTED CHICKEN");
+    expect(run([a, b]).overlaps).toHaveLength(1);
+    b.lines.find((line) => line.text.startsWith("Tran ID"))!.text =
+      "Tran ID: 987654321098";
+    expect(run([a, b]).overlaps).toEqual([]);
+  });
+
+  it("recognizes a complete damaged total label without changing its financial tokens", () => {
+    const a = full(),
+      b = partial();
+    for (const p of [a, b])
+      for (const line of p.lines)
+        line.text = line.text.replace("TOTAL(", "TOTALC");
+    a.lines.find((line) => line.text.startsWith("Tran ID"))!.text += " :";
+    const result = run([a, b]);
+    const receipt = parseReceiptText(result.text);
+    expect(result.overlaps).toHaveLength(1);
+    expect(receipt.items).toHaveLength(3);
+    expect(receipt.printedTotal).toBe("16.16");
+    expect(receipt.subtotal).toBe("13.47");
+    expect(result.text).toContain("TOTALCINCL VAT) £16.16");
+    expect(receipt.pricesIncludeTax).toBe(false);
+    expect(
+      parseReceiptText("Shop GBP\nSoup 5.00\nTOTALCINCL VAT) 5.OO")
+        .printedTotal,
+    ).toBe("");
+  });
+
+  it.each([
+    "TOTALCINCL VAT 16.16",
+    "TOTALCINCL VAT detergent 16.16",
+    "TOTALCEXCL VAT) 13.47",
+    "TOTALCINCL VAT) ITEMS COUNT 18",
+    "PRODUCT TOTALCINCL VAT) 16.16",
+  ])(
+    "does not treat an incomplete/product/count heading as the final total: %s",
+    (text) => {
+      expect(isFinalTotal(text)).toBe(false);
+    },
+  );
+
+  it.each([
+    "123456789O12",
+    "12345678901",
+    "123456789012 9",
+    "123456789012 approved",
+  ])(
+    "never repairs or truncates a reference to produce an overlap: %s",
+    (anchor) => {
+      const b = partial();
+      b.lines.find((line) => line.text.startsWith("Tran ID"))!.text =
+        `Tran ID：${anchor}…`;
+      expect(run([full(), b]).overlaps).toEqual([]);
+    },
+  );
+
+  it("preserves an incomplete numeric purchase at the top of a footer", () => {
+    const b = partial();
+    b.lines.unshift({
+      text: chicken[1],
+      box: [0.2, 0, 0.8, 0.01],
+      confidence: 0.99,
+    });
+    const result = run([full(), b]);
+    expect(result.overlaps).toEqual([]);
+    expect(result.text).toContain(chicken[1]);
   });
 
   it("keeps ambiguous alternative larger photos", () => {

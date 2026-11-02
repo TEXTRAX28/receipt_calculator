@@ -476,3 +476,21 @@ typecheck and formatting pass. Physical Android/iOS/Safari, broader financial
 truth, generic quantity/currency recovery, overlap recovery and public service
 readiness remain open. The more accurate computer-assisted hybrid remains
 available, and no default promotion or whole-goal completion is claimed.
+
+## Footer overlap recovered, 2 November 2026
+
+`FOOTER_OVERLAP_RECOVERY.md` and `advanced-footer-overlap-v1.json` supersede the
+two-extra-purchase finding for the original UK photos. Exact transaction and
+ordered purchase evidence now work despite a cropped merchant heading and
+nonfinancial OCR punctuation differences. The actual enhanced app reads eighteen
+purchases, preserves both chickens and the cloth coupon, and calculates GBP
+176.78 with zero discrepancy and no financial edits. Source checks still block
+confirmation; missing/misread VAT codes and imperfect names remain, so strict
+complete accuracy is still 0/1.
+
+Paired parent/current replay covers 108 retained readings and 432 predictions.
+All original-fifty financial predictions and the three CORD-photo predictions
+remain unchanged. Independent saved docTR observations gain the same footer
+recovery plus the previously missed subtotal. This is source assembly/parser
+evidence, not new full native/VLM orchestration or blind financial validation.
+The full goal and public-readiness limitations above remain active.

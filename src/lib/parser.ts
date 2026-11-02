@@ -28,9 +28,16 @@ export function normalizeAmount(token: string, currency?: Currency): string {
 }
 const valuesIn = (line: string) =>
   [...line.matchAll(amountPattern)].map((m) => m[0]);
+// OCR sometimes reads the opening parenthesis as C. Accept only the complete
+// tax-total heading with its closing parenthesis; never repair amount tokens.
+const totalHeading = (line: string) =>
+  line.replace(
+    /^([^\p{L}\p{N}]*TOTAL)C(?=(?:INCL|EXCL)\s+(?:VAT|TAX)\s*[)）])/iu,
+    "$1(",
+  );
 export const isFinalTotal = (line: string) =>
   /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|(?:total(?:\s+refund)?|refund total|amount refunded)\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[-−]?\s*[£$€]?\s*[-−]?\s*\d)/i.test(
-    line,
+    totalHeading(line),
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
 type ColumnSource = {
   lineIndex: number;
@@ -222,7 +229,7 @@ export function parseReceiptWithSources(
     }
     if (
       financial?.role === "subtotal" ||
-      /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line)
+      /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(totalHeading(line))
     ) {
       const candidate = lastAmount(line);
       receipt.subtotal = candidate || receipt.subtotal;
@@ -285,7 +292,10 @@ export function parseReceiptWithSources(
     isCostco &&
     ((currencyIdentified && receipt.currency === "GBP") || /\bUK\b/.test(text));
   receipt.pricesIncludeTax =
-    !ukCostco && !/prices?\s+(?:exclude|excl)|total\s*\(?\s*excl/i.test(text);
+    !ukCostco &&
+    !/prices?\s+(?:exclude|excl)|total\s*\(?\s*excl/i.test(
+      lines.map(totalHeading).join("\n"),
+    );
   if (isCostco && !receipt.taxCodes.length) {
     receipt.warnings.push(
       "The Costco tax legend was not read. Add its printed code rates; codes vary between countries and receipts.",

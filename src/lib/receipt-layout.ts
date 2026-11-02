@@ -60,7 +60,7 @@ function endSection(photo: Photo) {
   for (const { text } of photo.lines) {
     const anchor = text
       .trim()
-      .match(/^(?:Tran|Transaction)\s*ID\s*[:#]\s*(\d{10,24})[\s.]*$/i);
+      .match(/^(?:Tran|Transaction)\s*ID\s*[:：#]\s*(\d{10,24})[\s.…:：]*$/i);
     if (anchor) anchors.add(anchor[1]);
   }
   // References are used transiently for identity, never exposed in notes or results.
@@ -107,6 +107,8 @@ function endSection(photo: Photo) {
 /** Conservative footer overlap: same transaction and complete end-aligned SKU sequence.
  * Missing identity, a single repeated SKU, conflicting coupons or unclear layout
  * leave every row in place. Genuine repetitions within a photo are never removed.
+ * A cropped merchant heading is not required: identity comes from the exact
+ * transaction reference and ordered purchase evidence, not a guessed retailer.
  */
 export function assembleRecognition(recognition: SourceRecognition) {
   const photos = photoEvidence(recognition);
@@ -117,43 +119,39 @@ export function assembleRecognition(recognition: SourceRecognition) {
     purchases: number;
     regions: EvidenceLine[];
   }[] = [];
-  if (
-    photos.some((photo) => photo.lines.some((l) => /\bcostco\b/i.test(l.text)))
-  ) {
-    const sections = photos.map((photo) => ({
-      photo,
-      section: endSection(photo),
-    }));
-    for (const candidate of sections) {
-      const { section, photo } = candidate;
-      if (!section || section.purchases.length < 2) continue;
-      if (new Set(section.purchases.map((p) => p.sku)).size < 2) continue;
-      const first = section.purchases[0].lines[0];
-      if (first.part !== 1 || first.box[1] > 0.18) continue;
-      const matches = sections.filter((other) => {
-        if (
-          !other.section ||
-          other.photo === photo ||
-          other.section.anchor !== section.anchor ||
-          other.section.purchases.length <= section.purchases.length
-        )
-          return false;
-        const tail = other.section.purchases.slice(-section.purchases.length);
-        return tail.every(
-          (p, i) => p.signature === section.purchases[i].signature,
-        );
-      });
-      // Ambiguous alternative source photos do not authorize removing evidence.
-      if (matches.length !== 1) continue;
-      const regions = section.purchases.flatMap((purchase) => purchase.lines);
-      regions.forEach((line) => removed.add(line));
-      overlaps.push({
-        keptPhoto: matches[0].photo.photo,
-        removedPhoto: photo.photo,
-        purchases: section.purchases.length,
-        regions,
-      });
-    }
+  const sections = photos.map((photo) => ({
+    photo,
+    section: endSection(photo),
+  }));
+  for (const candidate of sections) {
+    const { section, photo } = candidate;
+    if (!section || section.purchases.length < 2) continue;
+    if (new Set(section.purchases.map((p) => p.sku)).size < 2) continue;
+    const first = section.purchases[0].lines[0];
+    if (first.part !== 1 || first.box[1] > 0.18) continue;
+    const matches = sections.filter((other) => {
+      if (
+        !other.section ||
+        other.photo === photo ||
+        other.section.anchor !== section.anchor ||
+        other.section.purchases.length <= section.purchases.length
+      )
+        return false;
+      const tail = other.section.purchases.slice(-section.purchases.length);
+      return tail.every(
+        (p, i) => p.signature === section.purchases[i].signature,
+      );
+    });
+    // Ambiguous alternative source photos do not authorize removing evidence.
+    if (matches.length !== 1) continue;
+    const regions = section.purchases.flatMap((purchase) => purchase.lines);
+    regions.forEach((line) => removed.add(line));
+    overlaps.push({
+      keptPhoto: matches[0].photo.photo,
+      removedPhoto: photo.photo,
+      purchases: section.purchases.length,
+      regions,
+    });
   }
   return {
     text: photos

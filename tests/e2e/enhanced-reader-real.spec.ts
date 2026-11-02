@@ -104,7 +104,21 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
   expect(state.receipt.currency).toBe("GBP");
-  expect(state.receipt.items.length).toBeGreaterThanOrEqual(18);
+  expect(state.receipt.items).toHaveLength(18);
+  expect(
+    state.receipt.items.filter(
+      (item: { description: string }) =>
+        item.description === "KS ROTISS CHICKEN",
+    ),
+  ).toHaveLength(2);
+  expect(state.receipt.items.at(-1)).toMatchObject({
+    description: "SPONTEX CLOTHS 24P",
+    lineTotal: "6.99",
+    discount: "1.50",
+  });
+  expect(state.receipt.warnings).toContainEqual(
+    expect.stringMatching(/Matched 2 overlapping purchases in photos 1 and 2/),
+  );
   expect(
     state.receipt.reviewChecks.some(
       (c: { scope: string; field: string; confirmedValue: string }) =>
@@ -137,6 +151,8 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
   ).toBeVisible();
   await page.screenshot({ path: await artifact("real-source.png") });
   const calculation = calculateReceipt(state.receipt);
+  expect(calculation.total).toBe(17678n);
+  expect(calculation.discrepancy).toBe(0n);
   expect(calculation.issues.length).toBeGreaterThan(0);
   const source_sha256: Record<string, string> = {};
   for (const path of [
