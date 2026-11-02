@@ -1,5 +1,10 @@
 # Financial-summary reference review
 
+**Later coverage review:** [eight visible purchase lists](VISIBLE_PURCHASE_COVERAGE.md)
+expand explicit item coverage from 2/50 to 10/50 while preserving all values and
+unknowns below. All original receipts still lack strict whole-receipt truth.
+The v5 counts in this historical checkpoint remain unchanged.
+
 This checkpoint improves the reference evidence, not the scanner's extraction
 score. Nine original receipts receive source-checked tax-basis labels, one gains
 an explicitly printed rounding value of zero, and the supplied UK supplement

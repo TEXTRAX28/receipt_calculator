@@ -11,6 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+Latest [visible purchase-list reference review](VISIBLE_PURCHASE_COVERAGE.md)
+checks eight development receipts containing 57 unchanged purchases. Explicit
+complete-visible-item coverage rises from 2/50 to 10/50; blurred headers and all
+unknown values stay unknown. The same 300 retained predictions scored against
+both label versions preserve every existing field score/error. The hybrid
+matches all 57 reviewed rows without unmatched additions; the primary reader
+matches 51 and proposes four source-confirmed summary rows as products. This is
+reference and failure-analysis evidence, not new OCR or complete financial truth.
+All fifty remain unscorable for strict whole-receipt accuracy. The 25-file packet
+verifies; no application source, model, upload scope or frozen model plan changed.
+
 Latest [financial summary fragment handling](FINANCIAL_SUMMARY_FRAGMENTS.md)
 associates a separately read summary label and amount using unique source
 geometry and strong literal words. The unchanged original-fifty replay improves

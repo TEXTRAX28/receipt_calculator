@@ -2,6 +2,12 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The latest [purchase-list reference review](VISIBLE_PURCHASE_COVERAGE.md) expands
+complete-visible-item coverage from 2/50 to 10/50 without changing any amount or
+unknown value. Six retained pipeline views preserve every prior field score
+under paired reference scoring. It exposes four summary rows proposed as products
+by the primary reader; no new extraction or whole-receipt success is claimed.
+
 The [approved Gemini 3.8 six-crop batch](GEMINI38_SIX_RESULT.md) returned no
 receipt drafts: one timeout and five HTTP 503 high-demand responses. Its six
 attempts are consumed, with no retries or billing activation. Gemini accuracy
