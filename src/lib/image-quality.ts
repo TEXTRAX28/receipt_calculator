@@ -115,11 +115,11 @@ export function captureQuality(
 
 /** Sample original pixels before resizing, grayscale or contrast filters. */
 export function inspectCapture(
-  source: ImageBitmap,
+  source: ImageBitmap | HTMLVideoElement,
   x = 0,
   y = 0,
-  width = source.width,
-  height = source.height,
+  width = "videoWidth" in source ? source.videoWidth : source.width,
+  height = "videoHeight" in source ? source.videoHeight : source.height,
 ): CaptureQuality | undefined {
   if (width < 3 || height < 3) return;
   try {

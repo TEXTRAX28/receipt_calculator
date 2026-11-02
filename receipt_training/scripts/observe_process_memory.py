@@ -63,6 +63,8 @@ def main():
     kernel.CloseHandle.argtypes = [wintypes.HANDLE]
     kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
     kernel.WaitForSingleObject.restype = wintypes.DWORD
+    kernel.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+    kernel.GetProcessTimes.restype = wintypes.BOOL
     kernel.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
     kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
     for name in ["Process32FirstW", "Process32NextW"]:
@@ -76,10 +78,18 @@ def main():
     def open_process(pid):
         return kernel.OpenProcess(0x1000 | 0x0010 | 0x00100000, False, pid)
 
+    def created_at(handle):
+        created, exited, kernel_time, user_time = (wintypes.FILETIME() for _ in range(4))
+        if not kernel.GetProcessTimes(handle, ctypes.byref(created), ctypes.byref(exited), ctypes.byref(kernel_time), ctypes.byref(user_time)):
+            raise OSError("Process creation time could not be inspected")
+        return (created.dwHighDateTime << 32) | created.dwLowDateTime
+
     handle = open_process(args.pid)
     handles = {args.pid: handle} if handle else {}
     processes = {args.pid: {"pid": args.pid, "parent_pid": None, "os_peak_working_set_bytes": None}} if handle else {}
     errors = set()
+    creation_times = {}
+    stale_parent_links = set()
     result = {"pid": args.pid, "samples": 0, "peak_sampled_process_tree_working_set_bytes": None,
               "scope": "Peak sampled sum of the caller-selected owned root and observed descendants. A Node root includes its browser and native children; a Python worker root excludes its unrelated browser/Node parent. 250ms sampling can miss short-lived children. GPU and unrelated-process memory are excluded; per-process OS peaks are separate."}
     started = time.monotonic()
@@ -87,6 +97,8 @@ def main():
         errors.add("process unavailable to memory observer")
     else:
         try:
+            creation_times[args.pid] = created_at(handle)
+            processes[args.pid]["created_at_100ns"] = str(creation_times[args.pid])
             while True:
                 alive = {pid for pid, owned in handles.items() if kernel.WaitForSingleObject(owned, 0) == WAIT_TIMEOUT}
                 if not alive:
@@ -107,8 +119,25 @@ def main():
                             if not owned:
                                 errors.add("an observed child process could not be sampled")
                                 continue
+                            try:
+                                born = created_at(owned)
+                            except OSError:
+                                kernel.CloseHandle(owned)
+                                errors.add("an observed child creation time could not be inspected")
+                                continue
+                            # Toolhelp parent IDs can outlive their original process.
+                            # PID reuse must not attach an older unrelated process
+                            # to this newly started benchmark's tree.
+                            if born < creation_times[parent]:
+                                stale_parent_links.add((pid, parent, born, creation_times[parent]))
+                                kernel.CloseHandle(owned)
+                                continue
+                            if kernel.WaitForSingleObject(handles[parent], 0) != WAIT_TIMEOUT:
+                                kernel.CloseHandle(owned)
+                                continue
                             handles[pid] = owned
-                            processes[pid] = {"pid": pid, "parent_pid": parent, "os_peak_working_set_bytes": None}
+                            creation_times[pid] = born
+                            processes[pid] = {"pid": pid, "parent_pid": parent, "created_at_100ns": str(born), "os_peak_working_set_bytes": None}
                             alive.add(pid)
                             added = True
                         if not added:
@@ -131,12 +160,15 @@ def main():
                     errors.add("observer deadline reached")
                     break
                 time.sleep(.25)
+        except OSError:
+            errors.add("root creation time could not be inspected")
         finally:
             for owned in handles.values():
                 kernel.CloseHandle(owned)
     result["processes"] = list(processes.values())
     result["observed_process_count"] = len(processes)
     result["errors"] = sorted(errors)
+    result["excluded_stale_parent_links"] = [{"pid": pid, "parent_pid": parent, "child_created_at_100ns": str(child), "parent_created_at_100ns": str(parent_created)} for pid, parent, child, parent_created in sorted(stale_parent_links)]
     result["observed_ms"] = round((time.monotonic() - started) * 1000)
     with output.open("x", encoding="utf-8") as stream:
         stream.write(json.dumps(result, indent=2))

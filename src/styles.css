@@ -2031,6 +2031,103 @@ dialog::backdrop {
     400 30px Georgia,
     serif;
 }
+
+.camera-dialog {
+  width: min(600px, calc(100% - 24px));
+  max-height: 92dvh;
+  padding: clamp(16px, 4vw, 28px);
+  text-align: left;
+  overflow: auto;
+}
+.camera-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.camera-heading h2 {
+  margin: 0;
+  font:
+    400 26px Georgia,
+    serif;
+}
+.camera-heading .icon-button {
+  flex: 0 0 44px;
+  min-height: 44px;
+}
+.camera-dialog p {
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.camera-viewport {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  max-height: 42dvh;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #1f231e;
+}
+.camera-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 0;
+}
+.camera-frame video,
+.camera-frame img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 42dvh;
+}
+.camera-viewport[hidden],
+.camera-frame video[hidden] {
+  display: none;
+}
+.camera-viewport.is-zoomed {
+  display: block;
+  overflow: auto;
+}
+.camera-viewport.is-zoomed .camera-frame {
+  width: max-content;
+  max-width: none;
+}
+.camera-viewport.is-zoomed img {
+  max-width: none;
+  max-height: none;
+}
+.camera-paper-guide {
+  position: absolute;
+  border: 2px dashed white;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px #20281f99;
+  pointer-events: none;
+}
+.camera-dialog .camera-hint {
+  color: var(--ink);
+}
+.camera-dialog .camera-guide-note,
+.camera-dialog .camera-privacy {
+  font-size: 12px;
+}
+.camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.camera-actions .button {
+  flex: 1 1 160px;
+  min-height: 44px;
+  white-space: normal;
+}
+.camera-dialog .error-message {
+  color: var(--error, #a63224);
+}
 .receipt-source > p,
 .source-figure figcaption {
   color: var(--muted);

@@ -15,7 +15,6 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
-  Camera,
   Copy,
   Download,
   FileText,
@@ -96,6 +95,7 @@ import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
 import PhotoGuidance from "./PhotoGuidance";
 import ReceiptPhotos from "./ReceiptPhotos";
+import ReceiptCamera from "./ReceiptCamera";
 import { requireCorrectedPhotoReview } from "./lib/capture-review";
 import { reviewDeviceReading } from "./lib/device-review";
 import RefundControl from "./RefundControl";
@@ -1194,14 +1194,12 @@ export default function App() {
                       <ImagePlus size={18} />
                       Upload receipt
                     </button>
-                    <button
-                      className="button button-outline"
-                      disabled={busy}
-                      onClick={() => cameraRef.current?.click()}
-                    >
-                      <Camera size={18} />
-                      Take a photo
-                    </button>
+                    <ReceiptCamera
+                      disabled={busy || images.length >= MAX_RECEIPT_IMAGES}
+                      photoNumber={images.length + 1}
+                      onCapture={(file) => addFiles([file])}
+                      onPhotoPicker={() => cameraRef.current?.click()}
+                    />
                   </div>
                   <span className="file-help">
                     JPEG, PNG, WebP or PDF · up to 12 MB each

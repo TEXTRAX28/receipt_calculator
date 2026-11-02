@@ -96,7 +96,8 @@ def main():
                  and all((OUT / name).exists() for name in ("graph.json", "GRAPH_REPORT.md", "graph.html")))
         print("Graph is current." if fresh else "Graph is missing, stale, or awaiting documentation extraction; run python scripts/update-graph.py.")
         return 0 if fresh else 1
-    if not files or corpus["total_files"] > 200 or corpus["total_words"] > 2_000_000:
+    # Keep a bounded app-only corpus as source/tests grow; exclusions still apply.
+    if not files or corpus["total_files"] > 250 or corpus["total_words"] > 2_000_000:
         raise SystemExit("Check the corpus scope in .graphifyignore before building.")
     print(f"Corpus: {corpus['total_files']} files, ~{corpus['total_words']:,} words")
     if corpus["warning"]:
