@@ -11,7 +11,14 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest implementation: [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
+Latest implementation: [printed purchase columns](COLUMN_PURCHASES.md) improve
+explicit-currency hybrid line prices from 131/143 to 132/143 and primary
+quantities from 30/120 to 32/120, with no scored per-case regressions. Source
+checks remain mandatory. Validation passes 693 unit tests and 179 browser tests
+with one existing skip. A separate non-private Gemini 3.8 synthetic test now
+succeeds; six real-crop tests are prepared pending new Phase 6 approval.
+
+The preceding [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
 improve explicit-currency hybrid fees from 4/8 to 7/8, printed tax from 13/22 to
 16/22 and receipt discounts from 2/4 to 3/4, without scored known-field
 regressions. Source checks remain mandatory. The new result packet supplements
@@ -258,7 +265,14 @@ extractions with seven reported deletions, and six Azure extractions with eight
 polls and six reported 204 deletions. Existing credentials are not permission to
 send additional private receipts. No original-fifty external upload is allowed.
 Azure/Veryfi current app allowances remain zero. New private tests need an exact
-reviewable scope and Phase 6 approval; reversible local work does not.
+reviewable scope and Phase 6 approval; reversible local work does not. The new
+Gemini 3.8 availability check sent one known synthetic receipt, with one metadata
+GET and one successful extraction POST. It sent no private receipt. Six matched
+identifier-reduced crops and their bounded one-shot runner are now prepared;
+their new private-upload approval remains pending. Google's current terms give
+UK users paid-service data protections even on free quota, but require paid
+services for publicly available UK/EEA/Swiss API clients. See
+[the prepared comparison and source links](COLUMN_PURCHASES.md).
 
 Before public release, the remaining work is concrete:
 
@@ -280,10 +294,11 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint adds literal financial-role proposals and their
-source-review workflow; the preceding `6e22912` adds the Gemini guard and corpus
-audit. Neither adds a runtime dependency, model download, training, real provider
-request or paid feature. Earlier app commit `4686b8e` and research commit
+The latest code checkpoint adds printed-column interpretation and mandatory
+source checks. The preceding `3409145` adds financial-role proposals, while
+`6e22912` adds the Gemini guard and corpus audit. No runtime dependency, model
+download, training or paid feature is added. The separate synthetic Gemini
+request is recorded above. Earlier app commit `4686b8e` and research commit
 `b6a7dcf` remain independently reviewable. The exact
 commit for this checkpoint is obtained from the local Git log; its machine packet
 records its parent to avoid a self-referential commit hash.

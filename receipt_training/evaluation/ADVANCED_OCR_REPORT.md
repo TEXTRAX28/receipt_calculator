@@ -2,11 +2,20 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
+The latest [printed purchase-column interpretation](COLUMN_PURCHASES.md) improves
+explicit-currency hybrid line prices 131/143 → 132/143 and primary quantities
+30/120 → 32/120, with no scored per-case regression. Source checks remain
+mandatory. Current validation passes 693 unit tests and 179 browser tests with
+one existing skip. Saved Azure/Veryfi price scores are preserved without new
+uploads. Separately, Gemini 3.8 successfully reads one non-private synthetic
+receipt through the real backend; six real-crop tests are prepared pending new
+Phase 6 approval. This is availability evidence, not a new accuracy score.
+
+The preceding [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
 improve explicit-currency hybrid fees 4/8 → 7/8, printed tax 13/22 → 16/22 and
 receipt discounts 2/4 → 3/4 with no scored known-field regression. All proposals
 retain source checks; automatic hybrid counts and trusted reconciliation are
-unchanged. Final validation passes 674 unit tests and 177 browser tests with one
+unchanged. Its validation passed 674 unit tests and 177 browser tests with one
 existing skip. Saved Azure/Veryfi price scores are preserved with zero uploads.
 The full goal remains active.
 

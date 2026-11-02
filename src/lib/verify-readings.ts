@@ -242,6 +242,7 @@ export function verifyIndependentReadings(
       item,
       indices,
       regions,
+      column: parsed.columnSources[item.id],
       good:
         regions.length > 0 &&
         regions.every((region) => reliable(region, recognition)),
@@ -443,6 +444,11 @@ export function verifyIndependentReadings(
           sameAmount(owner.quantity, leading[1], receipt.currency, true) &&
           nameKey(owner.description) === nameKey(leading[2]));
       if (!sameName) continue;
+      const columnLine = source.column && lines[source.column.lineIndex];
+      const columnToken = (field: "unitPrice" | "lineTotal") =>
+        source.column && columnLine
+          ? { text: columnLine.text, ...source.column[field] }
+          : undefined;
       if (
         source.fieldGood("unitPrice") &&
         sameField(owner, source.item, "quantity", receipt.currency)
@@ -454,6 +460,7 @@ export function verifyIndependentReadings(
           source.regions,
           recognition,
           "unitPrice",
+          columnToken("unitPrice"),
         );
         if (
           unit &&
@@ -505,6 +512,8 @@ export function verifyIndependentReadings(
         receipt.currency,
         source.regions,
         recognition,
+        "lineTotal",
+        columnToken("lineTotal"),
       );
       if (
         !evidence ||

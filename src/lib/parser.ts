@@ -9,6 +9,7 @@ import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
 import { separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
+import { columnPurchaseRows } from "./column-purchases";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -29,6 +30,11 @@ export const isFinalTotal = (line: string) =>
   /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|(?:total(?:\s+refund)?|refund total|amount refunded)\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[-−]?\s*[£$€]?\s*[-−]?\s*\d)/i.test(
     line,
   ) && !/excl|subtotal|sub total|number|items|count|savings/i.test(line);
+type ColumnSource = {
+  lineIndex: number;
+  unitPrice: { literal: string; span: [number, number] };
+  lineTotal: { literal: string; span: [number, number] };
+};
 
 /** Heuristics produce an editable draft, never a declaration of financial correctness. */
 export function parseReceiptText(
@@ -45,6 +51,7 @@ export function parseReceiptWithSources(
 ): {
   receipt: Receipt;
   sources: Record<string, number[]>;
+  columnSources: Record<string, ColumnSource>;
 } {
   const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
@@ -52,6 +59,7 @@ export function parseReceiptWithSources(
   );
   const receipt = newReceipt();
   const sources: Record<string, number[]> = {};
+  const columnSources: Record<string, ColumnSource> = {};
   receipt.source = "text";
   receipt.rawText = text;
   const lines = text
@@ -287,11 +295,17 @@ export function parseReceiptWithSources(
   let pendingSource: number | undefined;
   let itemSectionEnded = false;
   const separate = separatePurchaseRows(lines, PHOTO_SEPARATOR, isFinalTotal);
+  const columns = columnPurchaseRows(
+    lines,
+    currencyIdentified ? receipt.currency : undefined,
+    PHOTO_SEPARATOR,
+    (line, index) => isFinalTotal(line) || financialRows.has(index),
+  );
   const separateTitles = new Set(
     [...separate.rows.values()].map((row) => row.titleIndex),
   );
   const unmatchedSeparateRows = new Set(separate.unmatched);
-  if (separate.unmatched.length)
+  if (separate.unmatched.length || columns.unmatched.length)
     receipt.reviewChecks.push({
       scope: "receipt",
       field: "items",
@@ -309,12 +323,55 @@ export function parseReceiptWithSources(
     }
     if (isFinalTotal(line)) itemSectionEnded = true;
     if (itemSectionEnded) continue;
+    if (columns.titles.has(lineIndex)) continue;
+    const column = columns.rows.get(lineIndex);
+    if (column) {
+      const item = newItem();
+      item.description = column.description.slice(0, 180);
+      item.quantity = column.expression.quantity;
+      item.unitPrice = normalize(column.expression.unitPrice);
+      item.lineTotal = normalize(column.expression.lineTotal);
+      item.taxCode = column.expression.taxCode;
+      item.note =
+        "Quantity, unit price and total interpreted from printed columns. Check their roles; pack contents are separate.";
+      receipt.items.push(item);
+      sources[item.id] = [...new Set([column.titleIndex, lineIndex])].sort(
+        (a, b) => a - b,
+      );
+      columnSources[item.id] = {
+        lineIndex,
+        unitPrice: {
+          literal: column.expression.unitPrice,
+          span: column.expression.unitSpan,
+        },
+        lineTotal: {
+          literal: column.expression.lineTotal,
+          span: column.expression.lineSpan,
+        },
+      };
+      for (const field of ["description", "quantity"] as const)
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field,
+          reason: "source",
+          other:
+            "Confirm the product and quantity/unit-price/total column roles against the original; pack contents are separate.",
+          confirmedValue: "",
+        });
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     if (separateTitles.has(lineIndex)) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
-    if (unmatchedSeparateRows.has(lineIndex)) {
+    if (
+      unmatchedSeparateRows.has(lineIndex) ||
+      columns.unmatched.includes(lineIndex)
+    ) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
@@ -677,5 +734,5 @@ export function parseReceiptWithSources(
         receipt.taxCodes.push({ code, rate: "" });
     }
   receipt.warnings = [...new Set(receipt.warnings)].slice(0, 60);
-  return { receipt: receiptSchema.parse(receipt), sources };
+  return { receipt: receiptSchema.parse(receipt), sources, columnSources };
 }

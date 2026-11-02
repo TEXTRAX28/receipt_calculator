@@ -21,8 +21,9 @@ export function recoverInvalidPrice(
   regions: EvidenceLine[],
   recognition: Recognition,
   role: "lineTotal" | "unitPrice" = "lineTotal",
+  sourceToken?: { text: string; literal: string; span: [number, number] },
 ) {
-  if (!current || !sourceValue) return null;
+  if ((!current && !sourceToken) || !sourceValue) return null;
   try {
     money(current, currency, true);
     return null;
@@ -38,30 +39,39 @@ export function recoverInvalidPrice(
     );
     const priced = regions.filter((region) =>
       role === "unitPrice"
-        ? matchPurchaseExpression(region.text)
+        ? matchPurchaseExpression(region.text) ||
+          sourceToken?.text === region.text
         : tokens(region.text).length,
     );
     const candidates = purchases.length === 1 ? purchases : priced;
     if (candidates.length !== 1) return null;
     const region = candidates[0];
+    const anchored =
+      sourceToken?.text === region.text &&
+      region.text.slice(...sourceToken.span) === sourceToken.literal
+        ? sourceToken
+        : null;
+    if (sourceToken && !anchored) return null;
     const expression =
       role === "unitPrice" ? matchPurchaseExpression(region.text) : null;
     const costcoUnit =
       role === "unitPrice" && matchCostcoRow(region.text)
         ? region.text.match(/(?:\d+(?:[.,]\d+)?|[Il])\s*[x×]\s+([\d,.]+)/di)
         : null;
-    const span = expression?.unitSpan || costcoUnit?.indices?.[1];
+    const span =
+      anchored?.span || expression?.unitSpan || costcoUnit?.indices?.[1];
     const literal =
-      role === "unitPrice"
+      anchored?.literal ||
+      (role === "unitPrice"
         ? expression?.unitPrice || costcoUnit?.[1]
-        : tokens(region.text).at(-1);
+        : tokens(region.text).at(-1));
     if (!literal) return null;
     const value = printedAmount(literal, { currency });
     if (money(value, currency, true) !== expected) return null;
     const panel = recognition.panels.find(
       (panel) => panel.photo === region.photo && panel.part === region.part,
     );
-    if (role === "unitPrice") {
+    if (role === "unitPrice" || anchored) {
       if (!span) return null;
       const compact = (text: string) => text.replace(/\s/g, "");
       const inside = (panel?.words || [])

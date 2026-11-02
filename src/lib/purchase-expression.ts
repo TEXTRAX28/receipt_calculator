@@ -69,6 +69,7 @@ const summary = {
     );
   },
 };
+export const isPurchaseSummaryLine = (line: string) => summary.test(line);
 const financialLabel =
   /^(?:(?:member|item)\s+)?(?:discount|coupon|savings?|rebate)(?:\s+(?:total|amount|applied))?$|^reduced\s+price$|^IRC\b|^DISC(?:OUNT)?\s+ITEM\b/i;
 const partial = new RegExp(
@@ -91,6 +92,10 @@ export function separatePurchaseRows(
   lines: string[],
   boundary: string,
   isFooter: (line: string) => boolean = () => false,
+  additional: ReadonlyMap<
+    number,
+    NonNullable<ReturnType<typeof matchPurchaseExpression>>
+  > = new Map(),
 ) {
   const rows = new Map<
     number,
@@ -116,8 +121,9 @@ export function separatePurchaseRows(
     >();
     const expressionLines: number[] = [];
     for (let i = start; i < end; i++) {
-      if (isPurchaseExpressionLine(lines[i])) expressionLines.push(i);
-      const expression = matchPurchaseExpression(lines[i]);
+      if (additional.has(i) || isPurchaseExpressionLine(lines[i]))
+        expressionLines.push(i);
+      const expression = additional.get(i) || matchPurchaseExpression(lines[i]);
       if (expression) complete.set(i, expression);
     }
     const neighbours = (i: number) => ({
