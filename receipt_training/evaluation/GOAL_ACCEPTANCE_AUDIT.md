@@ -11,6 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+New [genuine scanned-PDF baseline](PUBLIC_SCANNED_PDF_BASELINE.md): two public
+purchase invoices and a payment-only slip use the actual current on-device image
+path, preserving original page content and pixels. All three final totals are
+copied correctly, but both purchase drafts omit quantities/unit prices and lose
+charge/tax roles. One fully source-referenced supplementary invoice scores 0/1
+under the unchanged strict complete-receipt scorer. The mixed-carriage/VAT case
+remains outside that denominator; the payment-only control proposes no purchases
+and stays blocked. Raw OCR and source references frozen before reading are
+retained. This exposes a real interpretation gap rather than a scanner gain.
+No original-fifty truth, model, app behavior or external permission changes.
+
 Latest [native PDF invoice-column repair](PDF_INVOICE_COLUMNS.md): the same two
 genuine public invoices now retain all six quantities, populated unit prices and
 line amounts on a consistent printed basis, both final totals and printed tax
@@ -287,13 +298,13 @@ means implemented or investigated but a material acceptance condition remains.
 | Objective requirement group | Disposition and evidence | Outstanding acceptance |
 |---|---|---|
 | P1: inspect repository/branches, frontend/backend/models, image/parser/split paths, datasets and security; preserve dirty changes; run the existing app | Verified investigation and preserved baseline; Git references above, original frozen source, baseline tests and report history. | No outstanding initial-investigation blocker. This does not certify all later code defect-free. |
-| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. | Two supplementary genuine public PDF invoices now have a preserved failure baseline and source-supported column repair. Complete financial truth remains unavailable for the original fifty; unknown fields must stay unknown. |
+| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. Two native-text PDF invoices and three image-only PDF inputs now have separate genuine-source observations. | One new compatible scanned invoice has complete source coverage and scores 0/1; mixed-basis and payment-only cases remain separate. Complete financial truth remains unavailable for the original fifty; unknown fields must stay unknown. |
 | P3A: investigate dedicated APIs, fields, Costco/general layouts, versions, cost and privacy | Veryfi and Azure measured on approved crops and integrated optionally; Google/AWS official capabilities investigated. | No full-corpus external permission. Google/AWS not benchmarked; exact future regional/version/cost/privacy configuration needs verification if selected. |
 | P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. | Closed-provider real-receipt comparison unestablished: Gemini 503; OpenAI/Claude access absent. Do not count synthetic transport as accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
 | P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
-| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two genuine PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. | Image subtype classification is not implemented. Wider genuine PDF/scan coverage remains required; the other invoice's printed unit/line discrepancies correctly remain blocking. |
+| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two native-text PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. Three genuine image-only pages correctly route to OCR. | Image subtype classification is not implemented. Actual scanned-invoice drafts still lose columns and financial roles despite copied totals; wider coverage remains required. The other native invoice's printed unit/line discrepancies correctly remain blocking. |
 | P4.3: best practical primary extraction of all structured purchase/financial fields | Paddle primary and optional readers implemented/tested; source-preserving parser and review work. | Known missing products, prices, merchant, fee/tax/payment roles and totals remain. A schema-valid draft is not a correct receipt. |
 | P4.4: independent image-based verification/recovery for uncertainty, discounts, duplicate rows and failed arithmetic; bounded extra calls | Implemented automatic local policy, independent original-image VLM, guarded source proposals, bounded batches and fallback checks; same-reading gains measured. | General automatic recovery and difficult overlap/role errors remain. Current selection is a checked-draft hybrid. |
 | P4.5: independent deterministic quantity×unit, item/coupon/tax/charge/refund/subtotal/final validation; inclusive-tax conventions | Implemented exact decimal/bigint engine and regression coverage; disagreement blocks finalization. | A validator detects inconsistency but cannot establish unreadable source facts or correct model financial roles. |
@@ -344,8 +355,9 @@ Before public release, the remaining work is concrete:
    failed proposals and source-review requirements visible.
 2. Calibrate clipping/rotation/perspective diagnostics and test the new optional
    correction on genuine photos. Preserve originals and abstain on unsupported frames.
-3. Expand the two genuine public PDF cases with scan/screenshot/refund examples when available;
-   keep new cases separate from the original cohort. Independently review enough
+3. Repair the newly demonstrated scanned-invoice column/summary failures; expand
+   screenshot/refund evidence when available. Keep new cases separate from the
+   original cohort. Independently review enough
    financial truth for an honest whole-receipt metric.
 4. Validate real phone camera/Safari workflows and current end-to-end resource
    budgets. An attractive 390-pixel browser layout is only part of mobile readiness.

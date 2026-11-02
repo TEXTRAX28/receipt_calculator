@@ -81,7 +81,7 @@ def main():
     processes = {args.pid: {"pid": args.pid, "parent_pid": None, "os_peak_working_set_bytes": None}} if handle else {}
     errors = set()
     result = {"pid": args.pid, "samples": 0, "peak_sampled_process_tree_working_set_bytes": None,
-              "scope": "Peak sampled sum of the owned worker and observed descendants, including Windows venv launcher children. 250ms sampling can miss short-lived children. Excludes browser, Node parent and GPU memory; per-process OS peaks are reported separately."}
+              "scope": "Peak sampled sum of the caller-selected owned root and observed descendants. A Node root includes its browser and native children; a Python worker root excludes its unrelated browser/Node parent. 250ms sampling can miss short-lived children. GPU and unrelated-process memory are excluded; per-process OS peaks are separate."}
     started = time.monotonic()
     if not handle:
         errors.add("process unavailable to memory observer")

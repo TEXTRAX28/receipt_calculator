@@ -1,0 +1,69 @@
+{
+  "scope": "Assistant visual transcription of original public page renders, recorded before new OCR reads. Not independent human verification or an unseen holdout. Source documents were discovered and selected by visible layout; no reader output supplies these values. New supplement, unchanged original fifty.",
+  "documents": [
+    {
+      "id": "western-towing-scan",
+      "merchant": "Western Towing",
+      "merchant_aliases": ["Western Towing"],
+      "currency": "GBP",
+      "invoice_date_literal": "22 Apr 2024",
+      "invoice_date_iso": "2024-04-22",
+      "items": [
+        {"description": "Kartt 200mm x 56mm Spare wheel", "item_code": "KW008", "quantity": "1", "unit_price": "16.32", "line_total": "16.32", "price_basis": "net_interpretation_of_summary", "item_discount_absence_verified": true},
+        {"description": "Kartt Jockey Wheel Axle & Pin KA008", "item_code": "KA008", "quantity": "1", "unit_price": "3.75", "line_total": "3.75", "price_basis": "net_interpretation_of_summary", "item_discount_absence_verified": true}
+      ],
+      "subtotal": "20.07",
+      "tax": "4.84",
+      "tax_rate_literal": "20%",
+      "final_total": "29.06",
+      "fees": [{"label": "Carriage", "amount": "4.98", "basis": "gross", "literal": "Carriage £4.98 (incl. VAT)"}],
+      "discount_absence_verified": true,
+      "rounding_absence_verified": true,
+      "purchase_information_available": true,
+      "items_complete_for_visible_body": true,
+      "strict_complete_reference_eligible": false,
+      "limits": ["Carriage is explicitly VAT-inclusive while the goods/summary require a different price basis. No unprinted net carriage or allocated carriage VAT is inserted as a literal source value.", "Adding the two goods, gross carriage and all printed VAT would double count carriage VAT. The reader must preserve or explicitly review this mixed basis."]
+    },
+    {
+      "id": "cleaning-supplies-scan",
+      "merchant": "Commercial & Industrial Cleaning Supplies Ltd",
+      "merchant_aliases": ["Commercial & Industrial Cleaning Supplies Ltd", "Cleaning Supplies 4U", "Cleaning Supplies 4 U"],
+      "currency": "GBP",
+      "invoice_date_literal": "11/04/2024",
+      "invoice_date_iso": null,
+      "items": [
+        {"description": "PISTOL GRIP ERGO LITTER PICKER PRO - 80CM", "item_code": null, "quantity": "6", "unit_price": "15.20", "line_total": "91.20", "price_basis": "net", "item_discount_absence_verified": true}
+      ],
+      "subtotal": "91.20",
+      "tax": "19.63",
+      "final_total": "117.78",
+      "fees": [{"label": "Carriage Net", "amount": "6.95", "basis": "net", "literal": "Carriage Net £6.95"}],
+      "price_basis_evidence": "The item column is Net Amt; the summary separately prints Total Net Amount, Carriage Net and Total VAT Amount.",
+      "discount_absence_verified": true,
+      "rounding_absence_verified": true,
+      "purchase_information_available": true,
+      "items_complete_for_visible_body": true,
+      "strict_complete_reference_eligible": true,
+      "limits": ["No discount or rounding row is printed. Absence is source-checked and is not a printed zero.", "The numerical invoice date has ambiguous day/month order; no canonical date is guessed.", "Merchant exact-string scoring uses the printed trading company name. Other printed brand aliases are separately disclosed, not used to silently relax that scorer."]
+    },
+    {
+      "id": "payment-only-scan",
+      "merchant": "Prontaprint Bishop's Stortford",
+      "merchant_aliases": ["Prontaprint", "Prontaprint Bishop's Stortford"],
+      "currency": "GBP",
+      "date_literal": "28/06/24",
+      "subtotal_literal": "Sub Total £52.00",
+      "total_literal": "Total £52.00",
+      "payment_literal": "Payment - Visa £52.00",
+      "tender_literal": "Tendered £52.00",
+      "change_literal": "Change £0.00",
+      "final_total": "52.00",
+      "tax": null,
+      "purchase_information_available": false,
+      "items": null,
+      "strict_complete_reference_eligible": false,
+      "expected_confirmation_enabled": false,
+      "limits": ["This pays a referenced invoice; it does not print the underlying purchased goods. It is not an empty basket or a zero-purchase transaction.", "Invoice/reference identifiers and repeated payment amounts do not establish products, quantities, unit prices or VAT amounts."]
+    }
+  ]
+}
