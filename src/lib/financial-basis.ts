@@ -15,6 +15,21 @@ const labels = [
   ["total", /^(?:grand\s+total|total|amount\s+due|balance\s+due|due)\b/i],
 ] as const;
 const compact = (text: string) => text.replace(/\s/g, "");
+const amountOnly = /^[-−]?\d[\d., ]*-?$/;
+function headingRole(text: string) {
+  return labels.find(([, pattern]) => {
+    const prefix = text.match(pattern);
+    return (
+      prefix &&
+      /^\s*(?:\d+(?:[.,]\d+)?\s*%)?\s*:?\s*$/.test(text.slice(prefix[0].length))
+    );
+  })?.[0];
+}
+type FinancialEntry = {
+  line: EvidenceLine | null;
+  sourceIndices: number[];
+  wordsVerified?: boolean;
+};
 
 /** Printed roles and tokens only; no confidence or arithmetic is inferred here. */
 export function matchFinancialSummaryRow(text: string) {
@@ -53,34 +68,164 @@ function strongWords(line: EvidenceLine, recognition: Recognition) {
   );
 }
 
-/** Join only unpaired fragments. Geometry chooses the pair before any arithmetic.
+/** A slanted footer can put a value on the neighbouring OCR line. Recover only
+ * an isolated, complete two-column section. Order and geometry choose all pairs
+ * before parsing money; neither balance nor a model draft chooses an amount.
+ */
+function financialColumns(
+  lines: (EvidenceLine | null)[],
+  recognition: Recognition,
+): FinancialEntry[] | null {
+  if (
+    lines.length > 512 ||
+    recognition.panels.reduce((sum, panel) => sum + panel.words.length, 0) >
+      4000
+  )
+    return null;
+  const proposals: FinancialEntry[][] = [];
+  const cy = (word: { box: EvidenceLine["box"] }) =>
+    (word.box[1] + word.box[3]) / 2;
+  for (const panel of recognition.panels) {
+    const headings = panel.words
+      .filter((word) => headingRole(word.text))
+      .sort((a, b) => cy(a) - cy(b));
+    const starts = headings.filter(
+      (word) => headingRole(word.text) === "subtotal",
+    );
+    const ends = headings.filter((word) => headingRole(word.text) === "total");
+    if (starts.length !== 1 || ends.length !== 1) continue;
+    const selected = headings.filter(
+      (word) => cy(word) >= cy(starts[0]) && cy(word) <= cy(ends[0]),
+    );
+    if (selected.length < 4 || selected.length > 8) continue;
+    const heights = selected
+      .map((word) => word.box[3] - word.box[1])
+      .sort((a, b) => a - b);
+    const middle = Math.floor(heights.length / 2);
+    const height =
+      (heights[middle] + heights[Math.floor((heights.length - 1) / 2)]) / 2;
+    if (height <= 0) continue;
+    const band = panel.words.filter(
+      (word) =>
+        cy(word) >= cy(starts[0]) - height && cy(word) <= cy(ends[0]) + height,
+    );
+    const amounts = band
+      .filter((word) => amountOnly.test(word.text.trim()))
+      .sort((a, b) => cy(a) - cy(b));
+    if (
+      amounts.length !== selected.length ||
+      band.length !== selected.length + amounts.length ||
+      band.some((word) => word.confidence < 0.98) ||
+      Math.min(...amounts.map((word) => word.box[0])) <=
+        Math.max(...selected.map((word) => word.box[2]))
+    )
+      continue;
+    const offsets = selected.map(
+      (word, index) => cy(amounts[index]) - cy(word),
+    );
+    if (
+      offsets.some((offset) => Math.abs(offset) > height) ||
+      Math.max(...offsets) - Math.min(...offsets) > height / 4 ||
+      [selected, amounts].some((column) =>
+        column.some(
+          (word, index) =>
+            index > 0 && cy(word) - cy(column[index - 1]) < height / 2,
+        ),
+      )
+    )
+      continue;
+    const sources = band.map((word) => {
+      const x = (word.box[0] + word.box[2]) / 2,
+        y = cy(word);
+      return lines.flatMap((line, index) =>
+        line &&
+        line.photo === panel.photo &&
+        line.part === panel.part &&
+        x >= line.box[0] &&
+        x <= line.box[2] &&
+        y >= line.box[1] &&
+        y <= line.box[3] &&
+        compact(line.text).includes(compact(word.text))
+          ? [index]
+          : [],
+      );
+    });
+    if (sources.some((indices) => indices.length !== 1)) continue;
+    const indices = [...new Set(sources.flat())].sort((a, b) => a - b);
+    if (
+      indices.at(-1)! - indices[0] > 12 ||
+      indices.some((index, offset) => index !== indices[0] + offset) ||
+      indices.some((index) => {
+        const line = lines[index]!;
+        const words = band
+          .filter((_, word) => sources[word][0] === index)
+          .sort((a, b) => a.box[0] - b.box[0]);
+        return (
+          line.confidence < 0.98 ||
+          words.map((word) => compact(word.text)).join("") !==
+            compact(line.text)
+        );
+      })
+    )
+      continue;
+    const recovered = selected.map((heading, index): FinancialEntry => {
+      const amount = amounts[index];
+      return {
+        sourceIndices: [
+          ...new Set([
+            sources[band.indexOf(heading)][0],
+            sources[band.indexOf(amount)][0],
+          ]),
+        ].sort((a, b) => a - b),
+        // This proof is constructed here from literal raw words, never accepted
+        // from a provider flag. A union rectangle may include neighbouring rows.
+        wordsVerified: true,
+        line: {
+          photo: panel.photo,
+          part: panel.part,
+          text: `${heading.text} ${amount.text}`,
+          confidence: Math.min(heading.confidence, amount.confidence),
+          box: [
+            Math.min(heading.box[0], amount.box[0]),
+            Math.min(heading.box[1], amount.box[1]),
+            Math.max(heading.box[2], amount.box[2]),
+            Math.max(heading.box[3], amount.box[3]),
+          ],
+        },
+      };
+    });
+    proposals.push(
+      lines.flatMap((line, index) =>
+        index === indices[0]
+          ? recovered
+          : indices.includes(index)
+            ? []
+            : [{ line, sourceIndices: [index] }],
+      ),
+    );
+  }
+  return proposals.length === 1 ? proposals[0] : null;
+}
+
+/** Prefer complete word columns, then uniquely pair unjoined fragments.
+ * Geometry chooses the pairs before any arithmetic.
  * Original lines/words stay untouched; consumers highlight both original indices.
  */
 function financialEntries(
   lines: (EvidenceLine | null)[],
   recognition: Recognition,
-) {
+): FinancialEntry[] {
+  const columns = financialColumns(lines, recognition);
+  if (columns) return columns;
   const entries = lines.map((line, index) => ({
     line,
     sourceIndices: [index],
   }));
   // Optional recovery must stay bounded on a very large or hostile document.
   if (lines.length > 512) return entries;
-  const headings = entries.filter(
-    ({ line }) =>
-      line &&
-      labels.some(([, pattern]) => {
-        const prefix = line.text.match(pattern);
-        return (
-          prefix &&
-          /^\s*(?:\d+(?:[.,]\d+)?\s*%)?\s*:?\s*$/.test(
-            line.text.slice(prefix[0].length),
-          )
-        );
-      }),
-  );
+  const headings = entries.filter(({ line }) => line && headingRole(line.text));
   const amounts = entries.filter(
-    ({ line }) => line && /^[-−]?\d[\d., ]*-?$/.test(line.text.trim()),
+    ({ line }) => line && amountOnly.test(line.text.trim()),
   );
   const pairs = headings.map((heading) => ({
     heading,
@@ -155,10 +300,11 @@ export function readFinancialSummary(
   currency: Currency,
 ) {
   const rows = financialEntries(lines, recognition).map(
-    ({ line, sourceIndices }) => {
+    ({ line, sourceIndices, wordsVerified }) => {
       if (!line) return null;
       const row = matchFinancialSummaryRow(line.text);
-      if (!row || !strongWords(line, recognition)) return null;
+      if (!row || (!wordsVerified && !strongWords(line, recognition)))
+        return null;
       try {
         const amount = printedAmount(row.literal, { currency });
         const value = money(amount, currency, true);
@@ -234,7 +380,9 @@ export function recoverExclusivePriceBasis(
   const section = readFinancialSummary(lines, recognition, currency);
   return section
     ? {
-        sourceIndices: section.flatMap((row) => row.sourceIndices),
+        sourceIndices: [
+          ...new Set(section.flatMap((row) => row.sourceIndices)),
+        ],
         rows: section.map(({ label, literal }) => ({ label, literal })),
       }
     : null;

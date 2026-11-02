@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest [browser compatibility and recovery checks](WEBKIT_COMPATIBILITY.md)
+Latest [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
+supplied-currency tax-basis matches from 5/9 to 6/9 on unchanged saved readings.
+One additional draft balances; all source checks remain pending and trusted
+reconciliation stays 0/49. There are no scored per-case regressions, new model
+calls or uploads. All 966 unit tests and production build/typecheck pass.
+The new browser scenario remains unexecuted: two starts refused below the
+unchanged RAM guard. The larger model plan is refreshed without changing its
+images, models, parameters or limits. This narrow development-case gain does
+not complete the goal or establish public readiness.
+
+The preceding [browser compatibility and recovery checks](WEBKIT_COMPATIBILITY.md)
 pass 944 unit tests, the standard WebKit suite (99 passes / 15 explicit skips)
 and ten focused Chrome test files across desktop/phone contexts (115 passes /
 one skip), with no final failures or retries. Source-dialog focus returns

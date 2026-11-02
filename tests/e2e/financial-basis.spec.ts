@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
+import { slantedSummary } from "../fixtures/financial-columns";
 
 for (const scenario of [
   "basis",
@@ -8,6 +9,7 @@ for (const scenario of [
   "payments",
   "split-total",
   "split-tax",
+  "slanted-columns",
 ] as const)
   test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : scenario === "payments" ? "payment-row exclusions" : scenario + " fragment association"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
     page,
@@ -27,6 +29,7 @@ for (const scenario of [
     ];
     let originalPanels: unknown;
     let sourceLines: { text: string; confidence: number; box: number[] }[] = [];
+    let sourceWords: typeof sourceLines;
     const posts: string[] = [];
     page.on("request", (request) => {
       if (request.method() === "POST")
@@ -54,7 +57,7 @@ for (const scenario of [
                 width: 700,
                 height: 1400,
                 lines: sourceLines,
-                words: sourceLines,
+                words: sourceWords,
               }),
             ),
           },
@@ -92,16 +95,21 @@ for (const scenario of [
               },
             ],
             adjustments: [
-              ...(scenario === "roles"
+              ...(scenario === "slanted-columns"
                 ? [
-                    {
-                      label: "Service charge",
-                      kind: "discount",
-                      amount: "1.00",
-                    },
-                    { label: "Tax", kind: "fee", amount: "2.00" },
+                    { label: "PB1", kind: "discount", amount: "2.00" },
+                    { label: "SVC CHRG", kind: "fee", amount: "1.00" },
                   ]
-                : [{ label: "Service charge", kind: "fee", amount: "1.00" }]),
+                : scenario === "roles"
+                  ? [
+                      {
+                        label: "Service charge",
+                        kind: "discount",
+                        amount: "1.00",
+                      },
+                      { label: "Tax", kind: "fee", amount: "2.00" },
+                    ]
+                  : [{ label: "Service charge", kind: "fee", amount: "1.00" }]),
               ...(scenario === "payments"
                 ? [
                     { label: "Cash", kind: "tip", amount: "30.00" },
@@ -115,7 +123,7 @@ for (const scenario of [
     });
     await page.goto("/");
     const fixture = await page.evaluate(
-      ({ texts, splitRow }) => {
+      ({ texts, splitRow, slanted }) => {
         const canvas = document.createElement("canvas");
         canvas.width = 700;
         canvas.height = 1400;
@@ -125,6 +133,23 @@ for (const scenario of [
         ctx.fillStyle = "black";
         ctx.font = "22px monospace";
         ctx.fillText("SYNTHETIC FINANCIAL SUMMARY", 40, 40);
+        if (slanted) {
+          for (const word of slanted.words) {
+            const [left, top, right, bottom] = word.box;
+            ctx.font = `${Math.min(24, (bottom - top) * 1400 * 0.7)}px monospace`;
+            ctx.fillText(
+              word.text,
+              left * 700,
+              bottom * 1400 - 3,
+              (right - left) * 700,
+            );
+          }
+          return {
+            png: canvas.toDataURL("image/png").split(",")[1],
+            lines: slanted.sourceLines,
+            words: slanted.words,
+          };
+        }
         const lines = texts.flatMap((text, index) => {
           const y = 130 + index * 140;
           ctx.fillText(text, 60, y);
@@ -165,15 +190,21 @@ for (const scenario of [
             },
           ];
         });
-        return { png: canvas.toDataURL("image/png").split(",")[1], lines };
+        return {
+          png: canvas.toDataURL("image/png").split(",")[1],
+          lines,
+          words: lines,
+        };
       },
       {
         texts: rows,
         splitRow:
           scenario === "split-total" ? 6 : scenario === "split-tax" ? 5 : -1,
+        slanted: scenario === "slanted-columns" ? slantedSummary() : null,
       },
     );
     sourceLines = fixture.lines;
+    sourceWords = fixture.words;
     await page.getByLabel("Upload receipt images").setInputFiles({
       name: "synthetic-net-prices.png",
       mimeType: "image/png",
@@ -204,11 +235,13 @@ for (const scenario of [
           ? ["receipt adjustments"]
           : [
               "whether item prices include tax",
-              ...(scenario === "split-total"
-                ? ["printed total"]
-                : scenario === "split-tax"
-                  ? ["printed tax", "receipt adjustments"]
-                  : []),
+              ...(scenario === "slanted-columns"
+                ? ["printed tax", "receipt adjustments"]
+                : scenario === "split-total"
+                  ? ["printed total"]
+                  : scenario === "split-tax"
+                    ? ["printed tax", "receipt adjustments"]
+                    : []),
             ];
     for (const field of fields) {
       await expect(confirm).toBeDisabled();
@@ -220,12 +253,16 @@ for (const scenario of [
         exact: true,
       });
       await expect(dialog.getByTestId("source-region")).toHaveCount(
-        scenario.startsWith("split-")
-          ? field === "whether item prices include tax" ||
-            field === "receipt adjustments"
-            ? 5
-            : 2
-          : 4,
+        scenario === "slanted-columns"
+          ? field === "printed tax"
+            ? 3
+            : 5
+          : scenario.startsWith("split-")
+            ? field === "whether item prices include tax" ||
+              field === "receipt adjustments"
+              ? 5
+              : 2
+            : 4,
       );
       if (scenario === "payments" && field === "receipt adjustments") {
         await expect(
@@ -247,9 +284,19 @@ for (const scenario of [
           }),
         ).toBeVisible();
       }
+      if (scenario === "slanted-columns" && field === "receipt adjustments") {
+        await expect(
+          dialog.getByText("Printed PB1 (tax): 2.00", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          dialog.getByText("Previous PB1 (discount): 2.00", { exact: true }),
+        ).toBeVisible();
+      }
       if (
         field === "whether item prices include tax" &&
-        (scenario === "basis" || scenario.startsWith("split-"))
+        (scenario === "basis" ||
+          scenario.startsWith("split-") ||
+          scenario === "slanted-columns")
       )
         await expect(
           dialog.getByText("Previous vision tax basis: Unknown", {
@@ -329,6 +376,7 @@ for (const scenario of [
           scope:
             "Synthetic primary and vision responses; real drawn source regions, mandatory review and exact UI splitting. No real provider inference or independent human verification.",
           sourceLines,
+          sourceWords,
           posts,
           realModelCalls: 0,
           state: await page.evaluate(() =>

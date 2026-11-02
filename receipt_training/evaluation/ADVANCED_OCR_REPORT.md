@@ -2,7 +2,15 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [browser compatibility checks](WEBKIT_COMPATIBILITY.md) pass 944 unit
+Latest [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
+known-currency tax-basis matches 5/9 to 6/9 on the same original fifty saved
+readings. One more draft balances while trusted reconciliation remains 0/49;
+all mandatory review checks survive. All 966 unit tests and build/typecheck
+pass. The new browser scenario is pending after two RAM-guard refusals. No new
+model inference or upload occurred, and the larger model study's limits remain
+unchanged. The full goal remains active.
+
+The preceding [browser compatibility checks](WEBKIT_COMPATIBILITY.md) pass 944 unit
 tests, 99 WebKit browser cases with 15 explicit capability/duplicate skips, and
 115 focused Chrome desktop/phone cases with one skip. Unsupported image APIs
 now offer clear recovery while keeping originals and trimming usable; source
