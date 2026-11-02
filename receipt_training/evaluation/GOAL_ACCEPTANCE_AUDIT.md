@@ -137,8 +137,9 @@ The preceding [printed purchase columns](COLUMN_PURCHASES.md) improve
 explicit-currency hybrid line prices from 131/143 to 132/143 and primary
 quantities from 30/120 to 32/120, with no scored per-case regressions. Source
 checks remain mandatory. Validation passes 693 unit tests and 179 browser tests
-with one existing skip. A separate non-private Gemini 3.8 synthetic test now
-succeeds; six real-crop tests are prepared pending new Phase 6 approval.
+with one existing skip. A separate non-private Gemini 3.8 synthetic test
+succeeded; the later [approved six-crop batch](GEMINI38_SIX_RESULT.md) returned
+no drafts (one timeout, five HTTP 503s), so real-receipt accuracy is unmeasured.
 
 The preceding [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
 improve explicit-currency hybrid fees from 4/8 to 7/8, printed tax from 13/22 to
@@ -385,16 +386,19 @@ model output remain untrusted; arithmetic and explicit source verification are
 independent of instructions found in a receipt. Neither `store:false` nor a
 successful provider deletion proves zero retention or exclusion from training.
 
-All prior private-upload scopes are consumed: two Gemini attempts, seven Veryfi
+All private-upload scopes are consumed: two earlier Gemini attempts, six new
+Gemini 3.8 attempts (one timeout, five HTTP 503s), seven Veryfi
 extractions with seven reported deletions, and six Azure extractions with eight
 polls and six reported 204 deletions. Existing credentials are not permission to
 send additional private receipts. No original-fifty external upload is allowed.
 Azure/Veryfi current app allowances remain zero. New private tests need an exact
 reviewable scope and Phase 6 approval; reversible local work does not. The new
 Gemini 3.8 availability check sent one known synthetic receipt, with one metadata
-GET and one successful extraction POST. It sent no private receipt. Six matched
-identifier-reduced crops and their bounded one-shot runner are now prepared;
-their new private-upload approval remains pending. Google's current terms give
+GET and one successful extraction POST. It sent no private receipt. The later
+six matched identifier-reduced crops were explicitly approved and attempted
+once each, without retries or billing activation. No receipt draft returned;
+the six-attempt scope is consumed. See [the result](GEMINI38_SIX_RESULT.md).
+Google's current terms give
 UK users paid-service data protections even on free quota, but require paid
 services for publicly available UK/EEA/Swiss API clients. See
 [the prepared comparison and source links](COLUMN_PURCHASES.md).
@@ -555,3 +559,18 @@ refused at 3,849,785,344 bytes available against the unchanged 3,885,219,840-byt
 guard, before any process or image attempt. `advanced-browser-paddle-medium-resume-v2.json`
 retains the plan, stop and checks. There is still no new model comparison result;
 application source and the previous 940-unit/223-browser validation are unchanged.
+
+## Gemini six-crop batch completed, 2 November 2026
+
+`GEMINI38_SIX_RESULT.md` and `advanced-gemini38-screening-result-v1.json` record
+six approved attempts against Gemini 3.8 Flash using user-confirmed free quota.
+One request timed out at 90 seconds; five returned HTTP 503 with high-demand
+messages. There were no receipt drafts, retries, quota-error responses or billing
+activation. All attempts count as consumed, including the timeout. This is
+availability evidence; receipt-reading accuracy remains unmeasured.
+
+The unchanged reference/matcher preserves every failed case in delivered-field
+coverage, with successful-only accuracy explicitly null. Five offline checks
+pass and the 70-file evidence packet verifies. Application source, defaults,
+protected branches and the original checkout's dirty changes are unchanged.
+No additional upload, stronger-model result or whole-goal completion is claimed.

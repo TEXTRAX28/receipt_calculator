@@ -52,6 +52,11 @@ deleted by these synthetic transport replays.
 
 ## Verification and separate Gemini preparation
 
+**Later result:** the [approved six-crop batch](GEMINI38_SIX_RESULT.md) completed
+with one timeout and five HTTP 503 responses, without receipt drafts, retries
+or billing activation. Its authorization is consumed; the preparation below is
+historical and does not authorize another run.
+
 The change passes 693 unit tests, including nineteen column cases, and 179
 standard browser tests with one existing skip. Two new desktop/mobile journeys
 check actual source boxes, four mandatory checks per interpreted purchase,

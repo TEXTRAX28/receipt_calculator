@@ -2,6 +2,11 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The [approved Gemini 3.8 six-crop batch](GEMINI38_SIX_RESULT.md) returned no
+receipt drafts: one timeout and five HTTP 503 high-demand responses. Its six
+attempts are consumed, with no retries or billing activation. Gemini accuracy
+remains unmeasured; the existing reader and application source are unchanged.
+
 The latest [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md) improves
 known-currency hybrid line prices 132/143 to 133/143 and units 25/31 to 26/31
 on the same retained readings, with no scored regressions. Both gains occur on
@@ -34,9 +39,9 @@ explicit-currency hybrid line prices 131/143 → 132/143 and primary quantities
 30/120 → 32/120, with no scored per-case regression. Source checks remain
 mandatory. Current validation passes 693 unit tests and 179 browser tests with
 one existing skip. Saved Azure/Veryfi price scores are preserved without new
-uploads. Separately, Gemini 3.8 successfully reads one non-private synthetic
-receipt through the real backend; six real-crop tests are prepared pending new
-Phase 6 approval. This is availability evidence, not a new accuracy score.
+uploads. Separately, Gemini 3.8 successfully read one non-private synthetic
+receipt through the real backend. The later approved six-crop batch failed to
+return any drafts, as reported above. Neither establishes real-receipt accuracy.
 
 The preceding [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
 improve explicit-currency hybrid fees 4/8 → 7/8, printed tax 13/22 → 16/22 and
