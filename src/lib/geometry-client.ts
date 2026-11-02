@@ -48,6 +48,18 @@ export function straightenImage(
       abort();
       return;
     }
+    if (
+      typeof OffscreenCanvas !== "function" ||
+      typeof createImageBitmap !== "function"
+    ) {
+      finish(
+        undefined,
+        new Error(
+          "Photo correction is unavailable in this browser. Use trimming or take a flatter photo.",
+        ),
+      );
+      return;
+    }
     try {
       worker = new Worker(
         new URL("./image-geometry.worker.ts", import.meta.url),

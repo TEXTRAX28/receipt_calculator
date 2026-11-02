@@ -3,7 +3,16 @@ import { resolve } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
 
-async function upload(page: Page) {
+async function upload(page: Page, requireSupport = true) {
+  if (requireSupport)
+    test.skip(
+      !(await page.evaluate(
+        () =>
+          typeof OffscreenCanvas === "function" &&
+          typeof createImageBitmap === "function",
+      )),
+      "This browser build lacks the enhanced reader's image APIs; its basic-reader fallback is tested separately.",
+    );
   await page.goto("/");
   await page
     .getByLabel("Upload receipt images")
@@ -12,6 +21,69 @@ async function upload(page: Page) {
     .getByRole("button", { name: "Enhanced on-device", exact: true })
     .click();
 }
+
+test("unsupported enhanced reader keeps the photo and basic OCR works without enhanced downloads", async ({
+  page,
+}, info) => {
+  test.setTimeout(180000);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "OffscreenCanvas", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  const assets: string[] = [],
+    workers: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/ocr-enhanced/"))
+      assets.push(request.url());
+  });
+  page.on("worker", (worker) => {
+    if (/paddle\.worker/.test(worker.url())) workers.push(worker.url());
+  });
+  await upload(page, false);
+  await page
+    .getByRole("button", { name: "Read receipt on this device", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "not supported in this browser",
+  );
+  await expect(page.locator(".selected-image")).toHaveCount(1);
+  expect(assets).toEqual([]);
+  expect(workers).toEqual([]);
+  await page.screenshot({
+    path: await qaArtifactPath(info, "unsupported-enhanced.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "On-device", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Read receipt on this device", exact: true })
+    .click();
+  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
+    "6.00",
+    { timeout: 130000 },
+  );
+  await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: "View original receipt image 1" }),
+  ).toBeVisible();
+  expect(assets).toEqual([]);
+  expect(workers).toEqual([]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  await writeFile(
+    await qaArtifactPath(info, "unsupported-enhanced.json"),
+    JSON.stringify({
+      browserEngine: page.context().browser()?.browserType().name(),
+      enhancedAssetRequests: assets,
+      enhancedWorkers: workers,
+      basicOcr: { actualSyntheticImage: true, items: 2, printedTotal: "6.00" },
+      physicalPhone: false,
+    }),
+  );
+});
 
 test("enhanced reader performs actual private browser OCR with the page CSP unchanged", async ({
   page,
@@ -231,8 +303,9 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
         ),
         byte_scope:
           "Sum of declared GET Content-Length values; not a measured wire/compression/cache cost.",
+        browserEngine: page.context().browser()?.browserType().name(),
         scope:
-          "Actual synthetic image through production app and SDK worker, no mocked OCR/model. Chromium emulation, not physical iOS/Safari.",
+          "Actual synthetic image through production app and SDK worker, no mocked OCR/model. Desktop-hosted browser emulation, not a physical phone.",
       },
       null,
       2,

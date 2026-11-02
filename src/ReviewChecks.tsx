@@ -100,7 +100,10 @@ export default function ReviewChecks({
           {onViewSource && canViewSource?.(check) && (
             <button
               className="button button-outline"
-              onClick={() => onViewSource(check)}
+              onClick={(event) => {
+                event.currentTarget.focus();
+                onViewSource(check);
+              }}
               aria-label={`View source for ${reviewFieldLabels[check.field]}`}
             >
               View on receipt

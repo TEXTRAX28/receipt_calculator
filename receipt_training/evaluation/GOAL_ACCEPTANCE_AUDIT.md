@@ -11,6 +11,20 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+Latest [browser compatibility and recovery checks](WEBKIT_COMPATIBILITY.md)
+pass 944 unit tests, the standard WebKit suite (99 passes / 15 explicit skips)
+and ten focused Chrome test files across desktop/phone contexts (115 passes /
+one skip), with no final failures or retries. Source-dialog focus returns
+correctly; unavailable enhanced-reading and perspective APIs preserve photos
+and usable recovery paths. Build/typecheck, format and graph checks pass.
+The Windows WebKit build lacks native camera-stream and correction/enhanced
+image capabilities; these skips do not verify physical iPhone support. Memory
+observers reached their process cap, so sampled peaks are incomplete. The
+runtime guard remained active, observed test processes exited, and the stable
+and original checkouts remain unchanged. No genuine-receipt score, model,
+upload permission or default provider changed. Larger local trials still lack
+the required resources; this compatibility checkpoint does not complete the goal.
+
 Latest [visible purchase-list reference review](VISIBLE_PURCHASE_COVERAGE.md)
 checks eight development receipts containing 57 unchanged purchases. Explicit
 complete-visible-item coverage rises from 2/50 to 10/50; blurred headers and all

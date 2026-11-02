@@ -335,7 +335,10 @@ test("Azure credentials without a section allowance stay unavailable", async ({
 }) => {
   const fixture = await backend(page, { limit: 0 });
   try {
+    const providers = page.waitForResponse("**/api/receipts/providers");
     await page.goto("/");
+    // Absence also holds before configuration loads; wait before closing the API.
+    expect(await (await providers).finished()).toBeNull();
     await expect(
       page.getByRole("button", { name: "Azure receipt OCR", exact: true }),
     ).toHaveCount(0);

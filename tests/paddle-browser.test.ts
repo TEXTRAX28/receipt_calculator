@@ -25,6 +25,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.error = undefined;
   mocks.message = undefined;
+  vi.stubGlobal("OffscreenCanvas", vi.fn());
+  vi.stubGlobal("createImageBitmap", vi.fn());
   vi.stubGlobal("location", { origin: "http://127.0.0.1:4173" });
   vi.stubGlobal(
     "fetch",
@@ -67,6 +69,22 @@ afterEach(() => {
 });
 
 describe("bounded enhanced browser provider", () => {
+  it.each(["OffscreenCanvas", "createImageBitmap"])(
+    "rejects a browser without %s before fetching assets or starting a worker",
+    async (capability) => {
+      vi.stubGlobal(capability, undefined);
+      await expect(
+        enhancedOcrProvider.extract(
+          [image],
+          new AbortController().signal,
+          vi.fn(),
+        ),
+      ).rejects.toThrow(/not supported in this browser/);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(mocks.predict).not.toHaveBeenCalled();
+    },
+  );
   it("uses only local assets, keeps actual regions, and owns worker cleanup", async () => {
     const result = await enhancedOcrProvider.extract(
       [image, image],

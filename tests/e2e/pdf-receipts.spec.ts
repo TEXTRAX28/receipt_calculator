@@ -9,8 +9,9 @@ async function setup(page: Page, computer = false) {
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
     if (
-      url.protocol === "http:" &&
-      ["127.0.0.1", "localhost"].includes(url.hostname)
+      url.protocol === "data:" ||
+      (["http:", "blob:"].includes(url.protocol) &&
+        url.origin === "http://127.0.0.1:4173")
     )
       return route.continue();
     requests.external.push(url.origin);

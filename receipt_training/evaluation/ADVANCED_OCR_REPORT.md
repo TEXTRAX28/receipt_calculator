@@ -2,6 +2,15 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+Latest [browser compatibility checks](WEBKIT_COMPATIBILITY.md) pass 944 unit
+tests, 99 WebKit browser cases with 15 explicit capability/duplicate skips, and
+115 focused Chrome desktop/phone cases with one skip. Unsupported image APIs
+now offer clear recovery while keeping originals and trimming usable; source
+dialogs restore focus. Final runs have no failures or retries. Windows WebKit
+is not physical Safari verification, capped memory observations are incomplete,
+and genuine-receipt accuracy is unchanged. The protected baseline is intact;
+larger model trials remain resource constrained and the full goal stays active.
+
 The latest [purchase-list reference review](VISIBLE_PURCHASE_COVERAGE.md) expands
 complete-visible-item coverage from 2/50 to 10/50 without changing any amount or
 unknown value. Six retained pipeline views preserve every prior field score

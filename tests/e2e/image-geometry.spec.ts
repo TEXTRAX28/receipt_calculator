@@ -94,6 +94,14 @@ test("real local correction preserves long receipt ends and requires source revi
   page,
 }, info) => {
   test.setTimeout(180000);
+  test.skip(
+    !(await page.evaluate(
+      () =>
+        typeof OffscreenCanvas === "function" &&
+        typeof createImageBitmap === "function",
+    )),
+    "This browser build lacks correction image APIs; original-photo and trimming recovery are tested separately. Perspective correction remains unverified here.",
+  );
   const posts: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST") posts.push(request.url());
@@ -117,18 +125,25 @@ test("real local correction preserves long receipt ends and requires source revi
   await page
     .getByRole("dialog")
     .screenshot({ path: await qaArtifactPath(info, "geometry-controls.png") });
-  await page
-    .getByRole("button", { name: "Top left corner", exact: true })
-    .press("ArrowRight");
-  await expect(
-    page.getByRole("slider", {
-      name: "Top left horizontal percent",
-      exact: true,
-    }),
-  ).toHaveValue("26");
-  await page
-    .getByRole("button", { name: "Top left corner", exact: true })
-    .press("ArrowLeft");
+  const topLeft = page.getByRole("button", {
+    name: "Top left corner",
+    exact: true,
+  });
+  await topLeft.focus();
+  await expect(topLeft).toHaveAttribute("aria-pressed", "true");
+  const horizontal = page.getByRole("slider", {
+    name: "Top left horizontal percent",
+    exact: true,
+  });
+  const dragged = Number(await horizontal.inputValue());
+  // Pointer coordinates can round to a CSS pixel; the keyboard change is exact.
+  expect(Math.abs(dragged - 25)).toBeLessThanOrEqual(1);
+  await topLeft.press("ArrowRight");
+  await expect(horizontal).toHaveValue(
+    String(Math.round((dragged + 1) * 10) / 10),
+  );
+  await topLeft.press("ArrowLeft");
+  await expect(horizontal).toHaveValue(String(dragged));
   await page
     .getByRole("button", { name: "Preview correction", exact: true })
     .click();
@@ -330,10 +345,80 @@ test("real local correction preserves long receipt ends and requires source revi
   expect(posts).toEqual([]);
 });
 
+test("unsupported photo correction preserves the original and keeps trimming usable", async ({
+  page,
+}, info) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "OffscreenCanvas", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  const workers: string[] = [],
+    posts: string[] = [];
+  page.on("worker", (worker) => {
+    if (/image-geometry\.worker/.test(worker.url())) workers.push(worker.url());
+  });
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+  const original = await uploadTilted(page);
+  await openGeometry(page);
+  await page
+    .getByRole("button", { name: "Preview correction", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Photo correction is unavailable in this browser. Use trimming or take a flatter photo.",
+  );
+  await expect(
+    page.getByRole("img", { name: "Corrected receipt preview", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".selected-image img")).toHaveAttribute(
+    "src",
+    original,
+  );
+  expect(workers).toEqual([]);
+  await page.getByRole("button", { name: "Back to trim", exact: true }).click();
+  const trim = page.getByRole("slider", {
+    name: "Trim left percent",
+    exact: true,
+  });
+  await trim.focus();
+  await trim.press("ArrowRight");
+  await expect(trim).toHaveValue("1");
+  await page.getByRole("dialog").screenshot({
+    path: await qaArtifactPath(info, "unsupported-correction-trim.png"),
+  });
+  await page.getByRole("button", { name: "Apply crop", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.locator(".selected-image")).toContainText("cropped");
+  await expect(page.locator(".selected-image")).not.toContainText("corrected");
+  await expect(page.locator(".selected-image img")).toHaveAttribute(
+    "src",
+    original,
+  );
+  await expect(
+    page.getByRole("button", {
+      name: "Read receipt on this device",
+      exact: true,
+    }),
+  ).toBeEnabled();
+  expect(posts).toEqual([]);
+});
+
 test("reset and cancellation discard corrections; unavailable worker keeps trimming usable", async ({
   page,
 }) => {
   await page.addInitScript(() => {
+    // This test exercises worker ownership with a stub, independent of native image APIs.
+    if (typeof OffscreenCanvas !== "function")
+      Object.defineProperty(window, "OffscreenCanvas", {
+        value: function () {},
+      });
+    if (typeof createImageBitmap !== "function")
+      Object.defineProperty(window, "createImageBitmap", {
+        value: function () {},
+      });
     const Original = window.Worker;
     (window as unknown as { geometryTestMode: string }).geometryTestMode =
       "late";

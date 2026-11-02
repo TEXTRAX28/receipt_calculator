@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:webkit": "playwright test --config playwright.webkit.config.ts",
     "format": "prettier --write src server tests scripts *.ts *.json *.html",
     "format:check": "prettier --check src server tests scripts *.ts *.json *.html",
     "prepare:ocr": "node scripts/prepare-ocr.mjs && node scripts/prepare-pdf.mjs && node scripts/prepare-enhanced-ocr.mjs",

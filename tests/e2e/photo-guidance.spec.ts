@@ -11,7 +11,6 @@ async function photo(page: Page, kind: "sharp" | "blur" | "dark" | "small") {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = variant === "dark" ? "#868686" : "black";
     ctx.font = `${variant === "small" ? 15 : 30}px monospace`;
-    if (variant === "blur") ctx.filter = "blur(5px)";
     [
       "LITTLE MARKET",
       "Milk 1x 2.00 2.00",
@@ -20,6 +19,14 @@ async function photo(page: Page, kind: "sharp" | "blur" | "dark" | "small") {
     ].forEach((text, i) =>
       ctx.fillText(text, canvas.width / 10, canvas.height * (0.15 + i * 0.1)),
     );
+    if (variant === "blur") {
+      // Resampling creates blurred pixels even where Canvas2D.filter is absent.
+      const reduced = document.createElement("canvas");
+      reduced.width = reduced.height = 70;
+      reduced.getContext("2d")!.drawImage(canvas, 0, 0, 70, 70);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(reduced, 0, 0, canvas.width, canvas.height);
+    }
     return canvas.toDataURL("image/png").split(",")[1];
   }, kind);
   return {

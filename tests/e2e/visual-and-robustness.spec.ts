@@ -54,7 +54,7 @@ test("small phone and tablet portrait/landscape layouts remain usable", async ({
   page,
 }, info) => {
   test.skip(
-    info.project.name !== "desktop",
+    info.project.use.isMobile === true,
     "Additional fixed breakpoints are exercised once.",
   );
   for (const viewport of [
@@ -81,20 +81,36 @@ test("separate browser contexts do not see each other’s receipt data", async (
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Try the Costco demo" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem("gather.receipt.v1") || "null")
+            ?.receipt?.items?.length,
+      ),
+    )
+    .toBeGreaterThan(0);
   const isolated = await browser.newContext();
-  const other = await isolated.newPage();
-  await other.goto("http://127.0.0.1:4173/");
-  await expect(
-    other.getByRole("heading", { name: "Big shop. Little maths." }),
-  ).toBeVisible();
-  expect(
-    await other.evaluate(
-      () =>
-        JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt.items
-          .length,
-    ),
-  ).toBe(0);
-  await isolated.close();
+  try {
+    const other = await isolated.newPage();
+    await other.goto("http://127.0.0.1:4173/");
+    await expect(
+      other.getByRole("heading", { name: "Big shop. Little maths." }),
+    ).toBeVisible();
+    // A visible heading can precede React's storage effect. Require a saved
+    // empty draft, rather than treating a missing value as proof of isolation.
+    await expect
+      .poll(() =>
+        other.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("gather.receipt.v1") || "null")
+              ?.receipt?.items?.length,
+        ),
+      )
+      .toBe(0);
+  } finally {
+    await isolated.close();
+  }
 });
 
 test("corrupted browser storage shows a recoverable state", async ({

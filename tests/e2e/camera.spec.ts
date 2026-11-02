@@ -21,6 +21,15 @@ async function camera(
   mode: "normal" | "denied" | "pending" | "missing" = "normal",
   baseline = false,
 ) {
+  if (mode === "normal" || mode === "pending")
+    test.skip(
+      !(await page.evaluate(
+        () =>
+          typeof MediaStream === "function" &&
+          typeof HTMLCanvasElement.prototype.captureStream === "function",
+      )),
+      "This browser build lacks synthetic video-stream APIs; live capture remains unverified here.",
+    );
   const png = baseline
     ? (await readFile("tests/fixtures/paddle-synthetic.png")).toString("base64")
     : "";
@@ -113,24 +122,33 @@ async function camera(
         }, 100);
         return stream;
       };
+      if (mode === "missing") {
+        Object.defineProperty(navigator, "mediaDevices", {
+          configurable: true,
+          value: undefined,
+        });
+        return;
+      }
+      if (!navigator.mediaDevices)
+        Object.defineProperty(navigator, "mediaDevices", {
+          configurable: true,
+          value: {},
+        });
       Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
         configurable: true,
-        value:
-          mode === "missing"
-            ? undefined
-            : async (constraints: MediaStreamConstraints) => {
-                state.requests.push(constraints);
-                if (mode === "denied")
-                  throw new DOMException(
-                    "Synthetic permission denial",
-                    "NotAllowedError",
-                  );
-                if (mode === "pending")
-                  await new Promise<void>((done) => {
-                    state.release = done;
-                  });
-                return makeStream();
-              },
+        value: async (constraints: MediaStreamConstraints) => {
+          state.requests.push(constraints);
+          if (mode === "denied")
+            throw new DOMException(
+              "Synthetic permission denial",
+              "NotAllowedError",
+            );
+          if (mode === "pending")
+            await new Promise<void>((done) => {
+              state.release = done;
+            });
+          return makeStream();
+        },
       });
     },
     { mode, png },

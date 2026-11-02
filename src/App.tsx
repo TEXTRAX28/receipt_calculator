@@ -3351,7 +3351,12 @@ function ItemEditor({
           <button
             className="text-button"
             aria-label={`View source for item ${index + 1}`}
-            onClick={onViewSource}
+            onClick={(event) => {
+              // WebKit does not focus a button on pointer activation. The native
+              // dialog needs its invoker focused to restore focus when it closes.
+              event.currentTarget.focus();
+              onViewSource();
+            }}
           >
             <ScanLine size={16} /> View on receipt
           </button>

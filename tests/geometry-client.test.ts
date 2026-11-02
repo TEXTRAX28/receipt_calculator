@@ -5,6 +5,8 @@ import type { ReceiptImage } from "../src/lib/images";
 
 function setup() {
   vi.useFakeTimers();
+  vi.stubGlobal("OffscreenCanvas", function () {});
+  vi.stubGlobal("createImageBitmap", function () {});
   class WorkerStub {
     static instances: WorkerStub[] = [];
     onmessage?: (event: MessageEvent) => void;
@@ -34,6 +36,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("owned geometry worker lifetime", () => {
+  it.each(["OffscreenCanvas", "createImageBitmap"])(
+    "keeps the source and starts no worker when %s is unavailable",
+    async (missing) => {
+      const s = setup();
+      vi.stubGlobal(missing, undefined);
+      await expect(s.run()).rejects.toThrow(
+        "Photo correction is unavailable in this browser. Use trimming or take a flatter photo.",
+      );
+      expect(s.WorkerStub.instances).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(await s.image.sourceBlob!.text()).toBe("original native source");
+    },
+  );
   it("does not start a worker for an already cancelled correction", async () => {
     const s = setup();
     s.controller.abort();

@@ -27,6 +27,13 @@ export const enhancedOcrProvider: ExtractionProvider = {
       );
     if (signal.aborted)
       throw new Error("Scan cancelled. Your photos are still available.");
+    if (
+      typeof OffscreenCanvas !== "function" ||
+      typeof createImageBitmap !== "function"
+    )
+      throw new Error(
+        "The enhanced reader is not supported in this browser. Choose On-device or enter the receipt manually.",
+      );
     let ownedWorker: Worker | undefined;
     let stopped = false,
       nextId = 0;
