@@ -11,7 +11,23 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-New [genuine scanned-PDF baseline](PUBLIC_SCANNED_PDF_BASELINE.md): two public
+Latest [OCR invoice-column repair](OCR_INVOICE_COLUMNS.md): the same saved
+scanned-invoice reading now preserves quantity 6, unit £15.20, net goods/subtotal
+£91.20, delivery £6.95, printed tax £19.63 and total £117.78, with no financial
+edits. Its exact product description replaces a column-contaminated description,
+and delivery is no longer a false product. A fresh real 390px on-device run
+reproduces identical baseline OCR text and word boxes. Automatic strict complete
+accuracy remains 0/1 because of a merchant-name OCR error and pending checks;
+one explicit source-supported merchant correction plus automated review controls
+reaches reviewed 1/1 and £58.89/£58.89 sharing. Those controls are not independent
+human verification. The mixed-basis invoice and payment-only control stay blocked.
+All original-fifty v5 count metrics remain unchanged across 500 saved-reading
+views; no new complete-receipt denominator or provider promotion is claimed.
+All 874 unit tests and 189 browser cases pass, with one existing skip;
+build/typecheck/formatting/graph checks pass. The packet binds the exact evidence.
+No private upload, new model/API call, paid activation or stable-branch change.
+
+The preceding [genuine scanned-PDF baseline](PUBLIC_SCANNED_PDF_BASELINE.md): two public
 purchase invoices and a payment-only slip use the actual current on-device image
 path, preserving original page content and pixels. All three final totals are
 copied correctly, but both purchase drafts omit quantities/unit prices and lose
@@ -22,7 +38,7 @@ and stays blocked. Raw OCR and source references frozen before reading are
 retained. This exposes a real interpretation gap rather than a scanner gain.
 No original-fifty truth, model, app behavior or external permission changes.
 
-Latest [native PDF invoice-column repair](PDF_INVOICE_COLUMNS.md): the same two
+The preceding [native PDF invoice-column repair](PDF_INVOICE_COLUMNS.md): the same two
 genuine public invoices now retain all six quantities, populated unit prices and
 line amounts on a consistent printed basis, both final totals and printed tax
 amounts. The £13.06 document completes the actual automated source-review controls

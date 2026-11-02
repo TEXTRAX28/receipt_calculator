@@ -1,11 +1,11 @@
-import type { EvidenceLine, Recognition } from "./receipt-layout";
+import type { EvidenceLine, SourceRecognition } from "./receipt-layout";
 
 const compact = (text: string) => text.replace(/\s/gu, "");
 
 /** An exact unique left-to-right word subsequence. Never select a price by confidence or arithmetic. */
 export function alignedSourceWords(
   region: EvidenceLine,
-  recognition: Recognition,
+  recognition: Pick<SourceRecognition, "panels">,
 ) {
   const panel = recognition.panels.find(
     (panel) => panel.photo === region.photo && panel.part === region.part,
@@ -13,6 +13,62 @@ export function alignedSourceWords(
   if (!panel || region.text.length > 2000) return null;
   const target = compact(region.text);
   if (!target) return null;
+  // The browser SDK supplied explicit line/word hierarchy. Keep that ownership
+  // rather than borrowing a nearby row merely because reported boxes overlap.
+  if (panel.wordRows) {
+    if (
+      panel.wordRows.length !== panel.words.length ||
+      panel.wordRows.some(
+        (index) =>
+          !Number.isInteger(index) || index < 0 || index >= panel.lines.length,
+      )
+    )
+      return null;
+    const owners = panel.lines.flatMap((line, index) =>
+      compact(line.text) === target &&
+      line.box.every((n, i) => n === region.box[i])
+        ? [index]
+        : [],
+    );
+    if (owners.length === 1) {
+      const words = panel.words.filter(
+        (_, index) => panel.wordRows![index] === owners[0],
+      );
+      if (
+        !words.length ||
+        words.length > 256 ||
+        words.length * panel.words.length > 50000 ||
+        words.map((word) => compact(word.text)).join("") !== target
+      )
+        return null;
+      if (
+        words.some(
+          (word, index) => index > 0 && words[index - 1].box[0] > word.box[0],
+        )
+      )
+        return null;
+      if (
+        words.some((word) => {
+          const x = (word.box[0] + word.box[2]) / 2,
+            y = (word.box[1] + word.box[3]) / 2;
+          return (
+            x < region.box[0] ||
+            x > region.box[2] ||
+            y < region.box[1] ||
+            y > region.box[3] ||
+            panel.words.some(
+              (other, index) =>
+                panel.wordRows![index] !== owners[0] &&
+                other.text === word.text &&
+                other.box.every((n, i) => n === word.box[i]),
+            )
+          );
+        })
+      )
+        return null;
+      return words;
+    }
+  }
   const inside = panel.words
     .filter((word) => {
       const x = (word.box[0] + word.box[2]) / 2,

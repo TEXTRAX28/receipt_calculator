@@ -10,6 +10,9 @@ import { chromium } from "@playwright/test";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2];
+const reviewArg = process.argv.indexOf("--review-plan");
+const reviewPath = reviewArg >= 0 ? process.argv[reviewArg + 1] : null;
+assert(!reviewPath || /^qa-artifacts\/[\w-]+\/[\w-]+\.json$/.test(reviewPath));
 assert(/^[\w-]+$/.test(run || ""));
 const out = resolve(root, "receipt_training/evaluation/runs", run);
 await mkdir(out);
@@ -25,6 +28,15 @@ assert.equal(documents.length, 3);
 const reference = await readFile(
   resolve(root, "qa-artifacts/public-scan-v1/reference-freeze.json"),
 );
+const reviewBytes = reviewPath
+  ? await readFile(resolve(root, reviewPath))
+  : null;
+const reviewPlan = reviewBytes ? JSON.parse(reviewBytes) : null;
+if (reviewPlan)
+  assert(
+    reviewPlan.scope ===
+      "Source-reviewed merchant correction and automated review controls only; no financial edits.",
+  );
 assert(JSON.parse(reference).recorded_before_new_ocr);
 const sources = {};
 async function freeze(name) {
@@ -76,6 +88,10 @@ await write("plan.json", {
   pid: process.pid,
   physical_phone: false,
   other_native_models_enabled: false,
+  review_plan_path: reviewPath,
+  review_plan_sha256: reviewBytes ? sha(reviewBytes) : null,
+  review_note:
+    "Any supplied review plan is applied only after retaining the untouched initial OCR draft. Automated checks exercise controls; they are not independent human verification.",
 });
 console.log(JSON.stringify({ started: run, pid: process.pid }));
 if (process.argv.includes("--await-observer")) {
@@ -245,6 +261,116 @@ try {
         path: resolve(out, document.id + "-review.png"),
         fullPage: true,
       });
+      const reviewCase = reviewPlan?.cases.find(
+        (item) => item.id === document.id,
+      );
+      if (reviewCase) {
+        assert(!result.confirm_enabled);
+        result.source_views = [];
+        for (
+          let index = 1;
+          index <= result.state.receipt.items.length;
+          index++
+        ) {
+          await page
+            .getByRole("button", {
+              name: `View source for item ${index}`,
+              exact: true,
+            })
+            .click();
+          const regions = await page.getByTestId("source-region").count();
+          assert(regions > 0);
+          result.source_views.push({ item: index, regions });
+          await page
+            .getByRole("dialog")
+            .screenshot({
+              path: resolve(out, document.id + `-source-${index}.png`),
+            });
+          await page
+            .getByRole("button", { name: "Close dialog", exact: true })
+            .click();
+        }
+        assert(
+          typeof reviewCase.merchant === "string" &&
+            reviewCase.merchant.length <= 100,
+        );
+        await page
+          .getByRole("textbox", { name: "Merchant", exact: true })
+          .fill(reviewCase.merchant);
+        result.explicit_edits = [
+          {
+            field: "merchant",
+            before: result.state.receipt.merchant,
+            after: reviewCase.merchant,
+          },
+        ];
+        for (const box of await page
+          .getByRole("checkbox", { name: /^I checked / })
+          .all())
+          await box.check();
+        result.reviewed_state = await page.evaluate(() =>
+          JSON.parse(localStorage.getItem("gather.receipt.v1")),
+        );
+        const unchanged = ({ merchant, reviewChecks, ...receipt }) => receipt;
+        assert.deepEqual(
+          unchanged(result.reviewed_state.receipt),
+          unchanged(result.state.receipt),
+        );
+        const confirm = page.getByRole("button", {
+          name: "Confirm receipt & add people",
+          exact: true,
+        });
+        result.reviewed_confirm_enabled = await confirm.isEnabled();
+        assert(result.reviewed_confirm_enabled);
+        await page.screenshot({
+          path: resolve(out, document.id + "-checked.png"),
+          fullPage: true,
+        });
+        await confirm.click();
+        for (const name of ["Alice", "Bob"]) {
+          await page
+            .getByRole("textbox", { name: "Person’s name", exact: true })
+            .fill(name);
+          await page
+            .getByRole("button", { name: "Add person", exact: true })
+            .click();
+        }
+        await page
+          .getByRole("button", { name: "Let’s share it", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "Whole receipt", exact: true })
+          .click();
+        for (const box of await page
+          .getByTestId("whole-assignment")
+          .getByRole("checkbox")
+          .all())
+          await box.check();
+        await page
+          .getByRole("button", { name: "Finalize split", exact: true })
+          .click();
+        result.person_totals = await Promise.all(
+          [0, 1].map((index) =>
+            page.getByTestId(`person-total-${index}`).innerText(),
+          ),
+        );
+        assert.deepEqual(result.person_totals, reviewCase.person_totals);
+        result.final_state = await page.evaluate(() =>
+          JSON.parse(localStorage.getItem("gather.receipt.v1")),
+        );
+        assert.equal(result.final_state.step, "summary");
+        assert.deepEqual(
+          unchanged(result.final_state.receipt),
+          unchanged(result.state.receipt),
+        );
+        result.reviewed_horizontal_overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        );
+        await page.screenshot({
+          path: resolve(out, document.id + "-split.png"),
+          fullPage: true,
+        });
+      }
       assert.equal(result.state.receipt.rawText, "");
       assert.deepEqual(requests.writes, []);
       assert.deepEqual(requests.external, []);

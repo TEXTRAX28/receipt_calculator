@@ -4,8 +4,9 @@ import { matchCostcoRow } from "./costco-row";
 import { PHOTO_SEPARATOR, isFinalTotal } from "./parser";
 
 export type Recognition = z.infer<typeof recognitionSchema>;
-export type SourceRecognition = Omit<Recognition, "engine"> & {
+export type SourceRecognition = Omit<Recognition, "engine" | "panels"> & {
   engine: Recognition["engine"] | "tesseract-js-6-eng";
+  panels: (Recognition["panels"][number] & { wordRows?: number[] })[];
 };
 export type EvidenceLine = Recognition["panels"][number]["lines"][number] & {
   photo: number;

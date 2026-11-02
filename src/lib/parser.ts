@@ -11,6 +11,7 @@ import { matchCostcoRow } from "./costco-row";
 import { separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
+import { readOcrInvoice } from "./ocr-invoice";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -59,6 +60,8 @@ export function parseReceiptWithSources(
   const { text } = extractionOutputSchema.parse(
     typeof output === "string" ? { text: output } : output,
   );
+  const invoice = readOcrInvoice(output, text, selected);
+  if (invoice) return invoice;
   const receipt = newReceipt();
   const sources: Record<string, number[]> = {};
   const columnSources: Record<string, ColumnSource> = {};

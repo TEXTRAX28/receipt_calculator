@@ -11,8 +11,18 @@ export const DEVICE_OCR_ENGINE = "tesseract-js-6-eng" as const;
 // A local browser engine is not an allowed claim on the remote-reader boundary.
 const browserSchema = recognitionSchema.extend({
   engine: z.literal(DEVICE_OCR_ENGINE),
+  panels: z
+    .array(
+      recognitionSchema.shape.panels.element.extend({
+        wordRows: z
+          .array(z.number().int().min(0).max(1999))
+          .max(10000)
+          .optional(),
+      }),
+    )
+    .max(24),
 });
-type Panel = Recognition["panels"][number];
+type Panel = SourceRecognition["panels"][number];
 export interface DeviceSourceRow {
   text: string;
   source: EvidenceLine | null;
@@ -90,7 +100,7 @@ export function devicePanel(
         box: [b.x0 / width, b.y0 / height, b.x1 / width, b.y1 / height],
       };
     };
-    const panel: Panel = { ...empty, words: [], lines: [] };
+    const panel: Panel = { ...empty, words: [], lines: [], wordRows: [] };
     for (const block of list(object(data).blocks, 2000))
       for (const paragraph of list(object(block).paragraphs, 2000))
         for (const rawLine of list(object(paragraph).lines, 2000)) {
@@ -116,6 +126,7 @@ export function devicePanel(
               })
             )
               throw Error("Incomplete SDK word evidence");
+            panel.wordRows!.push(...words.map(() => panel.lines.length));
             panel.lines.push(line);
             panel.words.push(...words);
             if (panel.lines.length > 2000 || panel.words.length > 10000)
