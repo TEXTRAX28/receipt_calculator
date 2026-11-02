@@ -421,3 +421,29 @@ commit for this checkpoint is obtained from the local Git log; its machine packe
 records its parent to avoid a self-referential commit hash.
 
 No whole-goal completion or deployment approval is implied by this report.
+
+## Official browser reader measurement, 2 November 2026
+
+`BROWSER_PADDLE_COMPARISON.md` and `advanced-browser-paddle-v1.json` add actual
+official PaddleOCR.js 0.4.2 / PP-OCRv6 tiny WASM evidence: 56 real image sections
+and four synthetic controls, with no private external uploads. All fifty
+original receipts were read on 51 current prepared JPEGs whose hashes exactly
+match saved Tesseract v4 inputs. The same frozen parser and unchanged v5 scorer
+give line prices 103/143 versus Tesseract 30/143 with supplied currency;
+automatic mode gives 19/143 versus 3/143. Tiny quantities remain 11/120 and
+automatic final totals 2/49. All original complete-receipt labels remain
+unscorable and trusted reconciliations zero. The separate supplied UK case
+recovers all eighteen annotated prices/quantities/discounts and its GBP 176.78
+total, but retains two overlap duplicates, +1138 pence discrepancy and strict
+0/1. This is an optional device-reader integration candidate, not a replacement
+for the more accurate existing computer-assisted hybrid or a verified bill.
+
+Warm inference/decode mean/p95 are 0.879/2.439 seconds, excluding startup,
+preparation and parsing. The sampled owned development process tree peaked at
+2.408 GB; this is not a phone requirement or model-only measurement. Android,
+iOS/Safari, production packaging, cancellation/failure and actual app-provider
+integration remain open. Root dependencies and app behavior are unchanged in
+this research checkpoint. Two pinned public model weights plus their configs
+were downloaded (6,299,683 bytes); the separate guarded 8B trial remains
+unstarted for lack of disk headroom. Stable/original Git invariants remain
+protected, and no paid activation, merge, push or deployment occurred.
