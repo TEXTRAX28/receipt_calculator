@@ -19,7 +19,8 @@ def main():
     tag, plan = sys.argv[1:3]
     assert all(re.fullmatch(r"[\w-]+", s) for s in [tag, plan])
     extra = sys.argv[3:]
-    assert (extra in ([], ["--capture-study", "genuine-capture-read-v1"])
+    app_ui = extra == ["--app-uk"]
+    assert (extra in ([], ["--production"], ["--app-uk"], ["--capture-study", "genuine-capture-read-v1"])
             or (len(extra) == 2 and extra[0] == "--cohort-plan" and re.fullmatch(r"[\w-]+", extra[1])))
     control = ROOT / "qa-artifacts" / (tag + "-control")
     control.mkdir()
@@ -29,13 +30,22 @@ def main():
         raw = source.read_bytes()
         (control / name).write_bytes(raw)
         sources[str(source.relative_to(ROOT)).replace("\\", "/")] = hashlib.sha256(raw).hexdigest()
+    if app_ui:
+        (ROOT / "qa-artifacts" / tag).mkdir()
+        for name in ("tests/e2e/enhanced-reader-real.spec.ts", "playwright.config.ts", "src/App.tsx", "src/lib/paddle-browser.ts", "src/lib/paddle.worker.ts", "src/lib/paddle-layout.ts", "src/lib/engine.ts", "scripts/enhanced-ocr-assets.json", "package-lock.json"):
+            raw = (ROOT / name).read_bytes()
+            destination = control / "source" / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(raw)
+            sources[name] = hashlib.sha256(raw).hexdigest()
     observation = ROOT / "receipt_training/evaluation/runs" / tag
     observation.mkdir()
     initial = available_memory()[1]
     result = {"started_at": datetime.now(timezone.utc).isoformat(), "startup_available_ram": initial,
               "startup_required_ram": 2684354560, "runtime_ram_floor": RUNTIME_RAM_FLOOR,
               "scope": "Experimental single-browser resource guard, not a vendor requirement or guarantee of peak memory fit. Local synthetic input plus optional fixed receipt cohort. Observer is a sibling, process tree contains development tools and browser, not model-only memory or a phone measurement.",
-              "source_sha256": sources, "capture_study": bool(extra),
+              "source_sha256": sources, "capture_study": app_ui or "--capture-study" in extra or "--cohort-plan" in extra,
+              "production_bundle": "--production" in extra, "production_app_ui": app_ui,
               "spawned": False, "model_downloads": 0, "private_receipt_uploads": 0}
     if initial < result["startup_required_ram"]:
         result["error"] = "insufficient-available-ram-before-start"
@@ -43,15 +53,19 @@ def main():
         node = shutil.which("node.exe")
         assert node
         env = {k:v for k,v in __import__("os").environ.items() if k.lower() in {"systemroot", "windir", "path", "pathext", "temp", "tmp", "userprofile", "appdata", "localappdata", "programdata", "programfiles", "programfiles(x86)"}}
+        arguments = [node, "receipt_training/scripts/probe_browser_paddle.mjs", tag, plan, "--await-observer", *extra]
+        if app_ui:
+            env.update(GATHER_ENHANCED_PRIVATE_TEST="1", GATHER_ENHANCED_RUN_TAG=tag)
+            arguments = [node, "node_modules/@playwright/test/cli.js", "test", "tests/e2e/enhanced-reader-real.spec.ts", "--project=mobile", "--workers=1", "--trace=off"]
         with (control / "stdout.log").open("xb") as output, (control / "stderr.log").open("xb") as errors:
-            process = subprocess.Popen([node, "receipt_training/scripts/probe_browser_paddle.mjs", tag, plan, "--await-observer", *extra],
+            process = subprocess.Popen(arguments,
                                        cwd=ROOT, env=env, stdout=output, stderr=errors, stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
             observer = None
             started = time.monotonic()
             result.update(spawned=True, pid=process.pid, minimum_available_ram=initial, samples=0)
             try:
                 while process.poll() is None:
-                    if observer is None and (ROOT / "qa-artifacts" / tag / "starting.json").exists():
+                    if observer is None and (app_ui or (ROOT / "qa-artifacts" / tag / "starting.json").exists()):
                         # Observer is a sibling of Node, never one of its descendants.
                         observer = subprocess.Popen([sys.executable, "-X", "utf8", "receipt_training/scripts/observe_process_memory.py", "--pid", str(process.pid),
                                                      "--output", str(observation / "owned-memory.json")], cwd=ROOT, env=env, stdin=subprocess.DEVNULL,

@@ -98,7 +98,7 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
     ).violations,
   ).toEqual([]);
   await scan.click();
-  expect(packets).toHaveLength(1);
+  await expect.poll(() => packets.length).toBe(1);
   expect(Object.keys(packets[0]).sort()).toEqual([
     "consent",
     "panels",

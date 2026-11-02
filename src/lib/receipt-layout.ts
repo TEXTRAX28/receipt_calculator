@@ -5,7 +5,10 @@ import { PHOTO_SEPARATOR, isFinalTotal } from "./parser";
 
 export type Recognition = z.infer<typeof recognitionSchema>;
 export type SourceRecognition = Omit<Recognition, "engine" | "panels"> & {
-  engine: Recognition["engine"] | "tesseract-js-6-eng";
+  engine:
+    | Recognition["engine"]
+    | "tesseract-js-6-eng"
+    | "paddle-ppocrv6-tiny-browser-wasm";
   panels: (Recognition["panels"][number] & { wordRows?: number[] })[];
 };
 export type EvidenceLine = Recognition["panels"][number]["lines"][number] & {
@@ -21,7 +24,7 @@ type PurchaseBlock = {
 const key = (text: string) => text.toUpperCase().replace(/\s+/g, "");
 
 /** Keep source regions while joining only exact adjacent windows of one image. */
-function photoEvidence(recognition: Recognition): Photo[] {
+function photoEvidence(recognition: SourceRecognition): Photo[] {
   const photos = new Map<number, EvidenceLine[]>();
   for (const panel of [...recognition.panels].sort(
     (a, b) => a.photo - b.photo || a.part - b.part,
@@ -105,7 +108,7 @@ function endSection(photo: Photo) {
  * Missing identity, a single repeated SKU, conflicting coupons or unclear layout
  * leave every row in place. Genuine repetitions within a photo are never removed.
  */
-export function assembleRecognition(recognition: Recognition) {
+export function assembleRecognition(recognition: SourceRecognition) {
   const photos = photoEvidence(recognition);
   const removed = new Set<EvidenceLine>();
   const overlaps: {

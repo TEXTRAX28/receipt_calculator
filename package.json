@@ -19,10 +19,12 @@
     "test:e2e": "playwright test",
     "format": "prettier --write src server tests scripts *.ts *.json *.html",
     "format:check": "prettier --check src server tests scripts *.ts *.json *.html",
-    "prepare:ocr": "node scripts/prepare-ocr.mjs && node scripts/prepare-pdf.mjs",
+    "prepare:ocr": "node scripts/prepare-ocr.mjs && node scripts/prepare-pdf.mjs && node scripts/prepare-enhanced-ocr.mjs",
+    "setup:enhanced": "node scripts/prepare-enhanced-ocr.mjs --download",
     "postinstall": "node scripts/prepare-ocr.mjs"
   },
   "dependencies": {
+    "@paddleocr/paddleocr-js": "0.4.2",
     "@tesseract.js-data/eng": "^1.0.0",
     "lucide-react": "^0.468.0",
     "pdfjs-dist": "6.4.299",

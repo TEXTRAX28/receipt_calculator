@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: [
+    ...(!process.env.GATHER_ENHANCED_PRIVATE_TEST
+      ? ["**/enhanced-reader-real.spec.ts"]
+      : []),
     ...(!process.env.GATHER_LOCAL_COMPARISON_URL
       ? ["**/compared-reader-real.spec.ts"]
       : []),

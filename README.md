@@ -1,6 +1,6 @@
 # Gather
 
-A receipt scanner and bill splitter built on React, TypeScript and Vite. Choose private on-device English OCR, or an optional Gemini reader that sees the receipt's photographs together. All calculations and splitting run in the browser. Participants need no accounts.
+A receipt scanner and bill splitter built on React, TypeScript and Vite. Choose a private on-device reader or an optional configured computer/cloud reader. All calculations and splitting run in the browser. Participants need no accounts.
 
 ## Run locally
 
@@ -29,6 +29,19 @@ npm run preview -- --port 4173
 ```
 
 On-device OCR needs no API key, paid service, database or account. Keep the local server running while using the app: an already-loaded page still needs it to download the OCR files. Nothing has been deployed or published.
+
+## Optional enhanced on-device reader
+
+After installing dependencies, prepare the pinned public models once:
+
+```sh
+npm run setup:enhanced
+npm run dev
+```
+
+Choose **Enhanced on-device** after uploading your photos. This uses PaddleOCR.js 0.4.2 and PP-OCRv6 tiny in an owned WASM worker, with no API key or receipt uploads. The setup command fetches four checksum-verified public model/configuration files, about 6.3 MB, from fixed official revisions. Model caches and generated `public/ocr-enhanced/` files stay ignored by Git. Normal development/build preparation does not download these optional models; the basic reader remains available when they are absent. First use loads about 50 MB including the model runtime and code. Keep the local server running.
+
+The reader preserves actual source rectangles, supports the existing photo/section limits, and stops its worker on cancellation, failure or a two-minute deadline. Every draft requires a purchase-list check. Its paired original-fifty comparison improved known-currency line prices from 30/143 to 103/143, but automatic currency, quantities and overlap grouping remain weak. The configured computer-assisted reader remains more accurate. See the [browser comparison](receipt_training/evaluation/BROWSER_PADDLE_COMPARISON.md) and [app integration evidence](receipt_training/evaluation/BROWSER_PADDLE_INTEGRATION.md). Tests cover Chromium at phone-sized widths; physical Android/iOS and Safari performance remain unverified.
 
 ## PDF receipts
 

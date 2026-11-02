@@ -63,6 +63,7 @@ import { readingBlobs, type ReceiptImage } from "./lib/images";
 import { prepareReceiptFile } from "./lib/receipt-files";
 import { canReadPdfText, readPdfText } from "./lib/pdf-text";
 import { localOcrProvider, type ExtractionProvider } from "./lib/ocr";
+import { enhancedOcrProvider } from "./lib/paddle-browser";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import {
   extractWithLocalModel,
@@ -290,7 +291,14 @@ export default function App() {
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
   const [reader, setReader] = useState<
-    "local" | "computer" | "vision" | "gemini" | "veryfi" | "azure" | "pdf"
+    | "local"
+    | "enhanced"
+    | "computer"
+    | "vision"
+    | "gemini"
+    | "veryfi"
+    | "azure"
+    | "pdf"
   >("local");
   const readerChosen = useRef(false);
   const pdfTextAvailable = canReadPdfText(images);
@@ -810,11 +818,9 @@ export default function App() {
           : null;
       const output: Awaited<ReturnType<ExtractionProvider["extract"]>> =
         computerOutput ??
-        (await localOcrProvider.extract(
-          images,
-          controller.current.signal,
-          setScanStatus,
-        ));
+        (await (
+          reader === "enhanced" ? enhancedOcrProvider : localOcrProvider
+        ).extract(images, controller.current.signal, setScanStatus));
       setRawText(output.text);
       const {
         receipt: parsed,
@@ -847,6 +853,20 @@ export default function App() {
           "Some source areas could not be matched. Check those purchases against the full receipt photos.",
         ].slice(0, 60);
       parsed.source = "ocr";
+      if (
+        reader === "enhanced" &&
+        !parsed.reviewChecks.some(
+          (check) => check.scope === "receipt" && check.field === "items",
+        )
+      )
+        parsed.reviewChecks.push({
+          scope: "receipt",
+          field: "items",
+          reason: "source",
+          other:
+            "Check the complete purchase list, quantities, amounts and overlapping rows against every photo. The enhanced reader is experimental.",
+          confirmedValue: "",
+        });
       replaceReceipt(
         requireCorrectedPhotoReview(
           computerOutput
@@ -1354,6 +1374,18 @@ export default function App() {
                       <ShieldCheck size={17} />
                       On-device
                     </button>
+                    <button
+                      type="button"
+                      className={`button ${reader === "enhanced" ? "button-primary" : "button-outline"}`}
+                      aria-pressed={reader === "enhanced"}
+                      onClick={() => {
+                        readerChosen.current = true;
+                        setReader("enhanced");
+                        setAiConsented(false);
+                      }}
+                    >
+                      <ShieldCheck size={17} /> Enhanced on-device
+                    </button>
                     {computerConfig?.configured && (
                       <button
                         type="button"
@@ -1429,6 +1461,13 @@ export default function App() {
                       Free, private English OCR. Photos stay on your device.
                       Overlapping photos may need duplicate rows removed during
                       review.
+                    </p>
+                  ) : reader === "enhanced" ? (
+                    <p className="hint">
+                      Experimental receipt reader. Photos stay on your device.
+                      First use loads about 50 MB of reader files; Wi-Fi is
+                      recommended. Check every quantity, amount and repeated row
+                      before splitting.
                     </p>
                   ) : reader === "computer" ? (
                     <div>
@@ -1683,7 +1722,7 @@ export default function App() {
                 <div className="private-line">
                   <ShieldCheck size={16} />
                   <span>
-                    {reader === "local"
+                    {reader === "local" || reader === "enhanced"
                       ? "On-device OCR keeps your photos on this device."
                       : reader === "computer" || reader === "vision"
                         ? "Photos are processed on this computer and temporary files are removed after reading."

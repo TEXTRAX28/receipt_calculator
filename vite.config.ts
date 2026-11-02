@@ -53,7 +53,11 @@ export default defineConfig(({ mode }) => {
   };
   return {
     // Avoid a first-PDF dependency optimization reload discarding selected files.
-    optimizeDeps: { include: ["pdfjs-dist"] },
+    optimizeDeps: {
+      entries: ["index.html"],
+      include: ["pdfjs-dist", "@techstark/opencv-js", "clipper-lib"],
+      exclude: ["@paddleocr/paddleocr-js"],
+    },
     plugins: [
       react(),
       {
@@ -94,6 +98,7 @@ export default defineConfig(({ mode }) => {
       },
     ],
     build: { target: "es2022" },
+    worker: { format: "es" },
     server: {
       host: "127.0.0.1",
       strictPort: true,

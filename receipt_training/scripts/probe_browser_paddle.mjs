@@ -5,7 +5,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { build, createServer, preview } from "vite";
 import { chromium } from "@playwright/test";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -18,6 +18,11 @@ const cohortIndex = process.argv.indexOf("--cohort-plan");
 const cohortTag = cohortIndex < 0 ? null : process.argv[cohortIndex + 1];
 assert(cohortTag === null || /^[\w-]+$/.test(cohortTag));
 assert(!(captureTag && cohortTag));
+const production = process.argv.includes("--production");
+assert(
+  !production || !(captureTag || cohortTag),
+  "First production trial is synthetic only",
+);
 const out = resolve(root, "qa-artifacts", tag);
 await mkdir(out);
 const sha = (raw) => createHash("sha256").update(raw).digest("hex");
@@ -124,6 +129,7 @@ await write("starting.json", {
   plan_sha256: sha(raw),
   synthetic_only: !(captureTag || cohortTag),
   capture_source: captureTag || cohortTag,
+  production_bundle: production,
   input_sha256: inputs,
 });
 console.log(JSON.stringify({ started: tag, pid: process.pid }));
@@ -138,7 +144,7 @@ if (process.argv.includes("--await-observer")) {
     await new Promise((done) => setTimeout(done, 100));
   }
 }
-const server = await createServer({
+const settings = {
   root,
   configFile: false,
   envDir: false,
@@ -201,7 +207,69 @@ const server = await createServer({
       },
     },
   ],
-});
+};
+let server;
+let entry = "/__paddle_probe";
+if (production) {
+  settings.plugins[0].configurePreviewServer =
+    settings.plugins[0].configureServer;
+  const html = resolve(out, "production-probe.html");
+  await writeFile(
+    html,
+    '<!doctype html><title>Production browser OCR compatibility</title><script type="module" src="./production-entry.mjs"></script>',
+    { flag: "wx" },
+  );
+  await writeFile(
+    resolve(out, "production-entry.mjs"),
+    'import { PaddleOCR } from "@probe-paddle"; globalThis.__paddleFactory = PaddleOCR;\n',
+    { flag: "wx" },
+  );
+  const bundle = resolve(out, "bundle");
+  await build({
+    ...settings,
+    publicDir: false,
+    build: {
+      outDir: bundle,
+      emptyOutDir: false,
+      assetsInlineLimit: 0,
+      reportCompressedSize: false,
+      rollupOptions: { input: html },
+    },
+  });
+  const emitted = {};
+  async function list(dir, prefix = "") {
+    for (const file of await readdir(dir, { withFileTypes: true })) {
+      const name = prefix + file.name,
+        path = resolve(dir, file.name);
+      if (file.isDirectory()) await list(path, name + "/");
+      else {
+        const bytes = await readFile(path);
+        emitted[name] = { bytes: bytes.length, sha256: sha(bytes) };
+      }
+    }
+  }
+  await list(bundle);
+  await write("production-bundle.json", {
+    emitted,
+    scope:
+      "Isolated production build of official SDK entry and its workers. Static model/WASM assets remain exact same local allowlist; no root dependency or app changes.",
+  });
+  const service = await preview({
+    ...settings,
+    publicDir: false,
+    build: { outDir: bundle },
+    preview: { host: "127.0.0.1", port: 0, strictPort: true },
+  });
+  server = {
+    httpServer: service.httpServer,
+    listen: async () => {},
+    close: () =>
+      new Promise((done, reject) =>
+        service.httpServer.close((error) => (error ? reject(error) : done())),
+      ),
+  };
+  entry = `/qa-artifacts/${tag}/production-probe.html`;
+} else server = await createServer(settings);
 let browser;
 const requests = { external: [], writes: [], reads: [] },
   errors = [];
@@ -232,7 +300,9 @@ try {
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text().slice(0, 500));
   });
-  await page.goto(origin + "/__paddle_probe");
+  await page.goto(origin + entry);
+  if (production)
+    await page.waitForFunction(() => !!globalThis.__paddleFactory);
   await write("phase.json", {
     phase: "sdk-import-initialize",
     entered_at: new Date().toISOString(),
@@ -242,7 +312,9 @@ try {
       let ocr;
       const started = performance.now();
       try {
-        const { PaddleOCR } = await import(/* @vite-ignore */ sdkUrl);
+        const PaddleOCR =
+          globalThis.__paddleFactory ||
+          (await import(/* @vite-ignore */ sdkUrl)).PaddleOCR;
         ocr = await PaddleOCR.create({
           worker: true,
           textDetectionModelName: modelNames[0],
@@ -319,6 +391,10 @@ try {
     model_downloads: 0,
     receipt_uploads: 0,
     synthetic_only: true,
+    production_bundle: production,
+    initialization_timing_scope: production
+      ? "SDK entry preloaded by production page; SDK import/page load excluded from initialized_ms. Whole guarded runtime includes build and browser startup."
+      : "Dynamic import plus SDK initialization; no build in runtime.",
     completed_at: new Date().toISOString(),
   });
   console.log(
@@ -445,6 +521,15 @@ try {
     await globalThis.__probeOcr?.dispose();
     delete globalThis.__probeOcr;
   });
+} catch (error) {
+  await write("failure.json", {
+    error: String(error).slice(0, 2000),
+    errors,
+    requests,
+    production_bundle: production,
+    completed_at: new Date().toISOString(),
+  });
+  throw error;
 } finally {
   await browser?.close();
   await server.close();

@@ -447,3 +447,32 @@ this research checkpoint. Two pinned public model weights plus their configs
 were downloaded (6,299,683 bytes); the separate guarded 8B trial remains
 unstarted for lack of disk headroom. Stable/original Git invariants remain
 protected, and no paid activation, merge, push or deployment occurred.
+
+## Enhanced device reader implemented, 2 November 2026
+
+`BROWSER_PADDLE_INTEGRATION.md` and
+`advanced-browser-paddle-integration-v1.json` bind the optional **Enhanced
+on-device** provider, portable checksum-pinned model setup, dedicated WASM
+worker, actual source rectangles, mandatory purchase-list review and bounded
+cancellation/failure recovery. The SDK/runtime code stays off the page thread;
+the production page CSP is unchanged. Basic OCR and existing computer/cloud
+paths remain available. The paired field gains above remain qualified by
+currency context and partial truth; the new adapter matches all 56 retained
+real SDK panels exactly.
+
+Actual production UI tests read the fixed synthetic receipt through an exact
+GBP 3.00/3.00 split without financial edits, verify source regions and worker
+closure, and fit a 320-pixel viewport. The real VS Code development command was
+also tested. The original two-photo UK transaction recovers all eighteen
+annotated prices/quantities/discounts and its GBP 176.78 total in the actual
+app, but retains two overlap purchases, +1138 pence discrepancy and strict
+0/1; no fields or checks were changed, and confirmation remains blocked.
+Its observed scan-to-review time is 10,319 ms; sampled owned development
+process-tree peak is 1,755,017,216 bytes, not handset/model-only memory.
+
+Validation is **900 unit passes, 195 browser passes and one existing skip**,
+plus separate real-receipt and development-server checks. Production build,
+typecheck and formatting pass. Physical Android/iOS/Safari, broader financial
+truth, generic quantity/currency recovery, overlap recovery and public service
+readiness remain open. The more accurate computer-assisted hybrid remains
+available, and no default promotion or whole-goal completion is claimed.
