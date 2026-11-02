@@ -100,7 +100,7 @@ export function recoverFinancialRoles(
     adjustments,
     printedTax: taxesRow.amount,
     taxMode: "printed" as const,
-    sourceIndices: section.map((row) => row.index),
+    sourceIndices: section.flatMap((row) => row.sourceIndices),
     details,
     previous: { printedTax: receipt.printedTax, taxMode: receipt.taxMode },
   };

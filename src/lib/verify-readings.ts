@@ -1018,6 +1018,35 @@ export function verifyIndependentReadings(
     (raw.pricesIncludeTax === false || taxBasisRecovery)
       ? readFinancialSummary(lines, recognition, receipt.currency)
       : null;
+  // A layout association supplies original regions for review, not independent
+  // agreement. Keep the scalar's existing unsupported/different check pending.
+  for (const [field, role] of [
+    ["subtotal", "subtotal"],
+    ["printedTax", "tax"],
+    ["printedTotal", "total"],
+  ] as const) {
+    const fragments = financialSection
+      ?.filter((row) => row.role === role && row.sourceIndices.length > 1)
+      .flatMap((row) => row.sourceIndices);
+    if (fragments?.length)
+      fieldSources[field] = [
+        ...new Set([...(fieldSources[field] || []), ...fragments]),
+      ].sort((a, b) => a - b);
+  }
+  if (
+    financialSection?.some(
+      (row) =>
+        row.sourceIndices.length > 1 &&
+        row.role !== "subtotal" &&
+        row.role !== "total",
+    )
+  )
+    fieldSources.adjustments = [
+      ...new Set([
+        ...(fieldSources.adjustments || []),
+        ...financialSection.flatMap((row) => row.sourceIndices),
+      ]),
+    ].sort((a, b) => a - b);
   const wordsIn = (text: string): string[] =>
     text.toUpperCase().match(/[\p{L}\p{N}]+/gu) || [];
   const codedPurchasesSupported = receipt.items.some((item) => {

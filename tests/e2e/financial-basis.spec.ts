@@ -1,8 +1,15 @@
 import { expect, test } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
 
-for (const scenario of ["basis", "roles", "payments"] as const)
-  test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : "payment-row exclusions"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
+for (const scenario of [
+  "basis",
+  "roles",
+  "payments",
+  "split-total",
+  "split-tax",
+] as const)
+  test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : scenario === "payments" ? "payment-row exclusions" : scenario + " fragment association"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
     page,
     browser,
   }, info) => {
@@ -67,7 +74,8 @@ for (const scenario of ["basis", "roles", "payments"] as const)
             subtotal: "18.00",
             printedTotal: "21.00",
             printedTax: scenario === "roles" ? "1.00" : "2.00",
-            pricesIncludeTax: scenario !== "basis" ? false : null,
+            pricesIncludeTax:
+              scenario === "roles" || scenario === "payments" ? false : null,
             printedItemCount: null,
             taxCodes: [],
             warnings: [],
@@ -106,32 +114,65 @@ for (const scenario of ["basis", "roles", "payments"] as const)
       });
     });
     await page.goto("/");
-    const fixture = await page.evaluate((texts) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 700;
-      canvas.height = 1400;
-      const ctx = canvas.getContext("2d")!;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, 700, 1400);
-      ctx.fillStyle = "black";
-      ctx.font = "22px monospace";
-      ctx.fillText("SYNTHETIC FINANCIAL SUMMARY", 40, 40);
-      const lines = texts.map((text, index) => {
-        const y = 130 + index * 140;
-        ctx.fillText(text, 60, y);
-        return {
-          text,
-          confidence: 0.99,
-          box: [
-            58 / 700,
-            (y - 24) / 1400,
-            (64 + ctx.measureText(text).width) / 700,
-            (y + 6) / 1400,
-          ],
-        };
-      });
-      return { png: canvas.toDataURL("image/png").split(",")[1], lines };
-    }, rows);
+    const fixture = await page.evaluate(
+      ({ texts, splitRow }) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 700;
+        canvas.height = 1400;
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, 700, 1400);
+        ctx.fillStyle = "black";
+        ctx.font = "22px monospace";
+        ctx.fillText("SYNTHETIC FINANCIAL SUMMARY", 40, 40);
+        const lines = texts.flatMap((text, index) => {
+          const y = 130 + index * 140;
+          ctx.fillText(text, 60, y);
+          const original = {
+            text,
+            confidence: 0.99,
+            box: [
+              58 / 700,
+              (y - 24) / 1400,
+              (64 + ctx.measureText(text).width) / 700,
+              (y + 6) / 1400,
+            ],
+          };
+          if (index !== splitRow) return [original];
+          const boundary = text.lastIndexOf(" ");
+          const label = text.slice(0, boundary),
+            amount = text.slice(boundary + 1);
+          return [
+            {
+              ...original,
+              text: amount,
+              box: [
+                (60 + ctx.measureText(label + " ").width - 2) / 700,
+                original.box[1],
+                original.box[2],
+                original.box[3],
+              ],
+            },
+            {
+              ...original,
+              text: label,
+              box: [
+                original.box[0],
+                original.box[1],
+                (64 + ctx.measureText(label).width) / 700,
+                original.box[3],
+              ],
+            },
+          ];
+        });
+        return { png: canvas.toDataURL("image/png").split(",")[1], lines };
+      },
+      {
+        texts: rows,
+        splitRow:
+          scenario === "split-total" ? 6 : scenario === "split-tax" ? 5 : -1,
+      },
+    );
     sourceLines = fixture.lines;
     await page.getByLabel("Upload receipt images").setInputFiles({
       name: "synthetic-net-prices.png",
@@ -161,8 +202,16 @@ for (const scenario of ["basis", "roles", "payments"] as const)
           ]
         : scenario === "payments"
           ? ["receipt adjustments"]
-          : ["whether item prices include tax"];
+          : [
+              "whether item prices include tax",
+              ...(scenario === "split-total"
+                ? ["printed total"]
+                : scenario === "split-tax"
+                  ? ["printed tax", "receipt adjustments"]
+                  : []),
+            ];
     for (const field of fields) {
+      await expect(confirm).toBeDisabled();
       await page
         .getByRole("button", { name: `View source for ${field}`, exact: true })
         .click();
@@ -170,7 +219,14 @@ for (const scenario of ["basis", "roles", "payments"] as const)
         name: `Receipt source for ${field}`,
         exact: true,
       });
-      await expect(dialog.getByTestId("source-region")).toHaveCount(4);
+      await expect(dialog.getByTestId("source-region")).toHaveCount(
+        scenario.startsWith("split-")
+          ? field === "whether item prices include tax" ||
+            field === "receipt adjustments"
+            ? 5
+            : 2
+          : 4,
+      );
       if (scenario === "payments" && field === "receipt adjustments") {
         await expect(
           dialog.getByText("Payment row: Cash: 30.00", { exact: true }),
@@ -191,7 +247,10 @@ for (const scenario of ["basis", "roles", "payments"] as const)
           }),
         ).toBeVisible();
       }
-      if (scenario === "basis")
+      if (
+        field === "whether item prices include tax" &&
+        (scenario === "basis" || scenario.startsWith("split-"))
+      )
         await expect(
           dialog.getByText("Previous vision tax basis: Unknown", {
             exact: true,
@@ -262,4 +321,26 @@ for (const scenario of ["basis", "roles", "payments"] as const)
     await expect(page.getByTestId("person-total-0")).toHaveText("£10.50");
     await expect(page.getByTestId("person-total-1")).toHaveText("£10.50");
     expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
+    await writeFile(
+      await qaArtifactPath(info, `financial-${scenario}-evidence.json`),
+      JSON.stringify(
+        {
+          scenario,
+          scope:
+            "Synthetic primary and vision responses; real drawn source regions, mandatory review and exact UI splitting. No real provider inference or independent human verification.",
+          sourceLines,
+          posts,
+          realModelCalls: 0,
+          state: await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+          ),
+          displayedShares: [
+            await page.getByTestId("person-total-0").innerText(),
+            await page.getByTestId("person-total-1").innerText(),
+          ],
+        },
+        null,
+        2,
+      ),
+    );
   });

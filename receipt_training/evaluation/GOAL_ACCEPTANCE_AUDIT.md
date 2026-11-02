@@ -11,11 +11,23 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest [live camera capture](LIVE_CAMERA_CAPTURE.md): local preview, approximate
+Latest [financial summary fragment handling](FINANCIAL_SUMMARY_FRAGMENTS.md)
+associates a separately read summary label and amount using unique source
+geometry and strong literal words. The unchanged original-fifty replay improves
+one familiar development receipt's supplied-currency price basis from 4/9 to
+5/9 overall, with no other count changes or scored per-case regressions. Both
+fragments remain linked for mandatory review. All 940 unit tests and ten focused
+desktop/phone browser scenarios pass; the full suite passes 223 browser cases
+with one existing skip. Build/typecheck, formatting and graph checks pass.
+No new original-receipt inference, upload, provider promotion or automatic
+financial acceptance is claimed. Full financial truth, physical phones and the
+larger model comparisons remain open.
+
+The preceding [live camera capture](LIVE_CAMERA_CAPTURE.md): local preview, approximate
 paper edges, blur/light advice, full-frame capture and inspect/retake now support
 consecutive receipt sections. Actual local JPEG-to-OCR-to-split tests pass using
 generated camera streams; physical cameras and Safari remain unverified. Current
-checks are 912 unit passes and 219 browser passes with one existing skip. This
+checks were 912 unit passes and 219 browser passes with one existing skip. This
 does not change the recognition benchmark, select a new provider or establish
 public-release readiness. Memory measurements retain their sampling limitations.
 
@@ -221,7 +233,7 @@ branch. It is user context, not successful model currency recognition.
 | Printed tax amounts /22 | 0 | 13 | 16 |
 | Printed final totals /49 | 0 | 34 | 41 |
 | Service/other known fees /8 | 0 | 4 | 7 |
-| Known price basis /9 | 0 | 0 | 4 |
+| Known price basis /9 | 0 | 0 | 5 |
 | Known grouping /14 | 3 | 11 | 11 |
 | Known merchant /6 | 1 | 1 | 1 |
 | Trusted reconciliation /49 | 0 | 0 | 0 |
@@ -230,6 +242,7 @@ branch. It is user context, not successful model currency recognition.
 Scoped product recall rises from 26.90% to 98.62%, and scoped precision from
 46.99% to 97.95%. Automatic line-price equality rises from 3.50% to 81.12%;
 explicit-currency equality is 93.01%. The latest conditional values are bound by
+[the financial-summary comparison](FINANCIAL_SUMMARY_FRAGMENTS.md), following
 [the source-word comparison](SOURCE_WORD_ALIGNMENT.md). These precision denominators reflect
 partial annotation scope: unmatched predictions are not automatically confirmed
 false purchases. Zero arithmetic discrepancy is not trusted reconciliation if
