@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
+The latest [Gemini 3.5 Flash-Lite comparison](GEMINI35_SIX_RESULT.md) completed
+six separately approved requests: all HTTP 200, four usable drafts and 17/25
+known line prices delivered, compared with Azure's earlier 23/25 native fields
+and Veryfi's 18/25. The saved-output combination with Azure words regresses
+supplied-currency prices 25/25 to 22/25 and coupon attachments 2/3 to 0/3.
+It is rejected as an app change. Nine offline tests pass; all six upload attempts
+are consumed without retries or billing activation. Application source and
+defaults remain unchanged. These familiar crops do not establish a general
+provider winner or complete-receipt accuracy.
+
+The preceding [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
 supplied-currency tax-basis matches from 5/9 to 6/9 on unchanged saved readings.
 One additional draft balances; all source checks remain pending and trusted
 reconciliation stays 0/49. There are no scored per-case regressions, new model
@@ -187,8 +197,8 @@ the earlier 514-file corpus/baseline audit; it does not rewrite that checkpoint.
 The original scanner uses browser-hosted English Tesseract.js 6.0.1, bounded image
 preparation, overlapping sections for tall photographs and a heuristic text
 parser. A separate exact-money engine validates the editable receipt and splits
-it among people. The earlier Gemini adapter did not successfully extract a real
-receipt in the recorded approved tests.
+it among people. At the baseline, the Gemini adapter had not successfully
+extracted a real receipt. The later six-crop 3.5 comparison is recorded above.
 
 The main weaknesses were missed text, broken row/column interpretation, currency
 ambiguity, missing quantities, coupon association, overlapping photographs and
@@ -315,7 +325,7 @@ peak working sets and limitations remain in their linked evidence packets.
 | GLM-OCR and Qwen3.5 profiles | Local diagnostic comparisons retained contract failures and financial errors. Neither justified replacing the selected hybrid. |
 | Veryfi | One supplied-UK test plus a separate six-crop screen. On the six crops, native fields match 18/25 line totals. Its text/parser path is better; an optional consent-gated app reader is implemented. No general provider-win claim. |
 | Azure prebuilt-receipt, API 2024-11-30 | Six approved UK South F0 crops: native fields match 23/25 line totals and all 15 known quantities, but misidentify four currencies and all three coupon associations. Word geometry plus the parser matches 25/25 prices with explicit currency, 18/25 automatically; quantities remain 9/15, copied final totals 4/6 conditionally. Optional app reader preserves those saved-response scores. [Comparison](AZURE_SIX_RESULT.md), [integration](AZURE_APP_READER.md). |
-| Gemini | Synthetic transport smoke succeeded; both separately approved genuine-crop attempts returned 503 without a draft. No real-receipt accuracy score. The optional backend adapter remains available when configured. |
+| Gemini | Earlier 3.1 attempts and the separate six-case 3.8 batch produced no draft. The newly approved 3.5 Flash-Lite batch returns four valid drafts from six HTTP 200 responses: 17/25 known line prices delivered, 9/9 VAT letters, 0/3 coupon attachments, mean 2.549 s per crop. The offline Azure-word combination loses financial accuracy and is not integrated. All scopes consumed. [Measured comparison](GEMINI35_SIX_RESULT.md). |
 | OpenAI and Anthropic vision | Official capabilities/pricing investigated; no configured access or receipt benchmark. Documentation is not measured superiority. |
 | Google Document AI, AWS Textract, Surya | Capabilities, deployment/privacy or licensing constraints investigated. Not locally configured/benchmarked; no extraction score or deployment suitability is invented. |
 
@@ -387,7 +397,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P1: inspect repository/branches, frontend/backend/models, image/parser/split paths, datasets and security; preserve dirty changes; run the existing app | Verified investigation and preserved baseline; Git references above, original frozen source, baseline tests and report history. | No outstanding initial-investigation blocker. This does not certify all later code defect-free. |
 | P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. Two native-text PDF invoices and three image-only PDF inputs now have separate genuine-source observations. | One new compatible scanned invoice has complete source coverage and scores 0/1; mixed-basis and payment-only cases remain separate. Complete financial truth remains unavailable for the original fifty; unknown fields must stay unknown. |
 | P3A: investigate dedicated APIs, fields, Costco/general layouts, versions, cost and privacy | Veryfi and Azure measured on approved crops and integrated optionally; Google/AWS official capabilities investigated. | No full-corpus external permission. Google/AWS not benchmarked; exact future regional/version/cost/privacy configuration needs verification if selected. |
-| P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. | Closed-provider real-receipt comparison unestablished: Gemini 503; OpenAI/Claude access absent. Do not count synthetic transport as accuracy. |
+| P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. Gemini 3.5 now has a six-crop real comparison and a rejected offline Azure-word combination. | OpenAI/Claude access absent. Six familiar crops do not establish long-receipt, blind-holdout or complete financial accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
 | P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice now also runs on live camera frames; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md and LIVE_CAMERA_CAPTURE.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
@@ -398,7 +408,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P4.6: abstain on unreadable values; field uncertainty, original regions, editable corrections, recalculation and blocked unverified money | Implemented pending checks/source rectangles where actually available, editable fields and invalidated confirmations. No invented boxes or confidence probabilities. | OCR threshold is not calibrated receipt-level confidence; broader uncertainty-quality evidence remains required. |
 | P4 architecture: configurable modular providers; separate preprocessing/extraction/parser/validator/splitting | Verified modular integration and optional provider configuration. | Public server deployment remains separate work. |
 | P5: Costco packaging vs purchased quantity, codes/VAT, coupons, summaries, retailer rules while remaining general-purpose | UK financial vector and checked split pass; source-supported codes/coupons and general CORD/Tesco comparisons exist. | Generic Costco/general-retail reliability remains partial. Do not infer six purchased packs from a product's pack-size name or assume all retailers' A/Z meanings. |
-| P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; optional Azure/Veryfi finite allowances and scan consent. No new upload or paid activation in this audit. | Public terms/region/retention review and account-specific training commitments remain incomplete. Gemini consent/rate bounds are not a durable public spending budget. |
+| P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; optional Azure/Veryfi finite allowances and scan consent. The six new Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. | Public terms/region/retention review and account-specific training commitments remain incomplete. Gemini consent/rate bounds are not a durable public spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
 | P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and browser journeys, including signed refund-credit ownership and rounding. | Genuine refund-format accuracy is unmeasured; this does not invalidate the tested exact allocation rules. |
 | P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Live local camera preview with approximate edges and quality advice, explicit capture/review/retake, overlapping sections, native picker fallback; responsive editing/rereads/assignments and checked summaries. | Physical-device camera and Safari, genuine live guidance accuracy and calibrated clipping/pose diagnostics remain open. Browser camera streams are simulated; actual JPEG/OCR/splitting is tested. |
@@ -421,8 +431,9 @@ model output remain untrusted; arithmetic and explicit source verification are
 independent of instructions found in a receipt. Neither `store:false` nor a
 successful provider deletion proves zero retention or exclusion from training.
 
-All private-upload scopes are consumed: two earlier Gemini attempts, six new
-Gemini 3.8 attempts (one timeout, five HTTP 503s), seven Veryfi
+All private-upload scopes are consumed: two earlier Gemini attempts, six
+Gemini 3.8 attempts (one timeout, five HTTP 503s), six separately approved
+Gemini 3.5 Flash-Lite attempts (four valid drafts, two schema rejections), seven Veryfi
 extractions with seven reported deletions, and six Azure extractions with eight
 polls and six reported 204 deletions. Existing credentials are not permission to
 send additional private receipts. No original-fifty external upload is allowed.
@@ -459,7 +470,10 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest app checkpoint `cbe9c91` shares native-PDF invoice columns with
+The latest app checkpoint `a4a5b88` adds the guarded slanted financial-column
+proposal with 966 passing unit tests; its new browser scenario remains pending
+the unchanged resource guard. The subsequent Gemini comparison changes only
+research scripts and reports. Earlier checkpoint `cbe9c91` shares native-PDF invoice columns with
 source-owned on-device OCR and preserves mandatory checks/printed inconsistencies.
 `756dc44` adds the separately tested, still-unexecuted 8B trial controls.
 The genuine-photo preparation comparison is research only, with no provider or

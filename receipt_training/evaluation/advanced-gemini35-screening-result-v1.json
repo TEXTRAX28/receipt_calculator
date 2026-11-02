@@ -1,0 +1,855 @@
+{
+  "scope": "Six previously reviewed development crops. Gemini JPEG quality 98 versus Azure/Veryfi PNG; same framing and reference, not pixel-identical provider inputs or blind complete-receipt truth.",
+  "live_execution": {
+    "requests": 6,
+    "successful_extractions": 4,
+    "planned_cases": 6,
+    "retries": 0,
+    "billing_activation": false,
+    "free_quota_confirmed_by_user": true,
+    "actual_billing_verified": false,
+    "authorization_consumed": true
+  },
+  "prior_native_aggregate": {
+    "azure-native": {
+      "expected_priced_rows": 26,
+      "native_rows": 30,
+      "matched_reference_names": 26,
+      "exact_normalized_descriptions": 23,
+      "quantity_correct": 15,
+      "quantity_known": 15,
+      "price_correct": 11,
+      "price_known": 11,
+      "total_correct": 23,
+      "total_known": 25,
+      "discount_correct": 0,
+      "discount_known": 3,
+      "tax_code_correct": 0,
+      "tax_code_known": 9,
+      "total_document_known": 6,
+      "total_document_correct": 5,
+      "subtotal_document_known": 3,
+      "subtotal_document_correct": 2,
+      "tax_document_known": 2,
+      "tax_document_correct": 2
+    },
+    "veryfi-native": {
+      "expected_priced_rows": 26,
+      "native_rows": 31,
+      "matched_reference_names": 22,
+      "exact_normalized_descriptions": 20,
+      "quantity_correct": 15,
+      "quantity_known": 15,
+      "price_correct": 8,
+      "price_known": 11,
+      "total_correct": 18,
+      "total_known": 25,
+      "discount_correct": 0,
+      "discount_known": 3,
+      "tax_code_correct": 0,
+      "tax_code_known": 9,
+      "total_document_known": 6,
+      "total_document_correct": 3,
+      "subtotal_document_known": 3,
+      "subtotal_document_correct": 3,
+      "tax_document_known": 2,
+      "tax_document_correct": 1
+    }
+  },
+  "gemini_all_planned_case_field_coverage": {
+    "expected_priced_rows": 26,
+    "native_rows": 24,
+    "matched_reference_names": 21,
+    "exact_normalized_descriptions": 21,
+    "quantity_correct": 11,
+    "quantity_known": 15,
+    "price_correct": 10,
+    "price_known": 11,
+    "total_correct": 17,
+    "total_known": 25,
+    "discount_correct": 0,
+    "discount_known": 3,
+    "tax_code_correct": 9,
+    "tax_code_known": 9,
+    "total_document_known": 6,
+    "total_document_correct": 3,
+    "subtotal_document_known": 3,
+    "subtotal_document_correct": 0,
+    "tax_document_known": 2,
+    "tax_document_correct": 0
+  },
+  "gemini_successful_cases_only_accuracy": {
+    "expected_priced_rows": 21,
+    "native_rows": 24,
+    "matched_reference_names": 21,
+    "exact_normalized_descriptions": 21,
+    "quantity_correct": 11,
+    "quantity_known": 11,
+    "price_correct": 10,
+    "price_known": 11,
+    "total_correct": 17,
+    "total_known": 20,
+    "discount_correct": 0,
+    "discount_known": 3,
+    "tax_code_correct": 9,
+    "tax_code_known": 9,
+    "total_document_known": 4,
+    "total_document_correct": 3,
+    "subtotal_document_known": 1,
+    "subtotal_document_correct": 0,
+    "tax_document_known": 1,
+    "tax_document_correct": 0
+  },
+  "accuracy_conclusion": "Conditional field accuracy on returned drafts only; all-case coverage also reports failures.",
+  "gemini_currency_correct": {
+    "correct": 3,
+    "known": 6
+  },
+  "request_latency_ms": {
+    "samples": [
+      3457,
+      1883,
+      2631,
+      1734,
+      2123,
+      3464
+    ],
+    "mean": 2548.6666666666665,
+    "scope": "Network and parsing; failures included. Six cases do not establish a production p95 or a like-for-like local-inference speed ranking."
+  },
+  "per_case": [
+    {
+      "case": "case-01",
+      "receipt_id": "user-costco-bristol-001",
+      "status": "strict-schema-passed",
+      "http_status": 200,
+      "elapsed_ms": 3457,
+      "error": null,
+      "metrics": {
+        "expected_priced_rows": 9,
+        "native_rows": 12,
+        "matched_reference_names": 9,
+        "exact_normalized_descriptions": 9,
+        "native_field_equality": {
+          "quantity": {
+            "correct": 9,
+            "known": 9
+          },
+          "price": {
+            "correct": 9,
+            "known": 9
+          },
+          "total": {
+            "correct": 9,
+            "known": 9
+          },
+          "discount": {
+            "correct": 0,
+            "known": 3
+          },
+          "tax_code": {
+            "correct": 9,
+            "known": 9
+          }
+        },
+        "document_equality": {
+          "subtotal": null,
+          "tax": null,
+          "total": true
+        },
+        "unmatched_native_row_indices": [
+          1,
+          4,
+          9
+        ],
+        "pair_review": [
+          {
+            "reference_item": "item-1",
+            "native_row_index": 0,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": false,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-2",
+            "native_row_index": 2,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-3",
+            "native_row_index": 3,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": false,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-4",
+            "native_row_index": 5,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-5",
+            "native_row_index": 6,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-6",
+            "native_row_index": 7,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-7",
+            "native_row_index": 8,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": false,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-8",
+            "native_row_index": 10,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          },
+          {
+            "reference_item": "item-9",
+            "native_row_index": 11,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": true
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": "GBP",
+      "reference_currency": "GBP",
+      "provider_reported_usage": {
+        "total_tokens": "2794",
+        "total_input_tokens": "1639",
+        "input_tokens_by_modality": [
+          {
+            "modality": "image",
+            "tokens": "1066"
+          },
+          {
+            "modality": "text",
+            "tokens": "573"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "1155",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2533"
+      }
+    },
+    {
+      "case": "case-02",
+      "receipt_id": "costco-tw-20170303",
+      "status": "strict-schema-passed",
+      "http_status": 200,
+      "elapsed_ms": 1883,
+      "error": null,
+      "metrics": {
+        "expected_priced_rows": 1,
+        "native_rows": 1,
+        "matched_reference_names": 1,
+        "exact_normalized_descriptions": 1,
+        "native_field_equality": {
+          "quantity": {
+            "correct": 1,
+            "known": 1
+          },
+          "price": {
+            "correct": 1,
+            "known": 1
+          },
+          "total": {
+            "correct": 1,
+            "known": 1
+          }
+        },
+        "document_equality": {
+          "subtotal": null,
+          "tax": null,
+          "total": true
+        },
+        "unmatched_native_row_indices": [],
+        "pair_review": [
+          {
+            "reference_item": "screen-item-1",
+            "native_row_index": 0,
+            "field_equality": {
+              "quantity": true,
+              "price": true,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": "TWD",
+      "reference_currency": "TWD",
+      "provider_reported_usage": {
+        "total_tokens": "1907",
+        "total_input_tokens": "1673",
+        "input_tokens_by_modality": [
+          {
+            "modality": "image",
+            "tokens": "1100"
+          },
+          {
+            "modality": "text",
+            "tokens": "573"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "234",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2567"
+      }
+    },
+    {
+      "case": "case-03",
+      "receipt_id": "tesco-gb-1994",
+      "status": "strict-schema-passed",
+      "http_status": 200,
+      "elapsed_ms": 2631,
+      "error": null,
+      "metrics": {
+        "expected_priced_rows": 10,
+        "native_rows": 10,
+        "matched_reference_names": 10,
+        "exact_normalized_descriptions": 10,
+        "native_field_equality": {
+          "total": {
+            "correct": 7,
+            "known": 9
+          }
+        },
+        "document_equality": {
+          "subtotal": null,
+          "tax": null,
+          "total": true
+        },
+        "unmatched_native_row_indices": [],
+        "pair_review": [
+          {
+            "reference_item": "screen-item-1",
+            "native_row_index": 0,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": null,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-2",
+            "native_row_index": 1,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-3",
+            "native_row_index": 2,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-4",
+            "native_row_index": 3,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-5",
+            "native_row_index": 4,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-6",
+            "native_row_index": 5,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-7",
+            "native_row_index": 6,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-8",
+            "native_row_index": 7,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-9",
+            "native_row_index": 8,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "screen-item-10",
+            "native_row_index": 9,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": true,
+              "discount": null,
+              "tax_code": null
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": "GBP",
+      "reference_currency": "GBP",
+      "provider_reported_usage": {
+        "total_tokens": "2555",
+        "total_input_tokens": "1654",
+        "input_tokens_by_modality": [
+          {
+            "modality": "text",
+            "tokens": "573"
+          },
+          {
+            "modality": "image",
+            "tokens": "1081"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "901",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2548"
+      }
+    },
+    {
+      "case": "case-04",
+      "receipt_id": "cord-v2-train-003",
+      "status": "failed-no-retry",
+      "http_status": 200,
+      "elapsed_ms": 1734,
+      "error": "[\n  {\n    \"origin\": \"string\",\n    \"code\": \"invalid_format\",\n    \"format\": \"regex\",\n    \"pattern\": \"/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\",\n    \"path\": [\n      \"subtotal\"\n    ],\n    \"message\": \"Invalid string: must match pattern /^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"invalid_format\",\n    \"format\": \"regex\",\n    \"pattern\": \"/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\",\n    \"path\": [\n      \"printedTotal\"\n    ],\n    \"message\": \"Invalid string: must match pattern /^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"i",
+      "metrics": {
+        "expected_priced_rows": 3,
+        "native_rows": 0,
+        "matched_reference_names": 0,
+        "exact_normalized_descriptions": 0,
+        "native_field_equality": {
+          "quantity": {
+            "correct": 0,
+            "known": 3
+          },
+          "total": {
+            "correct": 0,
+            "known": 3
+          }
+        },
+        "document_equality": {
+          "subtotal": false,
+          "tax": false,
+          "total": false
+        },
+        "unmatched_native_row_indices": [],
+        "pair_review": [
+          {
+            "reference_item": "item-1",
+            "native_row_index": null,
+            "field_equality": {
+              "quantity": false,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "item-2",
+            "native_row_index": null,
+            "field_equality": {
+              "quantity": false,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "item-3",
+            "native_row_index": null,
+            "field_equality": {
+              "quantity": false,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": null,
+      "reference_currency": "IDR",
+      "provider_reported_usage": {
+        "total_tokens": "2086",
+        "total_input_tokens": "1653",
+        "input_tokens_by_modality": [
+          {
+            "modality": "text",
+            "tokens": "573"
+          },
+          {
+            "modality": "image",
+            "tokens": "1080"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "433",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2547"
+      }
+    },
+    {
+      "case": "case-05",
+      "receipt_id": "cord-v2-train-004",
+      "status": "strict-schema-passed",
+      "http_status": 200,
+      "elapsed_ms": 2123,
+      "error": null,
+      "metrics": {
+        "expected_priced_rows": 1,
+        "native_rows": 1,
+        "matched_reference_names": 1,
+        "exact_normalized_descriptions": 1,
+        "native_field_equality": {
+          "quantity": {
+            "correct": 1,
+            "known": 1
+          },
+          "price": {
+            "correct": 0,
+            "known": 1
+          },
+          "total": {
+            "correct": 0,
+            "known": 1
+          }
+        },
+        "document_equality": {
+          "subtotal": false,
+          "tax": false,
+          "total": false
+        },
+        "unmatched_native_row_indices": [],
+        "pair_review": [
+          {
+            "reference_item": "item-1",
+            "native_row_index": 0,
+            "field_equality": {
+              "quantity": true,
+              "price": false,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": null,
+      "reference_currency": "IDR",
+      "provider_reported_usage": {
+        "total_tokens": "1901",
+        "total_input_tokens": "1677",
+        "input_tokens_by_modality": [
+          {
+            "modality": "image",
+            "tokens": "1104"
+          },
+          {
+            "modality": "text",
+            "tokens": "573"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "224",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2571"
+      }
+    },
+    {
+      "case": "case-06",
+      "receipt_id": "cord-v2-test-002",
+      "status": "failed-no-retry",
+      "http_status": 200,
+      "elapsed_ms": 3464,
+      "error": "[\n  {\n    \"origin\": \"string\",\n    \"code\": \"invalid_format\",\n    \"format\": \"regex\",\n    \"pattern\": \"/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\",\n    \"path\": [\n      \"subtotal\"\n    ],\n    \"message\": \"Invalid string: must match pattern /^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"invalid_format\",\n    \"format\": \"regex\",\n    \"pattern\": \"/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\",\n    \"path\": [\n      \"printedTotal\"\n    ],\n    \"message\": \"Invalid string: must match pattern /^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/\"\n  },\n  {\n    \"origin\": \"string\",\n    \"code\": \"i",
+      "metrics": {
+        "expected_priced_rows": 2,
+        "native_rows": 0,
+        "matched_reference_names": 0,
+        "exact_normalized_descriptions": 0,
+        "native_field_equality": {
+          "quantity": {
+            "correct": 0,
+            "known": 1
+          },
+          "total": {
+            "correct": 0,
+            "known": 2
+          }
+        },
+        "document_equality": {
+          "subtotal": false,
+          "tax": null,
+          "total": false
+        },
+        "unmatched_native_row_indices": [],
+        "pair_review": [
+          {
+            "reference_item": "item-1",
+            "native_row_index": null,
+            "field_equality": {
+              "quantity": false,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          },
+          {
+            "reference_item": "item-1-priced-sub-1",
+            "native_row_index": null,
+            "field_equality": {
+              "quantity": null,
+              "price": null,
+              "total": false,
+              "discount": null,
+              "tax_code": null
+            }
+          }
+        ],
+        "purchase_precision": null,
+        "calculated_payable_total": null,
+        "accepted_payable_result": false
+      },
+      "returned_currency": null,
+      "reference_currency": "IDR",
+      "provider_reported_usage": {
+        "total_tokens": "1967",
+        "total_input_tokens": "1677",
+        "input_tokens_by_modality": [
+          {
+            "modality": "image",
+            "tokens": "1104"
+          },
+          {
+            "modality": "text",
+            "tokens": "573"
+          }
+        ],
+        "total_cached_tokens": "0",
+        "total_output_tokens": "290",
+        "total_tool_use_tokens": "0",
+        "total_thought_tokens": "0",
+        "initial_input_tokens": "2571"
+      }
+    }
+  ],
+  "new_external_requests_by_analysis": 0,
+  "offline_projection_tests_passed": 5,
+  "decision": {
+    "change_default_reader": false,
+    "complete_receipt_accuracy": null,
+    "accepted_payable_results": 0
+  },
+  "limits": [
+    "All planned cases remain in the denominator; failed/unattempted cases have no extracted fields. Separate successful-only counts are conditional.",
+    "Native amount equality uses the reference currency; incorrect model currency is scored separately and never silently fixed.",
+    "Missing amounts stay missing; no arithmetic repair, inferred coupon attachment or deduplication. Unknown reference fields are excluded.",
+    "A schema-valid draft or copied total does not prove a correct payable receipt. Merchant/date may be removed from crops; no whole-document or new holdout claim.",
+    "store:false does not guarantee zero provider retention. No billing console or invoice was inspected."
+  ],
+  "evidence_sha256": {
+    "qa-artifacts/provider-review/gemini35-screen-v1/plan.json": "4520ce9af8f63e9edcddd51f51967b4e51bf750f2dccabf3cc8fe41b8dc16f0b",
+    "qa-artifacts/provider-review/gemini35-screen-v1/prepared.json": "b415873b87a08918e17a17e2dacd0afeaf8f778ecef04b7e2337917f3461bd89",
+    "qa-artifacts/provider-review/gemini35-screen-v1/authorization.json": "cc064fb2e10496cf7958cf357e1720d895174097c82a885dbf723d293cfa9a88",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/metadata.json": "95dcb3c07e677838fd2bec2c2a0adbb72f5036c57d22b48b47e5399ca191ee15",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/scope.json": "587a976e062f5512f64c8c01b317f437f012fb7888fecb5beea44dd323e48af9",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/azure-reader.mjs": "a1bf802f3fc43e2231a3c206f9288611307071d3d057caee97c7cea99356446c",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/document-allowance.mjs": "9ee2ecfeac99618703f55c315ea0bd2493a9b1a30afb347814741d8455d8a3ae",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/extraction-instructions.mjs": "08d325eae5d084426d747356ca99c677e6d342b226fae077762bd7cfa4ec8454",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/local-ocr.mjs": "9b19c8324db6597a053dab8d2b8069bee42e9eed2fc92f073afcd96bdd72bdda",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/local-vision-format.mjs": "85fd18b6579e6fbe78dd0db07239ccf09790120a8f32342877ae480229e1a874",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/local-vision.mjs": "504b23d8026f4aa90ff05d7c830c09c1561b330a946557bfeb12cfc759fef382",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/private-paths.mjs": "69be95447237e545792713f0be9359524088ec4b4d0b30928694f4900b19aabb",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/private-process.mjs": "cb2bc1ac03abc6e83993c6b9545fafdbc5988b7fbf6b509caefc95c2558f1200",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/receipt-api.mjs": "c77894a0dcb321c1c48da12301ceef4694d6e7982cc3a134dd38aec1fc642496",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/receipt-zip.mjs": "0108ca93003ef07828b98990ce6eefbd2047ab256f2cf484a6079aa79238c8d7",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/server/veryfi-reader.mjs": "3ebc2eaecf5ce623e25e3bb133a93af58c94a0ebe55ade7108ba1de557b55b2a",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/azure-layout.mjs": "e47c51126e0bebcf9ad388bf20fa8c4698cd1a8d3c34a52f3cf58c9431c14cff",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/azure-schema.mjs": "dd9261aedaafaf0f5cdc0935ddc82479e9c3f19609b237a1a497e79ebd7644f2",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/extraction-schema.mjs": "1f5e590a55f6c0240fad6fdb3ac593a6933dacc4bb963eb4df4a62144f458ac9",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/reading-context.mjs": "274722d2b77ba9433ae322bd28f6be95849025dec6c6623818607f0b06fe867d",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/recognition-schema.mjs": "82bf8c0f0605cbff5a760f43d186450f91a8b4b80319084a2bb6e17de3cd94f5",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/scan-limits.mjs": "7fb43ae151410231b6df70ea05f97803462be8be48a19a1bc3e9803099015d41",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/veryfi-schema.mjs": "9b9fccfbb7d48a8cd80b33cba85c4183384d4ddb2086048a227f89ce739ca9ea",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/src/lib/vision-plan.mjs": "4b5b6809fef4951b8b40a79a1669635a150d2fe5ed0f00fe350287783403d522",
+    "qa-artifacts/provider-review/gemini35-screen-v1/source-before-run/receipt_training/scripts/gemini35_screening.mjs": "17d35044ff8b1998c7d6b47b32e43659ccb210f28d5779ef04b274f3f28faa1b",
+    "receipt_training/evaluation/advanced-azure-screening-result-v2.json": "346e86d76893944dcd59c56b3a1b262ae6b1e320e66a580f512807437ff230a3",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/screening-labels-v1.jsonl": "071b006f0fa31d0f3d72c800619d2f2af8c1e1a4c40228b8f8d3b4b858089183",
+    "receipt_training/evaluation/config.json": "2a3d8c8cb39cb25473d483b49e936c182ce513188bedb93ddf5ccf1bd710370a",
+    "qa-artifacts/provider-review/azure-screening-v1/offline-review-v3/score.py": "fe05ead24bb1664304c4ae2b13c90413340da4b6e7f98cd8d85f52b1b1a86d3a",
+    "receipt_training/scripts/score.py": "fe05ead24bb1664304c4ae2b13c90413340da4b6e7f98cd8d85f52b1b1a86d3a",
+    "qa-artifacts/provider-review/azure-screening-v1/offline-review-v3/review_veryfi_screening.py": "2d497dc86a3e78461728e01bd30c97c0a4d0ac3170f297316aed2f2b77ab76a1",
+    "receipt_training/scripts/review_veryfi_screening.py": "2d497dc86a3e78461728e01bd30c97c0a4d0ac3170f297316aed2f2b77ab76a1",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-01.jpg": "ba665cfaf2c990073e66a059cea9a4b64655441e9cba98f062caaaf181485bee",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-01/receipt.png": "ad3c98c5c7890b0759778f9165153710ee164c115bf1248020fe8f496f2f4e12",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-01-result.json": "7e4d01cbb2790f6680ac8422142b54cfd881b29d65dfd88857e9b6ed1920d0ce",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-01-attempt.json": "f9f4d6f73c9cea7cf8b09060054d93397ce01e2e07b2fb5e74b19e21fc6cdd02",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-01-request.json": "41c3a0782e018512225f96dc499a602b268395b88a44fbae833b6643c2724ccd",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-01-response.json": "a55a23f2f6ec2e5c1956f97b2e564d1dd9ad689a8276ed12046b6ec9b124be4f",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-01-receipt.json": "d193ed73bc032f527214e683f918fddc060e8bae43ef6b1c1e7169c5cf331da2",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-02.jpg": "313b0f109f2b21e8070c2240672e70bd5396b9c88e6b1803d10c4414518a9ce0",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-02/receipt.png": "ca1175a042fc29937df121a22e72ff5f8b82e9161d75e3fca9630fa7429ca3b6",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-02-result.json": "a1c6da7435966b75b0c696280f24fdb5ddf2d88a185ab4bb5925b02e9cf59f72",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-02-attempt.json": "3cdc79eba1cfac340f4bf61cb95fcfdba3bb2dbf4b4ef4e1275447dae75eeda9",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-02-request.json": "083a9b962d9d11dd464449bc1246fe92095ff40ca86450684ebf78846ea47488",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-02-response.json": "261456997b51e34158475a47632acc6bfdb055fd3653ff1e7bf596991e42e0db",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-02-receipt.json": "bfc2970b7756b5b7e48ef1c6dcc2141413858c9c8eaf7d196049e188bad7f199",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-03.jpg": "5c4560c33ee9f1236d75d03e19d7d42f37a46254315d5afd4e2d7b9247fe3424",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-03/receipt.png": "2fdf7b0efcd899b79d9017d332a3d9937262e4b83bc97e287c9b1c245f90362c",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-03-result.json": "b76ebc6923a0c4b84273d8143017c00f3ff1180a0be16c9ef499518821a951cd",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-03-attempt.json": "3f914374b72040fcb009f4a9a763de311b20dcb86f57b5bfc74b895496ccf18d",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-03-request.json": "3d16b4a9ef362cf29db06d228d8b3d2cf424ef203eaf1e9082690e988cbd3237",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-03-response.json": "32d0d481f2ce16351edca4943d5738536952da326f45e5094834809873c776cd",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-03-receipt.json": "659fa589bf9faa2304cf121b562328c3a05de17192f914244294534f93b4e649",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-04.jpg": "f4b5d6a7de521c59ab4c5c55d0126c3d816d6c767c06105e4a2b495827ea52fa",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-04/receipt.png": "762e4148c776a19ba98c2f01546275b1f773f0b86f5c333857dce82e7b2a4ac0",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-04-result.json": "3e62d3deda26f14248143d3dee6f67b1dfffb39f6ca718eadf41ba3813ac0b05",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-04-attempt.json": "aefddd4d255155253bd472da28fcfc1a71926e5d72fbc6b650efd4ff599f6d5a",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-04-request.json": "5a1c0897ab78cb88327646a73bf3bb7403d25c8ce976802e89ec996cf9d32d06",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-04-response.json": "294afdf847e486e9606da08bdf36ae31c0fd2aab68619d6c885bc18012e6b907",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-05.jpg": "fe17f0973b8661fa5e48c88b7acbfbbb052554a2ddd1d7563693e51e4d0b9de5",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-05/receipt.png": "3e2e92caa95f9f53a853f9a493b5abe666b40bc726c40f69d87c4f2716ba65e4",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-05-result.json": "a89c10543701c75ce93d21078f0706e3e7b997c3c1ca7e22f5997b911cfdb9cf",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-05-attempt.json": "d72a951f0b077626bc836ceb44643c99d61f0aa9956e4d70e6059c9808e8e727",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-05-request.json": "ccae8f3dcc8d7dcd1099576695dc772fcdec3214712bc8871313a07cf0297dcc",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-05-response.json": "e7450577a6d9d2cff68269931951371287ca69683dcb32d25b2a10257287f622",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-05-receipt.json": "bb401e84566170b5da4f33cd5947655948b78b8ea47be93a5de64b86c7f31ed2",
+    "qa-artifacts/provider-review/gemini35-screen-v1/case-06.jpg": "d4c00d174cf1324b27ddeca66bbbcff01335f1ee0db425e496fb8a942627c305",
+    "qa-artifacts/provider-review/veryfi-screening-crops-v2/case-06/receipt.png": "388dc93adb777ce9a300b7f82d35f3d063969880aa8dcc4cbe2ebf9703b4410f",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-06-result.json": "2e63a64d28854c9c9e329c95dc2bf58333029eaf1dae59100e7dd81741a4b7f1",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-06-attempt.json": "47f8f29f8a4f62a3c62cb3c3ea844b2908f95c007cc57b20a90850626f482944",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-06-request.json": "6d41510288f2e604e05073504c0903b302c7acfcbc3cb9d2ea8186b1c4535862",
+    "qa-artifacts/provider-review/gemini35-screen-v1/run/case-06-response.json": "01996827b34a35bbd8aff34ffe33678bc2e7a867bd91a74e5811b396432af620",
+    "receipt_training/scripts/review_gemini35_screening.py": "cb290e2e2247d09c79ca9ba43f984528482a0ee1a644c019ceaaa1fa86602840",
+    "receipt_training/scripts/test_review_gemini35_screening.py": "eaa7f256c53714615ea5c9d28a3e1a06823d7f104b6d19ed7e04cf6f5739063e",
+    "qa-artifacts/gemini35-offline-validation-v1/tests.log": "c92466b71617b4ae392ba8be67d1163644d024baa1d1cedad6c4df4a4db6b539"
+  }
+}

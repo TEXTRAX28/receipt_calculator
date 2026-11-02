@@ -2,7 +2,16 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
+Latest [Gemini 3.5 Flash-Lite evidence](GEMINI35_SIX_RESULT.md): six separately
+approved requests completed, four schema-valid drafts, 17/25 known line prices
+delivered, 9/9 VAT letters and 0/3 coupon attachments. Mean request time was
+2.549 seconds on these small crops. The existing Azure-word reader preserves
+25/25 prices with currency supplied; adding the saved Gemini drafts through the
+existing verifier reduces this to 22/25 and loses two coupon links. Keep the
+existing readers. Nine offline tests pass, and the six-attempt scope is consumed
+without retries or billing activation. No app source/default changed.
+
+The preceding [slanted financial-column recovery](FINANCIAL_WORD_COLUMNS.md) improves
 known-currency tax-basis matches 5/9 to 6/9 on the same original fifty saved
 readings. One more draft balances while trusted reconciliation remains 0/49;
 all mandatory review checks survive. All 966 unit tests and build/typecheck
@@ -27,8 +36,8 @@ by the primary reader; no new extraction or whole-receipt success is claimed.
 
 The [approved Gemini 3.8 six-crop batch](GEMINI38_SIX_RESULT.md) returned no
 receipt drafts: one timeout and five HTTP 503 high-demand responses. Its six
-attempts are consumed, with no retries or billing activation. Gemini accuracy
-remains unmeasured; the existing reader and application source are unchanged.
+attempts are consumed, with no retries or billing activation. That model's
+accuracy remains unmeasured; the later 3.5 result is reported separately above.
 
 The latest [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md) improves
 known-currency hybrid line prices 132/143 to 133/143 and units 25/31 to 26/31
@@ -176,7 +185,7 @@ All these model runs were local, with $0 receipt API cost. Compute/hosting cost 
 | Azure Document Intelligence | `prebuilt-receipt`, GA API 2024-11-30, structured item/quantity/price/tax fields and geometry. F0 lists 500 free pages/month. Temporary data/results are retained up to 24 hours; v4 supports deleting analyze results earlier. [Receipt model](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/receipt?view=doc-intel-4.0.0), [pricing](https://azure.microsoft.com/en-us/pricing/details/document-intelligence/), [retention](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/faq?view=doc-intel-4.0.0). | Not configured or benchmarked. The public pricing table returned placeholders for paid regional prices, so no exact paid price is asserted. |
 | AWS Textract AnalyzeExpense | Structured summary fields and line-item groups, including normalized item/quantity/price. [API](https://docs.aws.amazon.com/textract/latest/APIReference/API_AnalyzeExpense.html), [pricing](https://aws.amazon.com/textract/pricing/). | Not configured or benchmarked; region-specific cost and AI data-use/opt-out policy review remain open. |
 | OpenAI vision | Current Responses image APIs support detailed image input and structured output. Pricing lists GPT-6.1 Sol at $2/$10 and Terra at $1/$5 per million input/output tokens at standard short-context rates. [Vision](https://developers.openai.com/api/docs/guides/images-vision), [pricing](https://developers.openai.com/api/docs/pricing). | No API credentials, quota or private-data approval. No live receipt benchmark. Model access, retention configuration and actual token cost remain unverified. |
-| Gemini | Earlier 3.1 Flash-Lite synthetic smoke passed in 8,747 ms. The two separately approved real-crop attempts both returned HTTP 503; later synthetic controls also returned 503, while model metadata returned 200. [Model](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite), [pricing](https://ai.google.dev/gemini-api/docs/pricing). | No real-receipt extraction or accuracy result. Both private-upload approvals are consumed. No automatic provider retry/fallback or paid activation. |
+| Gemini | The separately approved 3.5 Flash-Lite six-crop batch returns four valid drafts, 17/25 known line prices, 9/9 VAT letters and no correct coupon attachments. Mean 2.549 s; usage implies $0.0111 for six at paid list rates, while the user confirmed Free quota and no billing was activated. [Measured comparison](GEMINI35_SIX_RESULT.md), [model](https://aistudio.google.com/docs/models/gemini-3.5-flash-lite), [pricing](https://aistudio.google.com/docs/pricing#gemini-3.5-flash-lite). | Two earlier 3.1 attempts and all six 3.8 attempts yielded no draft. All scopes consumed. The offline Azure-word combination regresses prices/coupons; no default change, live combined reader, complete-receipt or general superiority claim. |
 | Anthropic Claude | Current model catalog supports image input. Sonnet 5.5 lists $2/$10 per million input/output tokens. [Models and pricing](https://platform.claude.com/docs/en/models/overview). | No credentials or real-receipt measurements. Retention and high-resolution input settings need verification before implementation. |
 
 Cloud prices are published planning figures, not measured receipt costs or proof of accuracy. The investigation has not selected a final cloud provider or established that any paid service outperforms the measured local models.
@@ -653,6 +662,10 @@ this guard, which is covered by current replay and synthetic batch checks. See
 [584-file comparison](advanced-scalar-recovery-v2.json).
 
 ## Requirement status against the full objective
+
+This table preserves an earlier implementation checkpoint. Later measurements
+above and the [current acceptance audit](GOAL_ACCEPTANCE_AUDIT.md) supersede its
+test counts, provider availability and remaining-work status.
 
 | Phase | Current evidence and unfinished acceptance work |
 |---|---|
