@@ -1,0 +1,44 @@
+{
+  "runtime_release_marker": "v0.8.0",
+  "runtime_build": "b11960",
+  "runtime_commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+  "model": "PaddlePaddle/PaddleOCR-VL-1.6-GGUF",
+  "revision": "511b09642bb324401f15f97cc23bc67e8f0a291d",
+  "license": "apache-2.0",
+  "component_scope": "Documented VLM text spotting only; not the complete PaddleX layout pipeline",
+  "default_prompt": "Spotting:",
+  "files": [
+    {
+      "path": "PaddleOCR-VL-1.6-GGUF.gguf",
+      "bytes": 935769056,
+      "sha256": "f3ae46ec885050acf4b3d31944431e1fd90d50664fb09126af4a3c050ba14ee8",
+      "url": "https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF/resolve/511b09642bb324401f15f97cc23bc67e8f0a291d/PaddleOCR-VL-1.6-GGUF.gguf"
+    },
+    {
+      "path": "PaddleOCR-VL-1.6-GGUF-mmproj-spotting-1605632.gguf",
+      "bytes": 881770560,
+      "sha256": "8e011479092c5e82c8c1c2d85d52b9ac48df12183c5c7bc3190190732259db09",
+      "derivation": {
+        "source_sha256": "204d757d7610d9b3faab10d506d69e5b244e32bf765e2bab2d0167e65e0a058a",
+        "metadata_key": "clip.vision.image_max_pixels",
+        "from": 1003520,
+        "to": 1605632,
+        "scalar_byte_offset": 1546,
+        "changed_byte_offsets": [
+          1547,
+          1548
+        ],
+        "tensor_bytes_unchanged": true,
+        "official_usage": "https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF#usage-tips"
+      }
+    },
+    {
+      "path": "llama-b11960-bin-win-vulkan-x64.zip",
+      "bytes": 37345851,
+      "sha256": "bac6914b5e83523eb008c6789eaa12669f93fbc196c3b9e8237b6672323b33e9",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11960/llama-b11960-bin-win-vulkan-x64.zip"
+    }
+  ],
+  "private_uploads": 0,
+  "runtime_executable": "llama-cli.exe"
+}

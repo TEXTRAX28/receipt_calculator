@@ -34,6 +34,10 @@ request = json.loads(request_path.read_text(encoding="utf-8"))
 output_mode = request.get("output_mode", "structured-receipt")
 if output_mode not in ["structured-receipt", "text"]:
     raise ValueError("Choose a supported experiment output mode")
+if not isinstance(request.get("special_tokens", False), bool):
+    raise ValueError("The special-token output setting must be an explicit boolean")
+if request.get("special_tokens", False) and output_mode != "text":
+    raise ValueError("Special-token output is restricted to literal-text experiments")
 if not isinstance(request.get("constrain_schema", True), bool):
     raise ValueError("The decoder-constraint setting must be an explicit boolean")
 if not isinstance(request.get("normalize_numeric_json", False), bool):
@@ -95,6 +99,10 @@ if executable == "llama-cli.exe":
     # JSON schemas contain literal backslashes. The CLI defaults to interpreting
     # escapes, which changes the prompt before inference and its saved framing.
     command.extend(["--no-escape", "--single-turn", "--no-display-prompt", "--simple-io", "--output", str(out / "transcript.txt")])
+if request.get("special_tokens", False):
+    if executable != "llama-cli.exe":
+        raise ValueError("Special-token output requires the pinned standard CLI")
+    command.append("--special")
 if template_kwargs is not None:
     if executable != "llama-cli.exe":
         raise ValueError("The pinned template-kwargs profile requires llama-cli")
@@ -119,7 +127,7 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "external_api_requests":0,"external_receipt_uploads":0,"api_cost_usd":"0","compute_cost_usd":None,
             "label_files_read":False,"input_ocr_text":False,"deadline_seconds":args.deadline,
             "require_clean_schema":request.get("require_clean_schema", False),
-            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs"]},
+            "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs","special_tokens"]},
             "timing_scope":"Fresh CLI model loading, image encoding and generation; decoder-constraint setting recorded separately. Excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]

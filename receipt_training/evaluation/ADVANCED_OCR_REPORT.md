@@ -627,3 +627,43 @@ remain disclosed. The protected branches/original dirty checkout are unchanged.
 No private cloud upload, allowance change, paid activation, merge, push or deploy
 occurred. [Method, measured limits and reproduction](FINANCIAL_BASIS_RECOVERY.md).
 The full production-upgrade goal remains active.
+
+### PaddleOCR-VL spotting and spatial text assembly
+
+The installed model now has a separately measured documented spotting profile.
+A derived projector changes only its prescribed maximum-pixel metadata; original
+weights and tensor bytes are unchanged. A synthetic comparison exposed the CLI's
+default suppression of location tokens. Explicit special-token output preserves
+seven exact text lines and their predicted polygons, with minimum synthetic box
+IoU 0.7838. No confidence score is invented.
+
+The new pilot makes twelve local native calls over ten previously inspected
+transactions/controls: the former seven-case pilot's exact nine panels and three
+additional financial cases' exact current panels. All processes finish; ten
+outputs satisfy the strict located-line decoder. A fiscal certificate repeats
+unlocated digits and Bristol includes unlocated/multiline footer text, so both
+readings are withheld. The same current parser and latest references score the
+retained transcription and both new text representations.
+
+On the earlier six financial cases, explicit-currency row assembly improves
+known line prices from **41/63 to 50/63** and product matches from **41/65 to
+51/65** over the retained Paddle transcription. Quantities regress **36/55 to
+29/55**, and copied totals **2/6 to 1/6**. Unit prices remain 18/27, item discounts
+18/21 and trusted reconciliation 0/6. Automatic prices improve 18/63 to 27/63;
+literal generation order alone supplies no correct line prices. The three added
+cases have 10/10 conditional prices but five extra rows, 0/10 quantities and 2/3
+totals. The no-purchase control remains empty. These are source-informed profile
+results, not a blind holdout, an isolated prompt ablation, the app's full original
+cohort or a new provider winner.
+
+Real-panel CLI times range 6.040–25.628 seconds, mean 10.266 seconds, with maximum
+working set 1,789,669,376 bytes. These exclude preparation/setup, GPU/whole-app
+memory and handset execution. There are fourteen local calls including two
+compatibility calls, zero private uploads and zero API cost. Twenty-five Python
+checks pass; application code remains unchanged from `4686b8e`, so its earlier
+645 unit/175 browser passes with one skip keep their prior scope. Stable and the
+original dirty checkout remain protected. The **449-file verified packet** and
+[method, tradeoffs and reproduction](PADDLE_SPOTTING_TRIAL.md) preserve all native
+outcomes and the corrected reporting attempts. The spotting profile is not
+selected as an app reader. Full financial recovery and acceptance remain open;
+the full goal remains active.
