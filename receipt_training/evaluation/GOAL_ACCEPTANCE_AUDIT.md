@@ -69,7 +69,11 @@ not executed. Official Qwen3-VL 8B files are pinned and six paired requests on
 three inspected development receipts are frozen. The measured laptop headroom
 fails the retained disk reserve and a conservative trial RAM guard. No 8B
 weights were downloaded, no receipt inference ran, and no accuracy or speed
-improvement is claimed. The existing installer cap is unchanged.
+improvement is claimed. The existing installer cap is unchanged. Separate
+[bounded installation and low-memory controls](QWEN8B_TRIAL_GUARDS.md) now pass
+20 local tests, including an actual harmless owned process-tree stop. The real
+native preflight refuses before process launch. Both startup resource gates
+remain false; this is tested preparation, not a model benchmark.
 
 The preceding [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md)
 recovers one additional line price and unit price on an inspected development

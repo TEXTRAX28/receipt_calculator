@@ -1,0 +1,109 @@
+{
+  "scope": "Tested bounded installation and owned-process RAM controls for the pending 8B development comparison. No model weights, inference or accuracy result.",
+  "resources": {
+    "observed_at": "2026-11-02T11:29:26.120272+00:00",
+    "manifest_sha256": "e7a0a7a3bd17c75751010d0833c66462fb64480dc99c192e614b662172c79b27",
+    "total_asset_bytes": 5817420379,
+    "missing_assets": [
+      {
+        "path": "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "bytes": 5027784800
+      },
+      {
+        "path": "mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf",
+        "bytes": 752289728
+      }
+    ],
+    "missing_asset_bytes": 5780074528,
+    "free_disk_bytes": 8233451520,
+    "total_physical_ram_bytes": 17024741376,
+    "available_physical_ram_bytes": 3251400704,
+    "disk_reserve_bytes": 10737418240,
+    "ram_start_reserve_bytes": 4294967296,
+    "download_headroom_ok": false,
+    "inference_start_headroom_ok": false,
+    "additional_disk_bytes_needed": 8284041248,
+    "additional_available_ram_bytes_needed": 1043566592,
+    "disk_guard_origin": "Existing setup_vision_candidate.py ten-GiB reserve",
+    "ram_guard_origin": "Conservative research startup guard; not a published model requirement or proof inference will fit",
+    "existing_installer_asset_cap_bytes": 4000000000,
+    "existing_installer_accepts_this_manifest": false,
+    "model_downloads": 0,
+    "native_inference_calls": 0,
+    "external_receipt_uploads": 0,
+    "receipt_files_read": false
+  },
+  "guard_tests_passed": 20,
+  "download_tests": "Synthetic streams; zero network requests",
+  "process_tests": "Harmless owned tree stopped; separate sentinel survived; root fallback tested",
+  "existing_runtime_verified": true,
+  "real_harness_preflight": {
+    "exit_code": 1,
+    "reason": "disk reserve before model validation or process launch",
+    "native_inference_calls": 0,
+    "model_downloads": 0,
+    "receipt_pixels_read": 0,
+    "prepared_pair_attempts_consumed": 0,
+    "input_sha256": {
+      "receipt_training/scripts/benchmark_vision_cli.py": "631a61558a4a2f5544615c897ea6c6d8f45211e52444aa7bb13c2489ff8e70e2",
+      "receipt_training/scripts/vision_trial_guard.py": "8780a714593a47665198044ebb3fa4ca4047400985276f08f2395d0eb1096350",
+      "receipt_training/scripts/setup_qwen8b_candidate.py": "0c4d4b78f0877c9b0e851f8ee1128449a5449ddbb082073a766b24639e05e97d",
+      "qa-artifacts/qwen8b-comparison-v1/1-8b-request.json": "7d62d1a5d84e4d719859d04ed11e3cd467489df0bacc0b4bda3822cf8dfb09e8"
+    }
+  },
+  "prepared_native_calls": 6,
+  "prepared_native_calls_consumed": 0,
+  "model_downloads": 0,
+  "native_inference_calls": 0,
+  "external_receipt_uploads": 0,
+  "paid_activation": false,
+  "frontend_runtime_changed": false,
+  "app_tests_rerun": false,
+  "python_compile_graph_check": "pass",
+  "limitations": [
+    "Resource snapshots fail; do not treat future intent to free resources as readiness.",
+    "RAM guards are research thresholds, not vendor requirements or a guarantee of memory/VRAM fit.",
+    "Sampled memory can miss allocation spikes. Tree-tool timeout fallback stops the owned root, not an OS-enforced descendant job.",
+    "No live 8B download, inference, low-memory model abort, peak memory, latency or accuracy result exists.",
+    "Full goal remains active. No private upload or provider promotion is authorized by resource preparation."
+  ],
+  "git": {
+    "parent_commit": "cbe9c91d3d75b0e69f5bbfd464e143032b568ea7",
+    "stable": "ee725ba45e799bee8501d3de034e0302c0127afd",
+    "original_commit": "29a187af7347be94c0728f4785be674500833748",
+    "original_branch": "receipt-dataset-evaluation",
+    "original_diff_sha256": "72fe803bf341a3052a441b7144838d06e7f4cbea5b59d612feb649368442e31b",
+    "merge_push_deploy": false
+  },
+  "evidence_sha256": {
+    "qa-artifacts/qwen8b-guards-v1/readiness.json": "c1aff559606c9e3e87b04535ea80956baa89bc6126cb8a666842a586d5be242f",
+    "qa-artifacts/qwen8b-guards-v1/tests-v2.log": "c9142beb8d378d0dcb882db5780aa933c7dc9cfd862688a22377a6ebaa577a22",
+    "qa-artifacts/qwen8b-guards-v1/runtime-verification.json": "d4ec011a2e9ec11cc98cf33fafeecfac0a19f08e9bb55a444957d94d0383a0fc",
+    "qa-artifacts/qwen8b-guards-v1/native-preflight-v2-result.json": "178d45ed37d78fea64240df5c812bfc8617c38df7129db398d9d7d24fef268d5",
+    "receipt_training/scripts/benchmark_vision_cli.py": "631a61558a4a2f5544615c897ea6c6d8f45211e52444aa7bb13c2489ff8e70e2",
+    "receipt_training/scripts/vision_trial_guard.py": "8780a714593a47665198044ebb3fa4ca4047400985276f08f2395d0eb1096350",
+    "receipt_training/scripts/setup_qwen8b_candidate.py": "0c4d4b78f0877c9b0e851f8ee1128449a5449ddbb082073a766b24639e05e97d",
+    "qa-artifacts/qwen8b-comparison-v1/1-8b-request.json": "7d62d1a5d84e4d719859d04ed11e3cd467489df0bacc0b4bda3822cf8dfb09e8",
+    "qa-artifacts/qwen8b-guards-v1/native-preflight-v2.log": "133982bcc4e55cee9eec941d13f509bcc0b788d9a28fe7fb6ba99561accf9b2b",
+    "qa-artifacts/qwen8b-comparison-v1/plan.json": "13ac2f7538385bc5c508371b12bc25207c9b4233c0d176a180ea77362149bf18",
+    "qa-artifacts/qwen8b-comparison-v1/1-4b-request.json": "94aedf37373c12e61fdc627276ab8b3648bdfc2c5fd8730207b08c7c2be51b2d",
+    "qa-artifacts/qwen8b-comparison-v1/2-8b-request.json": "4e112222f951eb1864f4c9272fcf496721a09db4dab127be0e4241b9c8990929",
+    "qa-artifacts/qwen8b-comparison-v1/2-4b-request.json": "6dac736b25b7f1c6bed020789d75c131ae91a9d6df0d8575352a904fdb95055b",
+    "qa-artifacts/qwen8b-comparison-v1/3-4b-request.json": "6cb40ac3df61999c7aff8dee535657fb7174371790c18887c4a0b04a41d42fc5",
+    "qa-artifacts/qwen8b-comparison-v1/3-8b-request.json": "b9b635bb9ae8c581a23d164856ce3b40fcb97e516475ed6227d249eb19a3b54d",
+    "receipt_training/scripts/test_qwen8b_guards.py": "5b49d4c3e084d079b726870c98dd369ea1d9bbde7b55773c99d1d8a0a1817165",
+    "receipt_training/scripts/qwen8b_resources.py": "0ed53ca626ad06c609f5f545d72fa3af753c4db8a7b2b76617f4557c47746ded",
+    "receipt_training/scripts/setup_vision_candidate.py": "f5193cdb84ebe7fbb88242c9806d05ff4276cb9d95c65de06a4eedccac9749ba",
+    "receipt_training/scripts/build_qwen8b_guards_report.py": "b4fa05bb48be5fc560665d69eebde992cdbe3668a8cbd5be8aa6e542456d80f9",
+    "receipt_training/evaluation/QWEN8B_TRIAL_GUARDS.md": "8331ff72edd02255f52787f52629caab8af6c6217a9f7574bf82dffad8f191cd",
+    "receipt_training/evaluation/QWEN8B_FEASIBILITY.md": "4c7eab9f116275a48ddf363f9acdfa345fb874a7341a9f1f183a460e03b4e190",
+    "receipt_training/evaluation/GOAL_ACCEPTANCE_AUDIT.md": "e03106051728891a78367206d9ad57ca60cdf1ed1622d75e4809984c61ab8857",
+    "receipt_training/evaluation/qwen8b-candidate-manifest.json": "e7a0a7a3bd17c75751010d0833c66462fb64480dc99c192e614b662172c79b27",
+    "receipt_training/evaluation/vision-candidate-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "receipt_training/evaluation/advanced-qwen8b-feasibility-v1.json": "7b402f6c125d293d5fa71be918386e3ac614fc63e0d2396bcd5cfa864fa56540",
+    "receipt_training/evaluation/advanced-ocr-invoice-columns-v1.json": "fecc14ed1cae3d72449714ea7de9952f2923dfe995901cae6525550c0825db0a",
+    "qa-artifacts/qwen8b-guards-v1/native-preflight-result.json": "a926f785a1d27d97225a59a900f1f6ff1351a9324369cf4000995da04baf8f0c",
+    "qa-artifacts/qwen8b-guards-v1/native-preflight.log": "133982bcc4e55cee9eec941d13f509bcc0b788d9a28fe7fb6ba99561accf9b2b",
+    "qa-artifacts/qwen8b-guards-v1/tests.log": "831a9ad2ba738033b380c9f69f68c96efed9958afdd874c4c56d82aa24ff0c6f"
+  }
+}

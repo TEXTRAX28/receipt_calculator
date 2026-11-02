@@ -12,10 +12,12 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 from vision_cli_text import parse_cli_transcript
 from vision_cli_json import decode_structured_reply
+from vision_trial_guard import VisionMemoryGuard, stop_owned_process
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = ROOT / "qa-artifacts/advanced-ocr"
@@ -23,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--request", required=True)
 parser.add_argument("--run", required=True)
 parser.add_argument("--deadline", type=int, default=180)
+parser.add_argument("--memory-guard", action="store_true", help="Require disk/RAM startup headroom and stop only this owned process on low system RAM")
 args = parser.parse_args()
 if not re.fullmatch(r"[\w-]+", args.run) or not 10 <= args.deadline <= 600:
     raise ValueError("Invalid bounded experiment arguments")
@@ -58,6 +61,15 @@ out.mkdir(exist_ok=False)
 manifest_path = (ROOT / request.get("model_manifest", "receipt_training/evaluation/vision-candidate-manifest.json")).resolve()
 manifest_path.relative_to((ROOT / "receipt_training/evaluation").resolve())
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+guard = VisionMemoryGuard() if args.memory_guard or manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" else None
+if guard:
+    from setup_qwen8b_candidate import manifest as pinned_8b_manifest, verify_runtime
+    if manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" and manifest != pinned_8b_manifest():
+        raise ValueError("An 8B trial requires the exact pinned research manifest")
+    if shutil.disk_usage(ROOT).free < 10 * 1024**3:
+        raise ValueError("Keep ten GiB disk free before a guarded native trial")
+    guard.require_start()
+    verify_runtime(manifest)
 (out / "model-manifest.json").write_bytes(manifest_path.read_bytes())
 cache = ROOT / "receipt_training/.cache/vision-experiment"
 executable = manifest.get("runtime_executable", "llama-mtmd-cli.exe")
@@ -83,6 +95,8 @@ for path in images:
 (out / "request.json").write_bytes(request_path.read_bytes())
 (out / "harness.py").write_bytes(Path(__file__).read_bytes())
 (out / "vision_cli_text.py").write_bytes(Path(__file__).with_name("vision_cli_text.py").read_bytes())
+for helper in ["vision_trial_guard.py", "qwen8b_resources.py", "setup_vision_candidate.py", "setup_qwen8b_candidate.py"]:
+    (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
 if request.get("normalize_numeric_json", False):
     (out / "vision_cli_json.py").write_bytes(Path(__file__).with_name("vision_cli_json.py").read_bytes())
 if output_mode == "structured-receipt":
@@ -127,6 +141,8 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "external_api_requests":0,"external_receipt_uploads":0,"api_cost_usd":"0","compute_cost_usd":None,
             "label_files_read":False,"input_ocr_text":False,"deadline_seconds":args.deadline,
             "require_clean_schema":request.get("require_clean_schema", False),
+            "memory_guard": guard.summary() if guard else None,
+            "resource_control_sha256": {name:sha(out / name) for name in ["vision_trial_guard.py", "qwen8b_resources.py", "setup_vision_candidate.py", "setup_qwen8b_candidate.py"]},
             "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs","special_tokens"]},
             "timing_scope":"Fresh CLI model loading, image encoding and generation; decoder-constraint setting recorded separately. Excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 class Memory(ctypes.Structure):
@@ -139,20 +155,29 @@ stderr=out / "stderr.txt"
 started=time.perf_counter()
 peak=None
 with stdout.open("wb") as output, stderr.open("wb") as errors:
+    if guard:
+        if shutil.disk_usage(ROOT).free < 10 * 1024**3:
+            raise ValueError("Keep ten GiB disk free immediately before native launch")
+        guard.require_start()
     process=subprocess.Popen(command,cwd=ROOT,env=environment,stdin=subprocess.DEVNULL,stdout=output,stderr=errors,creationflags=subprocess.CREATE_NO_WINDOW)
-    metadata["pid"]=process.pid
-    (out / "metadata.json").write_text(json.dumps(metadata,indent=2),encoding="utf-8")
-    while process.poll() is None:
-        usage=Memory(); usage.cb=ctypes.sizeof(Memory)
-        if memory_fn(int(process._handle),ctypes.byref(usage),ctypes.sizeof(usage)):
-            peak=max(peak or 0,usage.PeakWorkingSetSize)
-        transcript_file = out / "transcript.txt"
-        if time.perf_counter()-started > args.deadline or max(stdout.stat().st_size,stderr.stat().st_size,transcript_file.stat().st_size if transcript_file.exists() else 0)>1024**2:
-            metadata["error"]="deadline-or-output-bound"
-            subprocess.run(["taskkill.exe","/PID",str(process.pid),"/T","/F"],capture_output=True,timeout=10,creationflags=subprocess.CREATE_NO_WINDOW)
-            process.wait(timeout=10)
-            break
-        time.sleep(.25)
+    try:
+        metadata["pid"]=process.pid
+        (out / "metadata.json").write_text(json.dumps(metadata,indent=2),encoding="utf-8")
+        while process.poll() is None:
+            usage=Memory(); usage.cb=ctypes.sizeof(Memory)
+            if memory_fn(int(process._handle),ctypes.byref(usage),ctypes.sizeof(usage)):
+                peak=max(peak or 0,usage.PeakWorkingSetSize)
+            transcript_file = out / "transcript.txt"
+            reason = guard.runtime_reason() if guard else None
+            if reason or time.perf_counter()-started > args.deadline or max(stdout.stat().st_size,stderr.stat().st_size,transcript_file.stat().st_size if transcript_file.exists() else 0)>1024**2:
+                metadata["error"]=reason or "deadline-or-output-bound"
+                stop_owned_process(process)
+                break
+            time.sleep(.25)
+    finally:
+        stop_owned_process(process)
+        if guard:
+            metadata["memory_guard"] = guard.summary()
 metadata.update({"elapsed_ms":round((time.perf_counter()-started)*1000),"exit_code":process.returncode,"peak_process_working_set_bytes":peak,"stdout_sha256":sha(stdout),"stderr_sha256":sha(stderr)})
 metadata["completed_at"]=datetime.now(timezone.utc).isoformat()
 diagnostics=stderr.read_text(encoding="utf-8",errors="replace")

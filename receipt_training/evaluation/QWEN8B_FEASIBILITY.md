@@ -4,6 +4,12 @@
 The app still uses its existing 4B model. This work does not change its provider,
 permissions, prompts, dependencies or receipt calculations.
 
+Later [bounded trial controls](QWEN8B_TRIAL_GUARDS.md) are implemented and pass
+20 local tests using fake downloads and harmless owned processes. Actual resource
+checks still fail; the real harness refuses startup before native inference.
+No 8B weights or accuracy result exist. A separate bounded installer reports
+readiness by default; the original installer cap stays intact.
+
 The official [Qwen3-VL-8B-Instruct GGUF repository](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF)
 publishes Apache-2.0 model files and a matching vision projector. The selected
 Q4_K_M model is 5,027,784,800 bytes and its Q8_0 projector is 752,289,728 bytes.
@@ -38,9 +44,10 @@ No user process was closed and no model cache, evidence or user file was deleted
 
 The existing installer also deliberately rejects manifests above four billion
 asset bytes. This preparation does not bypass or raise that cap. Do not pass the
-8B manifest to it and expect installation to work. Before native execution, a
-separate bounded installation path and an owned-process low-memory abort need
-verification. That execution work is deferred while current headroom fails.
+8B manifest to it and expect installation to work. At this initial checkpoint,
+a bounded installation path and owned-process low-memory abort still needed
+verification. The later controls linked above supply those prerequisites;
+model execution still awaits headroom.
 
 Run the read-only check from this worktree's VS Code terminal:
 
