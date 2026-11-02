@@ -144,6 +144,35 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
   await expect(
     page.getByRole("dialog").getByTestId("source-region").first(),
   ).toBeVisible();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: "Reread this purchase", exact: true })
+    .click();
+  await expect(dialog.getByText(/with the enhanced reader/)).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Read selected area", exact: true })
+    .click();
+  await expect(dialog.locator(".area-read-text")).toContainText("Soup", {
+    timeout: 130000,
+  });
+  await expect(dialog.locator(".area-read-text")).toContainText("2.50");
+  await expect.poll(() => closed).toBe(2);
+  expect(workers).toHaveLength(2);
+  expect(workers.every((url) => /paddle\.worker/.test(url))).toBe(true);
+  expect(external).toEqual([]);
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+    ),
+  ).toEqual(receipt);
+  await dialog
+    .getByRole("button", { name: "Close new reading", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Reread this purchase", exact: true }),
+  ).toBeFocused();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Back to receipt", exact: true })
@@ -236,6 +265,124 @@ test("missing enhanced assets preserve images and leave the basic reader availab
       exact: true,
     }),
   ).toBeEnabled();
+});
+
+test("enhanced area errors and cancellation preserve the draft and do not switch to a configured computer", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  const writes: string[] = [],
+    workers: string[] = [];
+  let closed = 0;
+  await page.context().route("**/*", (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (!["GET", "HEAD"].includes(request.method())) {
+      writes.push(url.pathname);
+      return route.abort();
+    }
+    if (
+      url.origin !== "http://127.0.0.1:4173" &&
+      !["data:", "blob:"].includes(url.protocol)
+    )
+      return route.abort();
+    return route.continue();
+  });
+  await page.route("**/api/receipts/providers", (route) =>
+    route.fulfill({
+      json: {
+        localModel: { configured: true, name: "docTR" },
+        localVision: { configured: false, name: "Qwen3-VL 4B", maxPanels: 3 },
+      },
+    }),
+  );
+  page.on("worker", (worker) => {
+    workers.push(worker.url());
+    worker.on("close", () => closed++);
+  });
+  await upload(page);
+  await page
+    .getByRole("button", { name: "Read receipt on this device", exact: true })
+    .click();
+  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
+    "6.00",
+    { timeout: 130000 },
+  );
+  await expect.poll(() => closed).toBe(1);
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+  );
+  await page
+    .getByRole("button", { name: "View source for item 1", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await page.route("**/ocr-enhanced/det.tar", (route) =>
+    route.fulfill({ status: 404, body: "" }),
+  );
+  await dialog
+    .getByRole("button", { name: "Reread this purchase", exact: true })
+    .click();
+  await expect(dialog.getByText(/with the enhanced reader/)).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Read selected area", exact: true })
+    .click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "Enhanced reader files are unavailable",
+  );
+  await expect(
+    dialog.getByRole("heading", {
+      name: "This area needs another look",
+      exact: true,
+    }),
+  ).toBeFocused();
+  expect(workers).toHaveLength(1);
+  await dialog
+    .getByRole("button", { name: "Close new reading", exact: true })
+    .click();
+  await page.unroute("**/ocr-enhanced/det.tar");
+  for (const action of ["cancel", "close"]) {
+    let stalled: Route | undefined;
+    await page.route("**/ocr-enhanced/det.tar", (route) => {
+      if (route.request().method() === "HEAD") return route.continue();
+      stalled = route;
+    });
+    await dialog
+      .getByRole("button", { name: "Reread this purchase", exact: true })
+      .click();
+    await dialog
+      .getByRole("button", { name: "Read selected area", exact: true })
+      .click();
+    await expect.poll(() => Boolean(stalled)).toBe(true);
+    if (action === "cancel") {
+      await dialog
+        .getByRole("button", { name: "Cancel area read", exact: true })
+        .click();
+      await expect(
+        dialog.getByRole("button", {
+          name: "Reread this purchase",
+          exact: true,
+        }),
+      ).toBeFocused();
+    } else {
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("button", { name: "View source for item 1", exact: true })
+        .click();
+    }
+    await expect.poll(() => closed).toBe(action === "cancel" ? 2 : 3);
+    await stalled?.abort().catch(() => {});
+    await page.unroute("**/ocr-enhanced/det.tar");
+    await expect(dialog.locator(".area-read-text")).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+      ),
+    ).toEqual(saved);
+    await expect(dialog.getByTestId("source-region").first()).toBeVisible();
+  }
+  expect(writes).toEqual([]);
+  expect(workers).toHaveLength(3);
+  expect(workers.every((url) => /paddle\.worker/.test(url))).toBe(true);
 });
 
 test("cancelling initialization terminates the actual worker and preserves the upload", async ({

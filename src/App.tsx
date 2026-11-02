@@ -311,6 +311,14 @@ export default function App() {
     configured: boolean;
     name: string;
   } | null>(null);
+  const areaReader =
+    reader === "enhanced"
+      ? "enhanced"
+      : reader === "local"
+        ? "device"
+        : computerConfig?.configured
+          ? "computer"
+          : "device";
   const [aiConsented, setAiConsented] = useState(false);
   const [azureConfig, setAzureConfig] = useState<{
     configured: boolean;
@@ -2990,7 +2998,7 @@ export default function App() {
             item={sourceItem}
             index={sourceItemIndex}
             evidence={selectedSource}
-            localReader={computerConfig?.configured ? "computer" : "device"}
+            localReader={areaReader}
           >
             <div className="source-edit-fields">
               <Field
@@ -3093,6 +3101,7 @@ export default function App() {
               sourceFieldCheck.field,
             )}
             evidence={selectedFieldSource}
+            localReader={areaReader}
           >
             <ReviewChecks
               receipt={state.receipt}

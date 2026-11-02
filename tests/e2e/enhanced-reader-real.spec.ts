@@ -65,6 +65,75 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     workers.push(worker.url());
     worker.on("close", () => closed++);
   });
+  // Passive observation only: every original Blob/message reaches the real
+  // worker unchanged. Retain exact local model inputs and raw SDK replies.
+  await page.addInitScript(() => {
+    type Capture = {
+      worker: number;
+      id: number;
+      mime: string;
+      dataUrl?: string;
+      reply?: unknown;
+    };
+    const observed = {
+      calls: [] as Capture[],
+      pending: [] as Promise<void>[],
+      workers: 0,
+    };
+    (
+      window as unknown as { enhancedAreaCapture: typeof observed }
+    ).enhancedAreaCapture = observed;
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      ordinal: number;
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options);
+        this.ordinal = /paddle\.worker/.test(String(url))
+          ? ++observed.workers
+          : 0;
+        if (this.ordinal)
+          this.addEventListener("message", (event: MessageEvent) => {
+            const call = observed.calls.find(
+              (c) => c.worker === this.ordinal && c.id === event.data?.id,
+            );
+            if (call) call.reply = event.data;
+          });
+      }
+      postMessage(
+        message: unknown,
+        options?: Transferable[] | StructuredSerializeOptions,
+      ) {
+        const value = message as { id?: number; type?: string; blob?: Blob };
+        if (
+          this.ordinal &&
+          value?.type === "read" &&
+          value.blob instanceof Blob &&
+          Number.isInteger(value.id)
+        ) {
+          const call: Capture = {
+            worker: this.ordinal,
+            id: value.id!,
+            mime: value.blob.type,
+          };
+          observed.calls.push(call);
+          observed.pending.push(
+            new Promise<void>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                call.dataUrl = String(reader.result);
+                resolve();
+              };
+              reader.onerror = () =>
+                reject(new Error("Could not preserve test input"));
+              reader.readAsDataURL(value.blob!);
+            }),
+          );
+        }
+        if (Array.isArray(options)) super.postMessage(message, options);
+        else super.postMessage(message, options);
+      }
+    };
+  });
   await page.goto("/");
   await page.getByLabel("Upload receipt images").setInputFiles(files);
   await page
@@ -150,6 +219,147 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     page.getByRole("dialog").getByTestId("source-region").first(),
   ).toBeVisible();
   await page.screenshot({ path: await artifact("real-source.png") });
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  const areaReadings = [];
+  for (const [i, target] of [
+    {
+      name: "vat-legend",
+      source: "View source for tax code rates",
+      trigger: "Reread this area",
+    },
+    {
+      name: "chicken-skewer",
+      source: "View source for item 4",
+      trigger: "Reread this purchase",
+    },
+    {
+      name: "baby-plum-tomatoes",
+      source: "View source for item 13",
+      trigger: "Reread this purchase",
+    },
+  ].entries()) {
+    await page
+      .getByRole("button", { name: target.source, exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    const originalHighlights = await dialog
+      .getByTestId("source-region")
+      .evaluateAll((nodes) => nodes.map((node) => node.outerHTML));
+    await dialog
+      .getByRole("button", { name: target.trigger, exact: true })
+      .click();
+    await expect(dialog.getByText(/with the enhanced reader/)).toBeVisible();
+    const bounds = await dialog.getByRole("slider").evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        label: node.getAttribute("aria-label"),
+        value: (node as HTMLInputElement).value,
+      })),
+    );
+    const areaStart = Date.now();
+    await dialog
+      .getByRole("button", { name: "Read selected area", exact: true })
+      .click();
+    await expect(dialog.locator(".area-read-text")).toBeVisible({
+      timeout: 130000,
+    });
+    const text = await dialog.locator(".area-read-text").textContent();
+    expect(text?.trim()).toBeTruthy();
+    await expect.poll(() => closed).toBe(i + 2);
+    expect(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
+      ),
+    ).toEqual(state.receipt);
+    expect(
+      await dialog
+        .getByTestId("source-region")
+        .evaluateAll((nodes) => nodes.map((node) => node.outerHTML)),
+    ).toEqual(originalHighlights);
+    areaReadings.push({
+      ...target,
+      bounds,
+      text,
+      elapsed_ms: Date.now() - areaStart,
+      draftUnchanged: true,
+      originalHighlightsUnchanged: true,
+    });
+    await dialog.locator(".area-read-result").scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: await artifact(`${target.name}-reread.png`),
+    });
+    await dialog
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+  }
+  await expect(
+    page.getByRole("button", {
+      name: "Confirm receipt & add people",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  expect(workers).toHaveLength(4);
+  expect(closed).toBe(4);
+  expect(workers.every((url) => /paddle\.worker/.test(url))).toBe(true);
+  expect(external).toEqual([]);
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
+  const captures = await page.evaluate(async () => {
+    const capture = (
+      window as unknown as {
+        enhancedAreaCapture: {
+          calls: {
+            worker: number;
+            id: number;
+            mime: string;
+            dataUrl?: string;
+            reply?: unknown;
+          }[];
+          pending: Promise<void>[];
+        };
+      }
+    ).enhancedAreaCapture;
+    await Promise.all(capture.pending);
+    return capture.calls;
+  });
+  expect(captures).toHaveLength(5);
+  const modelInputs = [];
+  for (const capture of captures) {
+    const { dataUrl, ...observation } = capture;
+    expect(capture.mime).toBe("image/jpeg");
+    expect(capture.reply).toMatchObject({ id: capture.id, ok: true });
+    const raw = Buffer.from(dataUrl!.split(",")[1], "base64");
+    const path = await artifact(
+      `model-input-${capture.worker}-${capture.id}.jpg`,
+    );
+    await writeFile(path, raw, { flag: "wx" });
+    modelInputs.push({
+      ...observation,
+      path,
+      sha256: sha(raw),
+      bytes: raw.length,
+    });
+  }
+  await writeFile(
+    await artifact("area-readings.json"),
+    JSON.stringify(
+      {
+        areaReadings,
+        modelInputs,
+        noFinancialEdits: true,
+        noChecksConfirmed: true,
+        passiveWorkerObservation: true,
+        external,
+        writes,
+        errors,
+      },
+      null,
+      2,
+    ) + "\n",
+    { flag: "wx" },
+  );
   const calculation = calculateReceipt(state.receipt);
   expect(calculation.total).toBe(17678n);
   expect(calculation.discrepancy).toBe(0n);
@@ -157,6 +367,8 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
   const source_sha256: Record<string, string> = {};
   for (const path of [
     "src/App.tsx",
+    "src/ReceiptAreaReader.tsx",
+    "src/ReceiptSource.tsx",
     "src/lib/paddle-browser.ts",
     "src/lib/paddle.worker.ts",
     "src/lib/paddle-layout.ts",
@@ -180,6 +392,7 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
         elapsed_ms,
         noFinancialEdits: true,
         noChecksConfirmed: true,
+        areaReadings,
         workers,
         closed,
         external,

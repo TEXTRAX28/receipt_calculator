@@ -494,3 +494,19 @@ remain unchanged. Independent saved docTR observations gain the same footer
 recovery plus the previously missed subtotal. This is source assembly/parser
 evidence, not new full native/VLM orchestration or blind financial validation.
 The full goal and public-readiness limitations above remain active.
+
+## Enhanced source-area recovery, 2 November 2026
+
+`ENHANCED_AREA_RECOVERY.md` and `advanced-enhanced-area-v1.json` add the selected
+enhanced device reader to purchase rereads and enable rereading receipt-level
+source areas such as the VAT legend. A fresh actual two-photo UK scan followed
+by three default-area reads recovers the Z/0% legend row, tomato Z code and full
+chicken-skewer name. The skewer tax code remains incorrectly read as 7; it is
+not replaced using arithmetic or another item's code.
+
+Every financial field, pending check and original source highlight stays
+unchanged through success, failure and cancellation. The whole receipt remains
+strict 0/1 and blocked despite a balanced GBP 176.78. These focused improvements
+are new evidence for explicit manual correction, not a claim of automatic
+whole-receipt accuracy or independent model verification. Public-readiness and
+the wider goal remain incomplete.

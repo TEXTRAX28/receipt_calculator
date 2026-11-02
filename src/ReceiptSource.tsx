@@ -70,7 +70,7 @@ export default function ReceiptSource({
   title?: string;
   currentStamp?: string;
   evidence: ItemEvidence;
-  localReader?: "computer" | "device";
+  localReader?: "computer" | "device" | "enhanced";
   children: ReactNode;
 }) {
   const [active, setActive] = useState(0);
@@ -128,6 +128,7 @@ export default function ReceiptSource({
           key={`${panel.photo}:${panel.part}`}
           panel={panel}
           reader={localReader}
+          scope={item ? "purchase" : "receipt"}
         />
       )}
       {children}

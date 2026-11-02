@@ -4,15 +4,18 @@ import ImageCropper from "./ImageCropper";
 import type { ReceiptImage } from "./lib/images";
 import { extractWithLocalModel } from "./lib/local-model";
 import { localOcrProvider } from "./lib/ocr";
+import { enhancedOcrProvider } from "./lib/paddle-browser";
 import { sourceViewport, type SourcePanel } from "./lib/receipt-evidence";
 
 /** A fresh local text read is evidence for manual editing, never a financial edit. */
 export default function ReceiptAreaReader({
   panel,
   reader,
+  scope = "purchase",
 }: {
   panel: SourcePanel;
-  reader: "computer" | "device";
+  reader: "computer" | "device" | "enhanced";
+  scope?: "purchase" | "receipt";
 }) {
   const [image, setImage] = useState<ReceiptImage | null>(null);
   const [stage, setStage] = useState<
@@ -105,7 +108,9 @@ export default function ReceiptAreaReader({
       const extract =
         reader === "computer"
           ? extractWithLocalModel
-          : localOcrProvider.extract;
+          : reader === "enhanced"
+            ? enhancedOcrProvider.extract
+            : localOcrProvider.extract;
       const result = await extract([cropped], task.signal, (message) => {
         if (active()) setStatus(message);
       });
@@ -145,13 +150,18 @@ export default function ReceiptAreaReader({
             setStage("select");
           }}
         >
-          <ScanLine size={18} /> Reread this purchase
+          <ScanLine size={18} />{" "}
+          {scope === "purchase" ? "Reread this purchase" : "Reread this area"}
         </button>
       ) : stage === "select" && image ? (
         <ImageCropper
           image={image}
-          title="Choose the item area"
-          description={`Keep the complete purchase, quantity, price and any coupon inside the frame. This reads on ${reader === "computer" ? "this computer" : "your device"}. Compare the new text, then correct the fields below.`}
+          title={
+            scope === "purchase"
+              ? "Choose the item area"
+              : "Choose the receipt area"
+          }
+          description={`${scope === "purchase" ? "Keep the complete purchase, quantity, price and any coupon inside the frame." : "Keep the relevant labels, tax codes, rates and amounts inside the frame."} This reads on ${reader === "computer" ? "this computer" : "your device"}${reader === "enhanced" ? " with the enhanced reader" : ""}. Compare the new text with the photo before correcting the receipt.`}
           applyLabel="Read selected area"
           allowEdgeSuggestion={false}
           onCancel={dismiss}
@@ -179,8 +189,8 @@ export default function ReceiptAreaReader({
             <pre className="area-read-text">{text}</pre>
           )}
           <p className="hint">
-            Your item values and original highlight are unchanged. Check the
-            photo and correct the fields below.
+            Your draft values and original highlight are unchanged. Check the
+            photo before correcting the receipt.
           </p>
           <div className="area-read-actions">
             <button

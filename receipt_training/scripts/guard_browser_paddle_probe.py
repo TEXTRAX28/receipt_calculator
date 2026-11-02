@@ -32,7 +32,7 @@ def main():
         sources[str(source.relative_to(ROOT)).replace("\\", "/")] = hashlib.sha256(raw).hexdigest()
     if app_ui:
         (ROOT / "qa-artifacts" / tag).mkdir()
-        for name in ("tests/e2e/enhanced-reader-real.spec.ts", "playwright.config.ts", "src/App.tsx", "src/lib/paddle-browser.ts", "src/lib/paddle.worker.ts", "src/lib/paddle-layout.ts", "src/lib/parser.ts", "src/lib/receipt-layout.ts", "src/lib/engine.ts", "scripts/enhanced-ocr-assets.json", "package-lock.json"):
+        for name in ("tests/e2e/enhanced-reader-real.spec.ts", "playwright.config.ts", "src/App.tsx", "src/ReceiptAreaReader.tsx", "src/ReceiptSource.tsx", "src/lib/images.ts", "src/ImageCropper.tsx", "src/lib/paddle-browser.ts", "src/lib/paddle.worker.ts", "src/lib/paddle-layout.ts", "src/lib/parser.ts", "src/lib/receipt-layout.ts", "src/lib/engine.ts", "scripts/enhanced-ocr-assets.json", "package-lock.json"):
             raw = (ROOT / name).read_bytes()
             destination = control / "source" / name
             destination.parent.mkdir(parents=True, exist_ok=True)
