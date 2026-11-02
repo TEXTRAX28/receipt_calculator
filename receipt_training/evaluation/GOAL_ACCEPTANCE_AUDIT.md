@@ -11,6 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+New [genuine-photo preparation comparison](GENUINE_CAPTURE_COMPARISON.md): four
+familiar development transactions / five photos compare actual original, crop
+and straighten helpers with independent Tesseract and cached docTR readings.
+There are 34 fresh image-section inferences, zero uploads and unchanged truth.
+Correction helps weak Tesseract in some cases but loses totals and adds repeated
+rows in docTR. It is not promoted automatically. All drafts stay blocked; the UK
+strict complete score stays 0/1. Source coverage, model/launcher memory scopes,
+actual timings and unresolved recognition/overlap causes are retained separately
+from the original-fifty metrics. Application behavior is unchanged by the study.
+
 Latest [OCR invoice-column repair](OCR_INVOICE_COLUMNS.md): the same saved
 scanned-invoice reading now preserves quantity 6, unit £15.20, net goods/subtotal
 £91.20, delivery £6.95, printed tax £19.63 and total £117.78, with no financial
@@ -324,7 +334,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
 | P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
-| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two native-text PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. Three genuine image-only pages correctly route to OCR. | Image subtype classification is not implemented. Actual scanned-invoice drafts still lose columns and financial roles despite copied totals; wider coverage remains required. The other native invoice's printed unit/line discrepancies correctly remain blocking. |
+| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two native-text PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. Three genuine image-only pages correctly route to OCR. | Image subtype classification is not implemented. One compatible scanned invoice now preserves columns and financial roles with mandatory review; broader coverage and mixed-basis cases remain unresolved. The other native invoice's printed unit/line discrepancies correctly remain blocking. |
 | P4.3: best practical primary extraction of all structured purchase/financial fields | Paddle primary and optional readers implemented/tested; source-preserving parser and review work. | Known missing products, prices, merchant, fee/tax/payment roles and totals remain. A schema-valid draft is not a correct receipt. |
 | P4.4: independent image-based verification/recovery for uncertainty, discounts, duplicate rows and failed arithmetic; bounded extra calls | Implemented automatic local policy, independent original-image VLM, guarded source proposals, bounded batches and fallback checks; same-reading gains measured. | General automatic recovery and difficult overlap/role errors remain. Current selection is a checked-draft hybrid. |
 | P4.5: independent deterministic quantity×unit, item/coupon/tax/charge/refund/subtotal/final validation; inclusive-tax conventions | Implemented exact decimal/bigint engine and regression coverage; disagreement blocks finalization. | A validator detects inconsistency but cannot establish unreadable source facts or correct model financial roles. |
@@ -375,7 +385,7 @@ Before public release, the remaining work is concrete:
    failed proposals and source-review requirements visible.
 2. Calibrate clipping/rotation/perspective diagnostics and test the new optional
    correction on genuine photos. Preserve originals and abstain on unsupported frames.
-3. Repair the newly demonstrated scanned-invoice column/summary failures; expand
+3. Expand the repaired scanned-invoice column path and resolve mixed-basis source failures; expand
    screenshot/refund evidence when available. Keep new cases separate from the
    original cohort. Independently review enough
    financial truth for an honest whole-receipt metric.
@@ -389,8 +399,12 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint reads native invoice columns and qualified financial
-summaries while preserving mandatory source checks and printed inconsistencies.
+The latest app checkpoint `cbe9c91` shares native-PDF invoice columns with
+source-owned on-device OCR and preserves mandatory checks/printed inconsistencies.
+`756dc44` adds the separately tested, still-unexecuted 8B trial controls.
+The genuine-photo preparation comparison is research only, with no provider or
+application behavior change. The preceding checkpoint reads native invoice
+columns and qualified financial summaries with source checks.
 `822f758` preserves the unchanged-app public-PDF failure baseline; `ae7f2e0`
 excludes source-supported payment/change rows from bill charges while keeping
 every exclusion pending. `b54997a` preserves the
