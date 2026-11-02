@@ -7,7 +7,11 @@ import {
 import { receiptFieldStamp } from "./review-checks";
 import { readingBlobs, type ReceiptImage } from "./images";
 import { PHOTO_SEPARATOR } from "./parser";
-import type { EvidenceLine, Recognition } from "./receipt-layout";
+import type {
+  EvidenceLine,
+  Recognition,
+  SourceRecognition,
+} from "./receipt-layout";
 
 export type SourcePanel = {
   photo: number;
@@ -17,6 +21,7 @@ export type SourcePanel = {
   blob: Blob;
   regions: EvidenceLine[];
   unclear: boolean;
+  uncertainWords?: Recognition["panels"][number]["words"];
 };
 export type ItemEvidence = { fieldsStamp: string; panels: SourcePanel[] };
 export type ReceiptEvidence = {
@@ -42,11 +47,12 @@ export function collectReceiptEvidence(
   sources: Record<string, number[]>,
   sourceLines: (EvidenceLine | null)[],
   recognition: {
-    engine: Recognition["engine"] | "pdf-embedded-text";
+    engine: SourceRecognition["engine"] | "pdf-embedded-text";
     panels: Recognition["panels"];
   },
   images: ReceiptImage[],
   fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {},
+  sourceAlternatives: Record<number, EvidenceLine[]> = {},
 ): ReceiptEvidence | null {
   const normalized = text
     .replace(/\r/g, "")
@@ -55,9 +61,10 @@ export function collectReceiptEvidence(
     .filter(Boolean);
   if (
     normalized.length !== sourceLines.length ||
-    normalized.some(
-      (line, index) => line !== (sourceLines[index]?.text ?? PHOTO_SEPARATOR),
-    )
+    normalized.some((line, index) => {
+      const source = sourceLines[index];
+      return source ? line !== source.text || line === PHOTO_SEPARATOR : false;
+    })
   )
     return null;
   const collect = (
@@ -66,43 +73,69 @@ export function collectReceiptEvidence(
   ): ItemEvidence | null => {
     const panels = new Map<string, SourcePanel>();
     for (const index of new Set(indices)) {
-      const region = sourceLines[index];
-      if (!region) continue;
-      const input = recognition.panels.find(
-        (p) => p.photo === region.photo && p.part === region.part,
+      const primary = sourceLines[index];
+      if (!primary) continue;
+      const alternatives = sourceAlternatives[index] || [];
+      const conflicting = alternatives.some(
+        (line) =>
+          line.text.toUpperCase().replace(/\s+/g, "") !==
+          primary.text.toUpperCase().replace(/\s+/g, ""),
       );
-      const image = images[region.photo - 1];
-      const blob =
-        image &&
-        (recognition.engine === "pdf-embedded-text"
-          ? image.blob
-          : readingBlobs(image)[region.part - 1]);
-      if (!input || !blob) continue;
-      const key = `${input.photo}:${input.part}`;
-      let panel = panels.get(key);
-      if (!panel) {
-        panel = {
-          photo: input.photo,
-          part: input.part,
-          width: input.width,
-          height: input.height,
-          blob,
-          regions: [],
-          unclear: false,
-        };
-        panels.set(key, panel);
-      }
-      panel.regions.push(region);
-      const [x0, y0, x1, y1] = region.box;
-      panel.unclear ||=
-        region.confidence < 0.75 ||
-        input.words.some((word) => {
+      for (const region of [primary, ...alternatives]) {
+        const input = recognition.panels.find(
+          (p) => p.photo === region.photo && p.part === region.part,
+        );
+        const image = images[region.photo - 1];
+        const blob =
+          image &&
+          (recognition.engine === "pdf-embedded-text"
+            ? image.blob
+            : readingBlobs(image)[region.part - 1]);
+        if (!input || !blob) continue;
+        const key = `${input.photo}:${input.part}`;
+        let panel = panels.get(key);
+        if (!panel) {
+          panel = {
+            photo: input.photo,
+            part: input.part,
+            width: input.width,
+            height: input.height,
+            blob,
+            regions: [],
+            unclear: false,
+            uncertainWords: [],
+          };
+          panels.set(key, panel);
+        }
+        panel.regions.push(region);
+        const [x0, y0, x1, y1] = region.box;
+        const weakWords = input.words.filter((word) => {
           const x = (word.box[0] + word.box[2]) / 2,
             y = (word.box[1] + word.box[3]) / 2;
           return (
             word.confidence < 0.75 && x >= x0 && x <= x1 && y >= y0 && y <= y1
           );
         });
+        for (const word of weakWords)
+          if (
+            !panel.uncertainWords!.some(
+              (existing) =>
+                existing.text === word.text &&
+                existing.box.every((value, index) => value === word.box[index]),
+            )
+          )
+            panel.uncertainWords!.push(word);
+        panel.unclear ||=
+          conflicting ||
+          region.confidence < 0.75 ||
+          input.words.some((word) => {
+            const x = (word.box[0] + word.box[2]) / 2,
+              y = (word.box[1] + word.box[3]) / 2;
+            return (
+              word.confidence < 0.75 && x >= x0 && x <= x1 && y >= y0 && y <= y1
+            );
+          });
+      }
     }
     return panels.size ? { fieldsStamp, panels: [...panels.values()] } : null;
   };

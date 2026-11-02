@@ -2,6 +2,19 @@ import { readingBlobs, type ReceiptImage } from "./images";
 import { MAX_RECEIPT_IMAGES, MAX_READING_PANELS } from "./scan-limits.mjs";
 import { extractionOutputSchema, PHOTO_SEPARATOR } from "./parser";
 import type { Worker } from "tesseract.js";
+import type {
+  Recognition,
+  SourceRecognition,
+  EvidenceLine,
+} from "./receipt-layout";
+import { inspectImage } from "./images";
+import { joinOcrRows, ocrTextLines } from "./ocr-lines";
+import {
+  devicePanel,
+  deviceRecognition,
+  type DeviceSourceRow,
+} from "./device-evidence";
+import { joinDeviceRows } from "./device-overlap";
 
 export interface ExtractionProvider {
   name: string;
@@ -9,38 +22,25 @@ export interface ExtractionProvider {
     images: ReceiptImage[],
     signal: AbortSignal,
     progress: (status: string) => void,
-  ): Promise<{ text: string; warnings?: string[] }>;
+  ): Promise<{
+    text: string;
+    warnings?: string[];
+    recognition?: SourceRecognition;
+    sourceLines?: (EvidenceLine | null)[];
+    sourceAlternatives?: Record<number, EvidenceLine[]>;
+    sourceConflicts?: number[];
+    joinedSectionRows?: number;
+    rawSections?: { photo: number; part: number; text: string }[];
+  }>;
 }
 
 /** Only remove an exact suffix/prefix match at a known overlapping window within one photo. */
 export function joinDetailText(parts: string[]): string {
-  const lines = (text: string) =>
-    text
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-  const key = (line: string) => line.toUpperCase().replace(/\s+/g, "");
-  let joined = lines(parts[0] || "");
-  for (const part of parts.slice(1)) {
-    const next = lines(part);
-    let overlap = 0;
-    for (
-      let count = Math.min(200, joined.length, next.length);
-      count >= 3;
-      count--
-    ) {
-      const tail = joined.slice(-count).map(key);
-      if (
-        new Set(tail).size >= 3 &&
-        tail.every((line, index) => line === key(next[index]))
-      ) {
-        overlap = count;
-        break;
-      }
-    }
-    joined = [...joined, ...next.slice(overlap)];
-  }
-  return joined.join("\n");
+  return joinOcrRows(
+    parts.map((text) => ocrTextLines(text).map((text) => ({ text }))),
+  )
+    .map((row) => row.text)
+    .join("\n");
 }
 
 /** Replace this provider at the boundary; all output must pass extractionOutputSchema. No receipt text is executable. */
@@ -135,32 +135,101 @@ export const localOcrProvider: ExtractionProvider = {
           tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
         });
         const texts: string[] = [];
+        const sourceLines: (EvidenceLine | null)[] = [];
+        const sourceAlternatives: Record<number, EvidenceLine[]> = {};
+        const sourceConflicts: number[] = [];
+        const rawSections: { photo: number; part: number; text: string }[] = [];
+        let joinedSectionRows = 0;
+        const evidencePanels: Recognition["panels"] = [];
+        let incompleteEvidence = false;
         for (let i = 0; i < images.length; i++) {
           if (finished) throw new Error("Scan stopped.");
           const panels = readingBlobs(images[i]);
-          const parts: string[] = [];
+          const sourceParts: DeviceSourceRow[][] = [];
+          const frames: Parameters<typeof joinDeviceRows>[1] = [];
           for (const [part, blob] of panels.entries()) {
             if (finished) throw new Error("Scan stopped.");
             progress(
               `Reading photo ${i + 1} of ${images.length}${panels.length > 1 ? ` · section ${part + 1} of ${panels.length}` : ""} on your device…`,
             );
-            const result = await worker.recognize(blob);
-            parts.push(
-              extractionOutputSchema.parse({ text: result.data.text }).text,
+            const result = await worker.recognize(
+              blob,
+              {},
+              { text: true, blocks: true },
             );
+            const text = extractionOutputSchema.parse({
+              text: result.data.text,
+            }).text;
+            rawSections.push({ photo: i + 1, part: part + 1, text });
+            let width = 0,
+              height = 0;
+            try {
+              ({ width, height } = inspectImage(
+                new Uint8Array(await blob.arrayBuffer()),
+                blob.type,
+                blob.size,
+              ));
+            } catch {
+              /* Valid text survives unavailable image metadata. */
+            }
+            const evidence = devicePanel(
+              result.data,
+              text,
+              width,
+              height,
+              i + 1,
+              part + 1,
+            );
+            if (evidence.panel) evidencePanels.push(evidence.panel);
+            if (!evidence.complete) incompleteEvidence = true;
+            sourceParts.push(evidence.rows);
+            frames.push({
+              panel: evidence.panel,
+              window: images[i].readingWindows?.[part],
+            });
           }
-          texts.push(joinDetailText(parts));
+          const joined = joinDeviceRows(sourceParts, frames);
+          texts.push(joined.rows.map((row) => row.text).join("\n"));
+          if (i) sourceLines.push(null);
+          const offset = sourceLines.length;
+          for (const [index, row] of joined.rows.entries()) {
+            sourceLines.push(row.source);
+            if (row.alternatives?.length)
+              sourceAlternatives[offset + index] = row.alternatives;
+          }
+          sourceConflicts.push(
+            ...joined.conflicts.map((index) => offset + index),
+          );
+          joinedSectionRows += joined.dropped;
         }
         const output = extractionOutputSchema.parse({
           text: texts.join(`\n${PHOTO_SEPARATOR}\n`),
         });
         return {
           ...output,
-          warnings: images.some((image) => readingBlobs(image).length > 1)
-            ? [
-                "A tall photo was read in overlapping detail sections. Exact joins were merged; check for missing or repeated lines where sections meet.",
-              ]
-            : [],
+          recognition: deviceRecognition(evidencePanels),
+          sourceLines,
+          sourceAlternatives,
+          sourceConflicts,
+          joinedSectionRows,
+          rawSections,
+          warnings: [
+            ...(images.some((image) => readingBlobs(image).length > 1)
+              ? [
+                  "A tall photo was read in overlapping detail sections. Check for missing or repeated purchases where sections meet. Available source views retain overlapping readings.",
+                ]
+              : []),
+            ...(incompleteEvidence
+              ? [
+                  "Some on-device source areas could not be matched. Compare those values with the full receipt photo.",
+                ]
+              : []),
+            ...(sourceConflicts.length
+              ? [
+                  "Overlapping sections read some source rows differently. Conflicting amounts keep the original text assembly; compare both source sections before accepting those values.",
+                ]
+              : []),
+          ],
         };
       })();
       return await Promise.race([work, failure]);

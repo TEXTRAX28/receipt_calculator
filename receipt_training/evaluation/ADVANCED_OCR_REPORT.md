@@ -2,7 +2,17 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
+The latest [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md) adds literal
+word/row highlights and mandatory source checks. All fifty original paired
+native outputs preserve their OCR text and financial values; 81/82 parsed
+purchases now have source areas. One controlled long synthetic improves from 43
+to its printed 40 rows, preserving two identical purchases. An earlier Tesco
+regression is retained and rejected. All 763 unit tests and 187 browser cases
+pass, with one existing skip; the linked packet records evidence verification.
+No genuine-photo price gain,
+new private upload or default-provider change is claimed.
+
+The preceding [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
 preserves originals and native long-receipt sections, with explicit preview and
 mandatory purchase-list review. It passes 716 unit tests and 183 browser tests
 with one existing skip, including editor accessibility and a real on-device

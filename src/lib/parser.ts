@@ -4,6 +4,7 @@ import {
   receiptSchema,
   type Receipt,
   type Currency,
+  type ReceiptReviewField,
 } from "./model";
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
@@ -52,6 +53,7 @@ export function parseReceiptWithSources(
   receipt: Receipt;
   sources: Record<string, number[]>;
   columnSources: Record<string, ColumnSource>;
+  fieldSources: Partial<Record<ReceiptReviewField, number[]>>;
 } {
   const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
@@ -60,6 +62,7 @@ export function parseReceiptWithSources(
   const receipt = newReceipt();
   const sources: Record<string, number[]> = {};
   const columnSources: Record<string, ColumnSource> = {};
+  const fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {};
   receipt.source = "text";
   receipt.rawText = text;
   const lines = text
@@ -173,6 +176,7 @@ export function parseReceiptWithSources(
     label: string;
     kind: "fee" | "tip" | "deposit" | "discount" | "rounding";
     amount: string;
+    lineIndex: number;
   }[] = [];
   const financialRows = new Map<
     number,
@@ -196,8 +200,10 @@ export function parseReceiptWithSources(
     const code = line.match(
       /^([A-Z][A-Z0-9]{0,5})\s+(\d+(?:[.,]\d+)?)\s*%\s+[\d,.]+\s+[\d,.]+\s*$/,
     );
-    if (code)
+    if (code) {
       receipt.taxCodes.push({ code: code[1], rate: code[2].replace(",", ".") });
+      (fieldSources.taxCodes ||= []).push(lineIndex);
+    }
     if (isFinalTotal(line)) {
       const candidate = lastAmount(line);
       if (
@@ -209,25 +215,35 @@ export function parseReceiptWithSources(
           "Different final totals were read. Check the printed total against the original before confirming this receipt.",
         );
       receipt.printedTotal = candidate || receipt.printedTotal;
+      if (candidate) fieldSources.printedTotal = [lineIndex];
     }
     if (
       financial?.role === "subtotal" ||
       /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line)
-    )
-      receipt.subtotal = lastAmount(line) || receipt.subtotal;
-    if (financial?.role === "tax")
-      taxAmount = normalize(financial.literal) || taxAmount;
-    else if (
+    ) {
+      const candidate = lastAmount(line);
+      receipt.subtotal = candidate || receipt.subtotal;
+      if (candidate) fieldSources.subtotal = [lineIndex];
+    }
+    if (financial?.role === "tax") {
+      const candidate = normalize(financial.literal);
+      taxAmount = candidate || taxAmount;
+      if (candidate) fieldSources.printedTax = [lineIndex];
+    } else if (
       /^(?:vat amount|tax amount|sales tax|vat|tax)\s*[:£$€]?\s*[-−]?\s*\d/i.test(
         line,
       ) &&
       !/%/.test(line)
-    )
-      taxAmount = lastAmount(line) || taxAmount;
+    ) {
+      const candidate = lastAmount(line);
+      taxAmount = candidate || taxAmount;
+      if (candidate) fieldSources.printedTax = [lineIndex];
+    }
     if (financial && ["fee", "discount", "rounding"].includes(financial.role)) {
       const amount = normalize(financial.literal);
       if (amount)
         extraCharges.push({
+          lineIndex,
           label: financial.label,
           kind: financial.role as "fee" | "discount" | "rounding",
           amount:
@@ -245,6 +261,7 @@ export function parseReceiptWithSources(
       const amount = lastAmount(line);
       if (amount)
         extraCharges.push({
+          lineIndex,
           label: line.replace(amountPattern, "").trim().slice(0, 100),
           kind: /tip|gratuity/i.test(line)
             ? "tip"
@@ -273,20 +290,26 @@ export function parseReceiptWithSources(
   }
   receipt.taxMode = receipt.taxCodes.length || isCostco ? "codes" : "printed";
   receipt.printedTax = taxAmount;
-  if (taxAmount && receipt.taxMode === "printed")
-    receipt.adjustments.push({
+  if (taxAmount && receipt.taxMode === "printed") {
+    const adjustment = {
       id: crypto.randomUUID(),
       label: "Printed tax",
-      kind: "tax",
+      kind: "tax" as const,
       amount: taxAmount,
-      allocation: "proportional",
-    });
-  for (const charge of extraCharges)
-    receipt.adjustments.push({
+      allocation: "proportional" as const,
+    };
+    receipt.adjustments.push(adjustment);
+    sources[adjustment.id] = fieldSources.printedTax || [];
+  }
+  for (const { lineIndex, ...charge } of extraCharges) {
+    const adjustment = {
       id: crypto.randomUUID(),
       ...charge,
-      allocation: "proportional",
-    });
+      allocation: "proportional" as const,
+    };
+    receipt.adjustments.push(adjustment);
+    sources[adjustment.id] = [lineIndex];
+  }
   if (!isCostco)
     receipt.warnings.push(
       "Confirm whether the item prices already include tax. Merchant formats vary.",
@@ -734,5 +757,32 @@ export function parseReceiptWithSources(
         receipt.taxCodes.push({ code, rate: "" });
     }
   receipt.warnings = [...new Set(receipt.warnings)].slice(0, 60);
-  return { receipt: receiptSchema.parse(receipt), sources, columnSources };
+  fieldSources.adjustments = [
+    ...new Set(
+      receipt.adjustments.flatMap((adjustment) => sources[adjustment.id] || []),
+    ),
+  ];
+  const explicitBasis = lines.flatMap((line, index) =>
+    /\b(?:item\s+)?prices?\s+(?:include|incl(?:uding)?|exclude|excl(?:uding)?)\b/i.test(
+      line,
+    )
+      ? [index]
+      : [],
+  );
+  fieldSources.pricesIncludeTax = explicitBasis.length
+    ? explicitBasis
+    : [
+        ...new Set([
+          ...(fieldSources.subtotal || []),
+          ...(fieldSources.printedTax || []),
+          ...(fieldSources.printedTotal || []),
+          ...(fieldSources.taxCodes || []),
+        ]),
+      ];
+  return {
+    receipt: receiptSchema.parse(receipt),
+    sources,
+    columnSources,
+    fieldSources,
+  };
 }

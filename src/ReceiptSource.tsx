@@ -40,6 +40,18 @@ function SourceImage({ panel }: { panel: SourcePanel }) {
           vectorEffect="non-scaling-stroke"
         />
       ))}
+      {panel.uncertainWords?.map((word, index) => (
+        <rect
+          key={`word-${index}`}
+          data-testid="uncertain-word-region"
+          className="source-region unclear"
+          x={word.box[0] * panel.width}
+          y={word.box[1] * panel.height}
+          width={(word.box[2] - word.box[0]) * panel.width}
+          height={(word.box[3] - word.box[1]) * panel.height}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
     </svg>
   );
 }

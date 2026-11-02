@@ -120,6 +120,7 @@ export interface ReceiptImage {
   panels?: Blob[];
   crop?: CropBounds;
   geometry?: ReceiptGeometry;
+  readingWindows?: ReadingWindow[];
   quality?: CaptureQuality;
   document?: {
     kind: "pdf";
@@ -129,6 +130,56 @@ export interface ReceiptImage {
     original: File;
     text?: PdfPageText;
   };
+}
+export interface ReadingWindow {
+  sourceWidth: number;
+  sourceHeight: number;
+  bounds: [number, number, number, number];
+  content: [number, number, number, number];
+}
+
+/** Known preparation coordinates, never estimated from receipt words or prices. */
+export function planReadingWindows(
+  width: number,
+  height: number,
+  padded = false,
+): ReadingWindow[] {
+  const plan = planReadingPanels(width, height);
+  const preview = previewDimensions(width, height);
+  return (
+    plan.length
+      ? plan
+      : [
+          {
+            top: 0,
+            height,
+            outputWidth: preview.width,
+            outputHeight: preview.height,
+          },
+        ]
+  ).map((section) => {
+    const frame = padded
+      ? paddedCorrectionFrame(section.outputWidth, section.outputHeight)
+      : null;
+    return {
+      sourceWidth: width,
+      sourceHeight: height,
+      bounds: [
+        0,
+        section.top / height,
+        1,
+        (section.top + section.height) / height,
+      ],
+      content: frame
+        ? [
+            frame.left / frame.width,
+            frame.top / frame.height,
+            (frame.left + frame.contentWidth) / frame.width,
+            (frame.top + frame.contentHeight) / frame.height,
+          ]
+        : [0, 0, 1, 1],
+    };
+  });
 }
 export const readingBlobs = (image: ReceiptImage): Blob[] =>
   image.panels || [image.ocrBlob || image.blob];
@@ -300,6 +351,7 @@ export async function cropImage(
       panels,
       crop: bounds,
       geometry: undefined,
+      readingWindows: planReadingWindows(width, height),
       quality: inspectCapture(bitmap, x, y, width, height),
     };
   } finally {
@@ -367,6 +419,7 @@ export async function prepareImage(file: File): Promise<ReceiptImage> {
       sourceBytes: file.size,
       panels,
       quality: inspectCapture(bitmap),
+      readingWindows: planReadingWindows(bitmap.width, bitmap.height),
     };
   } catch {
     throw new Error(

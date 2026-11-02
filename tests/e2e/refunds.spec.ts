@@ -256,6 +256,25 @@ test("actual on-device OCR preserves a synthetic returned product and its negati
     .getByLabel("Recognized text", { exact: true })
     .inputValue();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "View source for item 1", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByTestId("source-region").first(),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  // Explicit source review of the known synthetic refund, including its tax convention.
+  // No financial edit or automatic-verification claim is introduced here.
+  let humanSourceChecks = 0;
+  for (const check of await page
+    .getByRole("checkbox", { name: /^I checked .+ against the original$/ })
+    .all()) {
+    await check.check();
+    humanSourceChecks++;
+  }
   await addPeople(page, ["Alice", "Bob"]);
   for (const checkbox of await page
     .getByTestId("assignment-item-0")
@@ -290,6 +309,7 @@ test("actual on-device OCR preserves a synthetic returned product and its negati
         ...observed,
         finalCreditShares: ["-2.50", "-2.50"],
         financialEdits: 0,
+        humanSourceChecks,
         ...requests,
       },
       null,

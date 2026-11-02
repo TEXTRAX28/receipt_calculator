@@ -172,12 +172,11 @@ test("real local correction preserves long receipt ends and requires source revi
     );
   const uneditedItems = [];
   for (const item of [1, 2]) {
-    await page
-      .getByRole("button", {
-        name: `Edit details for item ${item}`,
-        exact: true,
-      })
-      .click();
+    const details = page.getByRole("button", {
+      name: new RegExp(`^(?:Edit|Hide) details for item ${item}$`),
+    });
+    if ((await details.getAttribute("aria-expanded")) !== "true")
+      await details.click();
     uneditedItems.push({
       description: uneditedNames[item - 1],
       quantity: await page
@@ -214,6 +213,20 @@ test("real local correction preserves long receipt ends and requires source revi
   await expect(
     page.getByLabel("Item 2 line price", { exact: true }),
   ).toHaveValue("3.00");
+  expect(uneditedItems).toEqual([
+    {
+      description: "Milk",
+      quantity: "1",
+      unitPrice: "2.50",
+      lineTotal: "2.50",
+    },
+    {
+      description: "~ Apples",
+      quantity: "1",
+      unitPrice: "3.00",
+      lineTotal: "3.00",
+    },
+  ]);
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
     exact: true,
@@ -244,6 +257,19 @@ test("real local correction preserves long receipt ends and requires source revi
     .getByRole("dialog")
     .screenshot({ path: await qaArtifactPath(info, "geometry-source.png") });
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page
+    .getByRole("button", { name: "View source for item 2", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByTestId("uncertain-word-region").first(),
+  ).toBeVisible();
+  await page.getByRole("dialog").screenshot({
+    path: await qaArtifactPath(info, "device-uncertain-word-source.png"),
+  });
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
   // Explicit human correction after source inspection; do not count it as OCR accuracy.
   await page.getByLabel("Item 2 description", { exact: true }).fill("Apples");
   await expect(
@@ -254,6 +280,23 @@ test("real local correction preserves long receipt ends and requires source revi
     page.getByLabel("Item 2 unit price (optional)", { exact: true }),
   ).toHaveValue("3.00");
   await expect(confirm).toBeDisabled();
+  // These known synthetic values were asserted and compared with the source above.
+  // Checking them is explicit simulated human review, never an OCR accuracy gain.
+  for (const field of [
+    "description",
+    "purchased quantity",
+    "unit price",
+    "line price",
+    "printed total",
+    "whether item prices include tax",
+  ])
+    for (const check of await page
+      .getByRole("checkbox", {
+        name: `I checked ${field} against the original`,
+        exact: true,
+      })
+      .all())
+      await check.check();
   await page
     .getByRole("checkbox", {
       name: "I checked purchase list against the original",

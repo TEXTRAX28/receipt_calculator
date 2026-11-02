@@ -128,7 +128,49 @@ describe("source areas for parsed purchases", () => {
     ];
     const { receipt, evidence } = read(recognition);
     expect(evidence.items[receipt.items[0].id].panels[0].unclear).toBe(true);
+    expect(
+      evidence.items[receipt.items[0].id].panels[0].uncertainWords,
+    ).toEqual([recognition.panels[0].words[0]]);
     expect(evidence.items[receipt.items[1].id].panels[0].unclear).toBe(false);
+  });
+
+  it("retains both actual overlapping section readings and flags their conflict", () => {
+    const recognition = input();
+    const assembly = assembleRecognition(recognition),
+      parsed = parseReceiptWithSources(assembly.text);
+    const index = parsed.sources[parsed.receipt.items[0].id][1];
+    const alternate = {
+      ...assembly.sourceLines[index]!,
+      part: 2,
+      text: "10533 1x 8.99 8.99 A",
+      box: [0.2, 0.1, 0.8, 0.12] as [number, number, number, number],
+    };
+    recognition.panels.push({
+      ...recognition.panels[0],
+      part: 2,
+      lines: [alternate],
+    });
+    const photos = images();
+    photos[0].panels = [
+      photos[0].blob,
+      new Blob(["actual alternate section fixture"]),
+    ];
+    const evidence = collectReceiptEvidence(
+      parsed.receipt,
+      assembly.text,
+      parsed.sources,
+      assembly.sourceLines,
+      recognition,
+      photos,
+      {},
+      { [index]: [alternate] },
+    )!;
+    const item = evidence.items[parsed.receipt.items[0].id];
+    expect(item.panels.map((p) => p.part)).toEqual([1, 2]);
+    expect(item.panels[1].blob).toBe(photos[0].panels[1]);
+    expect(item.panels[1].regions).toEqual([alternate]);
+    expect(item.panels.every((p) => p.unclear)).toBe(true);
+    expect(parsed.receipt.items[0].lineTotal).toBe("3.99");
   });
 
   it("refuses misaligned text rather than highlighting a guessed row", () => {
@@ -149,6 +191,28 @@ describe("source areas for parsed purchases", () => {
     const { receipt, evidence } = read(input(), []);
     expect(receipt.items).toHaveLength(3);
     expect(evidence.items).toEqual({});
+  });
+  it("retains matched regions when an unrelated row has no geometry", () => {
+    const { receipt, sources, assembly, photos } = read();
+    const incomplete = [...assembly.sourceLines];
+    incomplete[0] = null;
+    const evidence = collectReceiptEvidence(
+      receipt,
+      assembly.text,
+      sources,
+      incomplete,
+      input(),
+      photos,
+    )!;
+    expect(evidence).not.toBeNull();
+    expect(
+      evidence.items[receipt.items[0].id].panels[0].regions.map((r) => r.text),
+    ).toEqual(chicken);
+    expect(
+      evidence.items[receipt.items[0].id].panels[0].regions.some(
+        (r) => r.text === "COSTCO UK",
+      ),
+    ).toBe(false);
   });
 
   it("keeps the context viewport inside actual panel pixels and rejects empty regions", () => {

@@ -62,7 +62,7 @@ import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
 import { readingBlobs, type ReceiptImage } from "./lib/images";
 import { prepareReceiptFile } from "./lib/receipt-files";
 import { canReadPdfText, readPdfText } from "./lib/pdf-text";
-import { localOcrProvider } from "./lib/ocr";
+import { localOcrProvider, type ExtractionProvider } from "./lib/ocr";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import {
   extractWithLocalModel,
@@ -96,6 +96,7 @@ import ReviewChecks from "./ReviewChecks";
 import PhotoGuidance from "./PhotoGuidance";
 import ReceiptPhotos from "./ReceiptPhotos";
 import { requireCorrectedPhotoReview } from "./lib/capture-review";
+import { reviewDeviceReading } from "./lib/device-review";
 import RefundControl from "./RefundControl";
 import {
   collectReceiptEvidence,
@@ -807,7 +808,7 @@ export default function App() {
               setScanStatus,
             )
           : null;
-      const output =
+      const output: Awaited<ReturnType<ExtractionProvider["extract"]>> =
         computerOutput ??
         (await localOcrProvider.extract(
           images,
@@ -815,20 +816,24 @@ export default function App() {
           setScanStatus,
         ));
       setRawText(output.text);
-      const { receipt: parsed, sources } = parseReceiptWithSources(
-        output,
-        readingContext,
-      );
-      const evidence = computerOutput
-        ? collectReceiptEvidence(
-            parsed,
-            output.text,
-            sources,
-            computerOutput.sourceLines,
-            computerOutput.recognition,
-            images,
-          )
-        : null;
+      const {
+        receipt: parsed,
+        sources,
+        fieldSources,
+      } = parseReceiptWithSources(output, readingContext);
+      const evidence =
+        output.recognition && output.sourceLines
+          ? collectReceiptEvidence(
+              parsed,
+              output.text,
+              sources,
+              output.sourceLines,
+              output.recognition,
+              images,
+              fieldSources,
+              output.sourceAlternatives,
+            )
+          : null;
       parsed.warnings = [...parsed.warnings, ...(output.warnings || [])].slice(
         0,
         60,
@@ -844,7 +849,17 @@ export default function App() {
       parsed.source = "ocr";
       replaceReceipt(
         requireCorrectedPhotoReview(
-          parsed,
+          computerOutput
+            ? parsed
+            : reviewDeviceReading(
+                parsed,
+                sources,
+                output.sourceLines || [],
+                output.recognition,
+                fieldSources,
+                output.sourceConflicts,
+                output.joinedSectionRows,
+              ),
           images.some((image) => !!image.geometry),
         ),
         evidence,

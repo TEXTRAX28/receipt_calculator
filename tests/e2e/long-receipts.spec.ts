@@ -300,6 +300,12 @@ test("a tall photograph creates readable overlapping panels and real OCR reaches
   expect(names.some((name) => /Milk/i.test(name))).toBe(true);
   expect(names.some((name) => /Bread/i.test(name))).toBe(true);
   await expect(
+    page.getByRole("checkbox", {
+      name: "I checked purchase list against the original",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeEnabled();
+  ).toBeDisabled();
 });

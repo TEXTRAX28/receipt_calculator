@@ -11,7 +11,18 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest implementation: [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
+Latest implementation: [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md)
+adds actual word/row highlights and mandatory uncertainty checks. The final
+paired original-fifty run preserves every prepared image, OCR text and financial
+value, with source areas for 81/82 parsed purchases; this is not price-accuracy
+improvement. A controlled tall synthetic improves 43 rows to its printed 40,
+preserving two genuine identical purchases. An earlier Tesco grouping regression
+is retained and rejected; conflicting amounts now preserve the original text
+assembly. All 763 unit tests and 187 browser cases pass, with one existing skip;
+the evidence packet binds the final run and rejected trials. No new private
+upload or provider promotion.
+
+The preceding [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
 preserves originals and native long-receipt sections, adds explicit corrected
 previews and mandatory source review, and passes 716 unit tests plus 183 browser
 tests with one existing skip. The real on-device synthetic journey still needs
