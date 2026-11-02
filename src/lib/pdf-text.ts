@@ -1,11 +1,13 @@
 import type { ReceiptImage } from "./images";
 import type { ReadingContext } from "./reading-context.mjs";
+import { readingContextSchema } from "./reading-context.mjs";
 import type { EvidenceLine, Recognition } from "./receipt-layout";
 import {
   PHOTO_SEPARATOR,
   extractionOutputSchema,
   parseReceiptWithSources,
 } from "./parser";
+import { readPdfInvoice } from "./pdf-invoice";
 
 type TextToken = {
   str: string;
@@ -20,6 +22,9 @@ export type PdfPageText = {
   width: number;
   height: number;
   lines: Recognition["panels"][number]["lines"];
+  words?: (Recognition["panels"][number]["words"][number] & {
+    lineIndex?: number;
+  })[];
 };
 
 /** PDF coordinates supply provenance, not a calibrated probability of correctness. */
@@ -110,6 +115,7 @@ export function pdfTextRows(
     else rows.push([token]);
   }
   const lines: PdfPageText["lines"] = [];
+  const wordLines = new Map<(typeof tokens)[number], number>();
   for (const row of rows) {
     row.sort((a, b) => a.x - b.x);
     if (
@@ -123,6 +129,7 @@ export function pdfTextRows(
       return;
     const text = row.map((token) => token.text).join(" ");
     if (text.length > 2000) return;
+    for (const token of row) wordLines.set(token, lines.length);
     lines.push({
       text,
       confidence: 1,
@@ -143,7 +150,18 @@ export function pdfTextRows(
     )
   )
     return;
-  return { width, height, lines };
+  const words = tokens.map((token) => ({
+    text: token.text,
+    confidence: 1,
+    lineIndex: wordLines.get(token),
+    box: [
+      Math.max(0, token.x / width),
+      Math.max(0, token.top / height),
+      Math.min(1, token.right / width),
+      Math.min(1, token.bottom / height),
+    ] as [number, number, number, number],
+  }));
+  return { width, height, lines, words };
 }
 
 export function canReadPdfText(images: ReceiptImage[]) {
@@ -173,14 +191,17 @@ export function readPdfText(images: ReceiptImage[], context?: ReadingContext) {
       part: 1,
       width: page.width,
       height: page.height,
-      words: page.lines,
+      words: page.words || page.lines,
       lines: page.lines,
     };
   });
   const { text } = extractionOutputSchema.parse({
     text: sourceLines.map((line) => line?.text ?? PHOTO_SEPARATOR).join("\n"),
   });
-  const parsed = parseReceiptWithSources({ text }, context);
+  const selected = readingContextSchema.optional().parse(context);
+  const parsed =
+    readPdfInvoice(images, text, selected) ||
+    parseReceiptWithSources({ text }, selected);
   parsed.receipt.source = "text";
   parsed.receipt.warnings = [
     ...parsed.receipt.warnings,

@@ -11,15 +11,22 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-New [genuine public PDF baseline](PUBLIC_DIGITAL_PDF_BASELINE.md): two paid
-invoices from a council-published packet import through the unchanged app's
-embedded-text path with zero model calls or uploads. Both financial drafts are
-incorrect and remain blocked. The native text is available, but table columns,
-transaction summaries and currency metadata are misinterpreted. Whole selected
-pages, source truth and exact render comparisons are preserved separately from
-the original fifty. This identifies an implementation gap rather than a gain.
+Latest [native PDF invoice-column repair](PDF_INVOICE_COLUMNS.md): the same two
+genuine public invoices now retain all six quantities, populated unit prices and
+line amounts on a consistent printed basis, both final totals and printed tax
+amounts. The £13.06 document completes the actual automated source-review controls
+and £6.53/£6.53 split without financial edits. The £2,086.39 document remains
+blocked by its printed quantity/unit/line discrepancies, despite balancing overall.
+These two familiar supplementary documents are not a blind holdout or a new
+original-fifty score. Initial confirmation remains disabled pending source checks;
+automated checkbox interactions are not independent human verification. Source
+pages, the preceding failure baseline and exact render comparisons are preserved.
+All 853 unit tests and 189 final browser cases pass, with one existing skip;
+build/typecheck/formatting pass. The first browser run's stylesheet resource
+failure and its unchanged rechecks are preserved separately. This is a local
+PDF interpretation repair; no model inference, private upload or paid activation.
 
-Latest implementation: [source-backed payment-row exclusions](PAYMENT_ROWS.md)
+The preceding [source-backed payment-row exclusions](PAYMENT_ROWS.md)
 proposes removing 17 false bill adjustments across 11 original receipts with
 supplied currency context. Every affected image was inspected; each excluded
 row is a payment or change. Every removal remains pending human review, even
@@ -280,13 +287,13 @@ means implemented or investigated but a material acceptance condition remains.
 | Objective requirement group | Disposition and evidence | Outstanding acceptance |
 |---|---|---|
 | P1: inspect repository/branches, frontend/backend/models, image/parser/split paths, datasets and security; preserve dirty changes; run the existing app | Verified investigation and preserved baseline; Git references above, original frozen source, baseline tests and report history. | No outstanding initial-investigation blocker. This does not certify all later code defect-free. |
-| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. | Two supplementary genuine public PDF invoices now have a native-path failure baseline. Complete financial truth remains unavailable for the original fifty; unknown fields must stay unknown. |
+| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. | Two supplementary genuine public PDF invoices now have a preserved failure baseline and source-supported column repair. Complete financial truth remains unavailable for the original fifty; unknown fields must stay unknown. |
 | P3A: investigate dedicated APIs, fields, Costco/general layouts, versions, cost and privacy | Veryfi and Azure measured on approved crops and integrated optionally; Google/AWS official capabilities investigated. | No full-corpus external permission. Google/AWS not benchmarked; exact future regional/version/cost/privacy configuration needs verification if selected. |
 | P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. | Closed-provider real-receipt comparison unestablished: Gemini 503; OpenAI/Claude access absent. Do not count synthetic transport as accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
 | P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
-| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, scanned/mixed fallback. | Image subtype classification is not implemented. Two genuine paid PDF invoices import but fail financial interpretation; native column/summary roles need repair. |
+| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two genuine PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. | Image subtype classification is not implemented. Wider genuine PDF/scan coverage remains required; the other invoice's printed unit/line discrepancies correctly remain blocking. |
 | P4.3: best practical primary extraction of all structured purchase/financial fields | Paddle primary and optional readers implemented/tested; source-preserving parser and review work. | Known missing products, prices, merchant, fee/tax/payment roles and totals remain. A schema-valid draft is not a correct receipt. |
 | P4.4: independent image-based verification/recovery for uncertainty, discounts, duplicate rows and failed arithmetic; bounded extra calls | Implemented automatic local policy, independent original-image VLM, guarded source proposals, bounded batches and fallback checks; same-reading gains measured. | General automatic recovery and difficult overlap/role errors remain. Current selection is a checked-draft hybrid. |
 | P4.5: independent deterministic quantity×unit, item/coupon/tax/charge/refund/subtotal/final validation; inclusive-tax conventions | Implemented exact decimal/bigint engine and regression coverage; disagreement blocks finalization. | A validator detects inconsistency but cannot establish unreadable source facts or correct model financial roles. |
@@ -350,8 +357,11 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint excludes source-supported payment/change rows from
-bill charges while keeping every exclusion pending. `b54997a` preserves the
+The latest code checkpoint reads native invoice columns and qualified financial
+summaries while preserving mandatory source checks and printed inconsistencies.
+`822f758` preserves the unchanged-app public-PDF failure baseline; `ae7f2e0`
+excludes source-supported payment/change rows from bill charges while keeping
+every exclusion pending. `b54997a` preserves the
 unexecuted 8B feasibility protocol; `e7191c9` adds unique source-word alignment
 and keeps recovered amounts pending. The preceding `82706e0` adds actual on-device source highlights
 and conservative overlap handling; `6613870` adds optional image geometry and

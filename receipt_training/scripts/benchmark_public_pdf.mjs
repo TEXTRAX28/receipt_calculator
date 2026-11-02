@@ -10,8 +10,10 @@ import { chromium } from "@playwright/test";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2] || "public-digital-v1";
+const review = process.argv.includes("--review");
 assert(/^[\w-]+$/.test(run));
 const out = resolve(root, "qa-artifacts", run, "browser");
+await mkdir(dirname(out), { recursive: true });
 await mkdir(out);
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const write = (name, data) =>
@@ -57,7 +59,8 @@ for (const document of documents)
   );
 await write("plan.json", {
   scope:
-    "Two public council-published paid invoices, complete original invoice pages. Actual current local PDF UI and embedded-text reader. No template/model changes, source hints, label-derived edits, cloud requests or retries. New supplementary documents, separate from the original fifty.",
+    "Two public council-published paid invoices, complete original invoice pages. Actual current local PDF UI and embedded-text reader, with frozen current source. No model inference, source hints, label-derived edits, cloud requests or retries. New supplementary documents, separate from the original fifty.",
+  review_workflow: review,
   documents,
   source_sha256: sources,
   input_sha256: sha(input),
@@ -172,6 +175,98 @@ try {
         fullPage: true,
       });
       assert.equal(result.state.receipt.rawText, "");
+      if (review) {
+        // Exercise the human review controls; this automation is not independent
+        // human validation and never edits an extracted financial field.
+        result.source_views = [];
+        for (
+          let index = 1;
+          index <= result.state.receipt.items.length;
+          index++
+        ) {
+          await page
+            .getByRole("button", {
+              name: `View source for item ${index}`,
+              exact: true,
+            })
+            .click();
+          const regions = await page.getByTestId("source-region").count();
+          assert(regions > 0);
+          result.source_views.push({ item: index, regions });
+          await page.getByRole("dialog").screenshot({
+            path: resolve(out, document.id + `-source-${index}.png`),
+          });
+          await page
+            .getByRole("button", { name: "Close dialog", exact: true })
+            .click();
+        }
+        for (const box of await page
+          .getByRole("checkbox", { name: /^I checked / })
+          .all())
+          await box.check();
+        result.reviewed_state = await page.evaluate(() =>
+          JSON.parse(localStorage.getItem("gather.receipt.v1")),
+        );
+        const financial = ({ reviewChecks, ...receipt }) => receipt;
+        assert.deepEqual(
+          financial(result.reviewed_state.receipt),
+          financial(result.state.receipt),
+        );
+        const confirm = page.getByRole("button", {
+          name: "Confirm receipt & add people",
+          exact: true,
+        });
+        result.reviewed_confirm_enabled = await confirm.isEnabled();
+        await page.screenshot({
+          path: resolve(out, document.id + "-checked.png"),
+          fullPage: true,
+        });
+        if (result.reviewed_confirm_enabled) {
+          await confirm.click();
+          for (const name of ["Alice", "Bob"]) {
+            await page
+              .getByRole("textbox", { name: "Person’s name", exact: true })
+              .fill(name);
+            await page
+              .getByRole("button", { name: "Add person", exact: true })
+              .click();
+          }
+          await page
+            .getByRole("button", { name: "Let’s share it", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Whole receipt", exact: true })
+            .click();
+          for (const box of await page
+            .getByTestId("whole-assignment")
+            .getByRole("checkbox")
+            .all())
+            await box.check();
+          await page
+            .getByRole("button", { name: "Finalize split", exact: true })
+            .click();
+          result.person_totals = await Promise.all(
+            [0, 1].map((index) =>
+              page.getByTestId(`person-total-${index}`).innerText(),
+            ),
+          );
+          result.final_state = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem("gather.receipt.v1")),
+          );
+          assert.equal(result.final_state.step, "summary");
+          assert.deepEqual(
+            financial(result.final_state.receipt),
+            financial(result.state.receipt),
+          );
+          await page.screenshot({
+            path: resolve(out, document.id + "-split.png"),
+            fullPage: true,
+          });
+        }
+        result.reviewed_horizontal_overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        );
+      }
       assert.deepEqual(requests, { posts: [], external: [] });
     } catch (error) {
       result.error = String(error).slice(0, 500);
