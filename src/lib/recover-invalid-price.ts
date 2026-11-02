@@ -4,6 +4,7 @@ import { money } from "./money";
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
 import { matchPurchaseExpression } from "./purchase-expression";
+import { alignedSourceWords } from "./source-words";
 
 const tokens = (text: string) =>
   [...text.matchAll(/[-−]?[£$€]?\s*\d[\d,.]*[.,]\d{2,3}-?/g)].map((match) =>
@@ -74,23 +75,8 @@ export function recoverInvalidPrice(
     if (role === "unitPrice" || anchored) {
       if (!span) return null;
       const compact = (text: string) => text.replace(/\s/g, "");
-      const inside = (panel?.words || [])
-        .filter((word) => {
-          const x = (word.box[0] + word.box[2]) / 2,
-            y = (word.box[1] + word.box[3]) / 2;
-          return (
-            x >= region.box[0] &&
-            x <= region.box[2] &&
-            y >= region.box[1] &&
-            y <= region.box[3]
-          );
-        })
-        .sort((a, b) => a.box[0] - b.box[0]);
-      if (
-        inside.map((word) => compact(word.text)).join("") !==
-        compact(region.text)
-      )
-        return null;
+      const inside = alignedSourceWords(region, recognition);
+      if (!inside) return null;
       const start = compact(region.text.slice(0, span[0])).length;
       const end = compact(region.text.slice(0, span[1])).length;
       let offset = 0;

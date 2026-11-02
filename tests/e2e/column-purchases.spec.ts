@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("printed columns → pending source checks → exact shared bill (synthetic readers)", async ({
+test("overlapping source rows → pending column checks → exact shared bill (synthetic readers)", async ({
   page,
 }, info) => {
   const texts = [
@@ -13,6 +13,7 @@ test("printed columns → pending source checks → exact shared bill (synthetic
     "Prices include tax",
   ];
   let lines: { text: string; confidence: number; box: number[] }[] = [];
+  let words: typeof lines = [];
   const posts: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST")
@@ -39,7 +40,7 @@ test("printed columns → pending source checks → exact shared bill (synthetic
               width: 700,
               height: 1000,
               lines,
-              words: lines,
+              words,
             }),
           ),
         },
@@ -115,6 +116,10 @@ test("printed columns → pending source checks → exact shared bill (synthetic
     return { lines, png: canvas.toDataURL("image/png").split(",")[1] };
   }, texts);
   lines = fixture.lines;
+  words = structuredClone(lines);
+  // The receipt pixels stay literal. Only the synthetic OCR row rectangle is
+  // deliberately too tall, making it contain the neighboring Bread word.
+  lines[2].box[3] = lines[3].box[3];
   await page.getByLabel("Upload receipt images").setInputFiles({
     name: "synthetic-columns.png",
     mimeType: "image/png",

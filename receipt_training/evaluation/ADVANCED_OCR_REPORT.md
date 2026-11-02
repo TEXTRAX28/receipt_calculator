@@ -2,7 +2,15 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md) adds literal
+The latest [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md) improves
+known-currency hybrid line prices 132/143 to 133/143 and units 25/31 to 26/31
+on the same retained readings, with no scored regressions. Both gains occur on
+one inspected development receipt and remain pending source checks. Automatic
+results are unchanged. All 775 unit tests and 187 browser cases pass, with one
+existing skip; the linked packet binds the evidence. No new model, decoder,
+source input or private upload.
+
+The preceding [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md) adds literal
 word/row highlights and mandatory source checks. All fifty original paired
 native outputs preserve their OCR text and financial values; 81/82 parsed
 purchases now have source areas. One controlled long synthetic improves from 43

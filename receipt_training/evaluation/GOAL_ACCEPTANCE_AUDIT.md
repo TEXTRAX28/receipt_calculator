@@ -11,7 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest implementation: [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md)
+Latest implementation: [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md)
+recovers one additional line price and unit price on an inspected development
+receipt. Across the same 400 retained-reading views, known-currency hybrid
+prices improve 132/143 to 133/143 and units 25/31 to 26/31, with no scored
+regressions. Automatic-currency results remain unchanged. Actual word/row
+ownership and mandatory human checks are retained; no amount decoder, model,
+prompt or source input changes. All 775 unit tests and 187 browser cases pass,
+with one existing skip. The packet retains both trials. No new private upload.
+
+The preceding [on-device source evidence](DEVICE_SOURCE_EVIDENCE.md)
 adds actual word/row highlights and mandatory uncertainty checks. The final
 paired original-fifty run preserves every prepared image, OCR text and financial
 value, with source areas for 81/82 parsed purchases; this is not price-accuracy
@@ -91,7 +100,7 @@ where its financial vector is correct.
 Two retained Tesseract runs, from 29 and 31 October, have now been rescored
 separately under those same references. Their field counts agree exactly. The
 current hybrid score is reproduced from retained, independently extracted
-OCR/vision readings and the final verifier replay. This is an offline rescore,
+OCR/vision readings and the latest source-word alignment replay. This is an offline rescore,
 not a new full native run or latency sample.
 
 ```powershell
@@ -99,9 +108,10 @@ python -X utf8 receipt_training/scripts/build_goal_acceptance_audit.py --check
 python scripts/update-graph.py --check
 ```
 
-The audit binds 514 files, including original inputs, frozen baseline sources,
-current replay sources actually loaded, predictions, references, scorer, per-case
-scores and current verification logs. Raw receipts, model output and detailed
+The historical corpus audit binds 514 files, including original inputs, frozen baseline sources,
+its then-current replay sources, predictions, references, scorer, per-case
+scores and verification logs. Its 131/143 conditional-price checkpoint stays
+unchanged; later column and source-word packets supplement it. Raw receipts, model output and detailed
 local artifacts remain ignored by Git. Exact old source bytes are used when a
 previous checkpoint explicitly archived them.
 
@@ -121,8 +131,8 @@ branch. It is user context, not successful model currency recognition.
 | Predicted rows | 83 | 146 | 146 |
 | Exact normalized names /145 | 24 | 132 | 132 |
 | Quantities /120 | 3 | 119 | 119 |
-| Line totals /143 | 5 | 116 | 131 |
-| Unit prices /31 | 3 | 22 | 25 |
+| Line totals /143 | 5 | 116 | 133 |
+| Unit prices /31 | 3 | 22 | 26 |
 | Item discounts /7 | 0 | 5 | 5 |
 | Receipt discounts /4 | 0 | 2 | 3 |
 | Printed subtotals /34 | 0 | 25 | 27 |
@@ -137,12 +147,13 @@ branch. It is user context, not successful model currency recognition.
 
 Scoped product recall rises from 26.90% to 98.62%, and scoped precision from
 46.99% to 97.95%. Automatic line-price equality rises from 3.50% to 81.12%;
-explicit-currency equality is 91.61%. These precision denominators reflect
+explicit-currency equality is 93.01%. The latest conditional values are bound by
+[the source-word comparison](SOURCE_WORD_ALIGNMENT.md). These precision denominators reflect
 partial annotation scope: unmatched predictions are not automatically confirmed
 false purchases. Zero arithmetic discrepancy is not trusted reconciliation if
 currency, fields, charges or source review remain unresolved.
 
-The conditional result still misses two referenced rows and twelve known line
+The conditional result still misses two referenced rows and ten known line
 prices, one quantity and eight copied final totals. Seven of eight service
 amounts match. All fifty drafts require review. Recoveries and tax-basis
 proposals are retained as unconfirmed source checks, rather than silently
@@ -222,7 +233,7 @@ This is an envelope/dimension guard, **not a full JPEG decoder or OS sandbox**.
 Browser inputs already pass bounded decode/re-encode handling. Source locations:
 `server/receipt-api.mjs:L42`, `server/receipt-zip.mjs:L74`.
 
-Current fresh checks pass **674 unit tests**, **177 standard browser tests**
+The earlier security checkpoint passed **674 unit tests**, **177 standard browser tests**
 with one existing duplicate-breakpoint skip, production build/typecheck,
 formatting and graph refresh. Browser checks cover desktop and phone-sized
 Chromium, actual synthetic Tesseract/PDF paths, checked upload-to-split journeys,
@@ -313,8 +324,10 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint adds optional image geometry and its checked-source
-workflow. The preceding `e0db735` adds printed-column interpretation; `72bbd35`
+The latest code checkpoint adds unique source-word alignment and keeps recovered
+amounts pending. The preceding `82706e0` adds actual on-device source highlights
+and conservative overlap handling; `6613870` adds optional image geometry and
+its checked-source workflow. Earlier `e0db735` adds printed-column interpretation; `72bbd35`
 preserves verification when archived build paths disappear. `3409145` adds financial-role proposals, while
 `6e22912` adds the Gemini guard and corpus audit. No runtime dependency, model
 download, training or paid feature is added. The separate synthetic Gemini

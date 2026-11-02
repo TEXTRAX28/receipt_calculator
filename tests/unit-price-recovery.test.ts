@@ -78,6 +78,43 @@ function draft(unitPrice = "20.000") {
   };
 }
 describe("literal unit-price recovery", () => {
+  it("recovers a uniquely aligned unit despite a neighboring row's word, with mandatory review", () => {
+    const reading = source();
+    reading.panels[0].words.push({
+      text: "13,000",
+      confidence: 0.999,
+      box: [0.61, 0.5, 0.89, 0.6],
+    });
+    reading.panels[0].lines.splice(3, 0, {
+      text: "13,000",
+      confidence: 0.99,
+      box: [0.61, 0.54, 0.89, 0.65],
+    });
+    const result = verifyIndependentReadings(draft(), reading);
+    expect(result.receipt.items[0].unitPrice).toBe("20000");
+    expect(result.unitRecoveries).toHaveLength(1);
+    expect(result.unitRecoveries[0].evidence.word).toBe(
+      reading.panels[0].words[3],
+    );
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        field: "unitPrice",
+        reason: "recovered",
+        confirmedValue: "",
+      }),
+    );
+  });
+  it("withholds an ambiguous adjacent-row unit without using its higher confidence", () => {
+    const reading = source();
+    reading.panels[0].words.push({
+      text: "20,000",
+      confidence: 1,
+      box: [0.31, 0.5, 0.49, 0.6],
+    });
+    const result = verifyIndependentReadings(draft(), reading);
+    expect(result.receipt.items[0].unitPrice).toBe("20.000");
+    expect(result.unitRecoveries).toHaveLength(0);
+  });
   it("copies the actual unit token without changing quantity or line total and keeps its original value pending", () => {
     const raw = draft(),
       original = structuredClone(raw);
