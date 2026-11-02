@@ -11,6 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+Latest implementation: [source-backed payment-row exclusions](PAYMENT_ROWS.md)
+proposes removing 17 false bill adjustments across 11 original receipts with
+supplied currency context. Every affected image was inspected; each excluded
+row is a payment or change. Every removal remains pending human review, even
+with an empty adjustment list. Existing v5 field scores are unchanged across
+400 replay views. All 820 unit tests and 189 browser cases pass, with one
+existing skip. This is a source audit of the proposals, not payment recall or complete-
+receipt accuracy; no new original-receipt inference or private upload occurred.
+Three additional drafts balance arithmetically but remain untrusted because
+other required checks fail; trusted reconciliation is still 0/49.
+
 The next [larger local-model comparison](QWEN8B_FEASIBILITY.md) is prepared,
 not executed. Official Qwen3-VL 8B files are pinned and six paired requests on
 three inspected development receipts are frozen. The measured laptop headroom
@@ -18,7 +29,7 @@ fails the retained disk reserve and a conservative trial RAM guard. No 8B
 weights were downloaded, no receipt inference ran, and no accuracy or speed
 improvement is claimed. The existing installer cap is unchanged.
 
-Latest implementation: [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md)
+The preceding [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md)
 recovers one additional line price and unit price on an inspected development
 receipt. Across the same 400 retained-reading views, known-currency hybrid
 prices improve 132/143 to 133/143 and units 25/31 to 26/31, with no scored
@@ -331,8 +342,10 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint adds unique source-word alignment and keeps recovered
-amounts pending. The preceding `82706e0` adds actual on-device source highlights
+The latest code checkpoint excludes source-supported payment/change rows from
+bill charges while keeping every exclusion pending. `b54997a` preserves the
+unexecuted 8B feasibility protocol; `e7191c9` adds unique source-word alignment
+and keeps recovered amounts pending. The preceding `82706e0` adds actual on-device source highlights
 and conservative overlap handling; `6613870` adds optional image geometry and
 its checked-source workflow. Earlier `e0db735` adds printed-column interpretation; `72bbd35`
 preserves verification when archived build paths disappear. `3409145` adds financial-role proposals, while

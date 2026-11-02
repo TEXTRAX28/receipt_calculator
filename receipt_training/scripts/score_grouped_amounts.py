@@ -1,4 +1,4 @@
-"""Unchanged-truth before/after word-alignment replay, without extraction."""
+"""Unchanged-truth before/after interpretation replay, without extraction."""
 from collections import Counter, defaultdict
 import hashlib
 import json
@@ -9,7 +9,9 @@ from score_adjustments import score_with_adjustments
 
 ROOT = Path(__file__).resolve().parents[2]
 RUN = ROOT / "qa-artifacts" / (sys.argv[1] if len(sys.argv) > 1 else "grouped-amounts-v1")
-assert RUN.parent == ROOT / "qa-artifacts" and RUN.name.startswith("grouped-amounts-v")
+assert RUN.parent == ROOT / "qa-artifacts" and (RUN.name.startswith("grouped-amounts-v") or RUN.name.startswith("tender-roles-v"))
+BASELINE = ROOT / (sys.argv[2] if len(sys.argv) > 2 else "receipt_training/evaluation/advanced-column-purchases-v1.json")
+BASELINE.resolve().relative_to(ROOT.resolve())
 HASHES = {}
 
 
@@ -44,7 +46,7 @@ def main():
     labels = {r["receipt_id"]: r for r in rows(ROOT / "receipt_training/annotations/private/priced-rows-v5-financial-labels.jsonl")}
     records = {r["receipt_id"]: r for r in rows(ROOT / "receipt_training/manifest.jsonl")}
     config = load(ROOT / "receipt_training/evaluation/config.json")
-    previous = load(ROOT / "receipt_training/evaluation/advanced-column-purchases-v1.json")
+    previous = load(BASELINE)
     counts, scores, paired = defaultdict(Counter), [], {}
     for prediction in predictions:
         identity = prediction["receipt_id"]

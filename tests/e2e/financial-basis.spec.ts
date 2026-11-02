@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
-for (const scenario of ["basis", "roles"] as const)
-  test(`${scenario === "basis" ? "net-price interpretation" : "fee/tax role proposals"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
+for (const scenario of ["basis", "roles", "payments"] as const)
+  test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : "payment-row exclusions"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
     page,
     browser,
   }, info) => {
@@ -14,6 +14,9 @@ for (const scenario of ["basis", "roles"] as const)
       "Service charge 1.00",
       "Tax 2.00",
       "Total 21.00",
+      ...(scenario === "payments"
+        ? ["Cash 30.00", "Change 9.00", "Prices exclude tax"]
+        : []),
     ];
     let originalPanels: unknown;
     let sourceLines: { text: string; confidence: number; box: number[] }[] = [];
@@ -64,7 +67,7 @@ for (const scenario of ["basis", "roles"] as const)
             subtotal: "18.00",
             printedTotal: "21.00",
             printedTax: scenario === "roles" ? "1.00" : "2.00",
-            pricesIncludeTax: scenario === "roles" ? false : null,
+            pricesIncludeTax: scenario !== "basis" ? false : null,
             printedItemCount: null,
             taxCodes: [],
             warnings: [],
@@ -91,6 +94,12 @@ for (const scenario of ["basis", "roles"] as const)
                     { label: "Tax", kind: "fee", amount: "2.00" },
                   ]
                 : [{ label: "Service charge", kind: "fee", amount: "1.00" }]),
+              ...(scenario === "payments"
+                ? [
+                    { label: "Cash", kind: "tip", amount: "30.00" },
+                    { label: "Change", kind: "fee", amount: "9.00" },
+                  ]
+                : []),
             ],
           },
         },
@@ -150,7 +159,9 @@ for (const scenario of ["basis", "roles"] as const)
             "printed tax",
             "whether item prices include tax",
           ]
-        : ["whether item prices include tax"];
+        : scenario === "payments"
+          ? ["receipt adjustments"]
+          : ["whether item prices include tax"];
     for (const field of fields) {
       await page
         .getByRole("button", { name: `View source for ${field}`, exact: true })
@@ -160,6 +171,14 @@ for (const scenario of ["basis", "roles"] as const)
         exact: true,
       });
       await expect(dialog.getByTestId("source-region")).toHaveCount(4);
+      if (scenario === "payments" && field === "receipt adjustments") {
+        await expect(
+          dialog.getByText("Payment row: Cash: 30.00", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          dialog.getByText("Payment row: Change: 9.00", { exact: true }),
+        ).toBeVisible();
+      }
       if (scenario === "roles" && field === "receipt adjustments") {
         await expect(
           dialog.getByText("Printed Service charge (fee): 1.00", {

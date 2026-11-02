@@ -1,4 +1,4 @@
-// Offline unique source-word alignment replay. No new OCR, model calls or label reads.
+// Offline reading-interpretation replay. No new OCR, model calls or label reads.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -9,6 +9,8 @@ import { createServer } from "vite";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = process.argv[2] || "grouped-amounts-v1";
 assert(/^[\w-]+$/.test(run));
+const beforeRoot = process.argv[3] || "qa-artifacts/grouped-amounts-v1/before";
+assert(/^qa-artifacts\/[\w-]+\/before$/.test(beforeRoot));
 const out = resolve(root, "qa-artifacts", run);
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const inputs = {};
@@ -48,9 +50,7 @@ for (const item of plan.cases) {
   });
 }
 const sources = {
-  before: await json(
-    "qa-artifacts/grouped-amounts-v1/before/source-sha256.json",
-  ),
+  before: await json(beforeRoot + "/source-sha256.json"),
   after: {},
 };
 await mkdir(out, { recursive: true });
@@ -78,7 +78,7 @@ try {
     for (const [path, expected] of Object.entries(sources[variant])) {
       const bytes = await readFile(
         variant === "before"
-          ? resolve(root, "qa-artifacts/grouped-amounts-v1/before", path)
+          ? resolve(root, beforeRoot, path)
           : resolve(out, variant, path),
       );
       assert.equal(sha(bytes), expected);
@@ -169,6 +169,19 @@ try {
             assembleRecognition(evidence).text,
             mode === "automatic" ? undefined : { currency },
           );
+          const paymentExclusions = result.removedAdjustments.filter((entry) =>
+            entry.reason.startsWith("payment-"),
+          );
+          if (paymentExclusions.length)
+            assert(
+              result.receipt.reviewChecks.some(
+                (check) =>
+                  check.scope === "receipt" &&
+                  check.field === "adjustments" &&
+                  ["coverage", "recovered", "source"].includes(check.reason) &&
+                  check.confirmedValue === "",
+              ),
+            );
           rows.push({
             receipt_id: item.id,
             image_sha256: item.record.sha256,
@@ -239,7 +252,7 @@ await writeFile(
     {
       source_sha256: sources,
       frozen_source_paths: {
-        before: "qa-artifacts/grouped-amounts-v1/before",
+        before: beforeRoot,
         after: `qa-artifacts/${run}/after`,
       },
       loaded_frozen_source_sha256: loaded,

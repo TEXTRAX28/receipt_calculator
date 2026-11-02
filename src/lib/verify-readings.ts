@@ -30,6 +30,7 @@ import {
   readFinancialSummary,
 } from "./financial-basis";
 import { recoverFinancialRoles } from "./financial-roles";
+import { findPaymentAdjustments } from "./payment-rows";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -1159,6 +1160,38 @@ export function verifyIndependentReadings(
       ),
     ]),
   ];
+  if (sourceRecoveryAllowed && !options.blockedScalarFields?.length) {
+    const payments = findPaymentAdjustments(
+      receipt.adjustments,
+      lines,
+      recognition,
+      receipt.currency,
+    );
+    if (payments.length) {
+      const removed = new Set(payments.map((entry) => entry.id));
+      receipt.adjustments = receipt.adjustments.filter(
+        (entry) => !removed.has(entry.id),
+      );
+      removedAdjustments.push(...payments);
+      globalCheck(
+        "adjustments",
+        "recovered",
+        "Printed payment or change rows were excluded from bill charges. Check every removed entry.",
+      );
+      const check = checks.find(
+        (entry) => entry.scope === "receipt" && entry.field === "adjustments",
+      )!;
+      // A removal still needs confirmation when the resulting list is empty.
+      if (check.reason !== "coverage") check.reason = "recovered";
+      check.details = [
+        ...(check.details || []),
+        ...payments.map((entry) => ({
+          label: `Payment row: ${entry.label}`.slice(0, 100),
+          value: entry.printedLiteral,
+        })),
+      ].slice(0, 30);
+    }
+  }
   const financialAdjustments = receipt.adjustments
     .map(({ kind, amount }) => `${kind}:${amount}`)
     .sort();
