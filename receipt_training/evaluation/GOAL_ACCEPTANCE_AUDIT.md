@@ -11,6 +11,13 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The next [larger local-model comparison](QWEN8B_FEASIBILITY.md) is prepared,
+not executed. Official Qwen3-VL 8B files are pinned and six paired requests on
+three inspected development receipts are frozen. The measured laptop headroom
+fails the retained disk reserve and a conservative trial RAM guard. No 8B
+weights were downloaded, no receipt inference ran, and no accuracy or speed
+improvement is claimed. The existing installer cap is unchanged.
+
 Latest implementation: [exact source-word alignment](SOURCE_WORD_ALIGNMENT.md)
 recovers one additional line price and unit price on an inspected development
 receipt. Across the same 400 retained-reading views, known-currency hybrid

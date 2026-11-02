@@ -1,0 +1,93 @@
+{
+  "scope": "Public 8B model feasibility and frozen paired development protocol. Preparation, not a native benchmark or app improvement.",
+  "model": {
+    "name": "Qwen/Qwen3-VL-8B-Instruct-GGUF",
+    "revision": "f982a07559d4a2f6c8744d840bf6fccab30eea96",
+    "license": "apache-2.0",
+    "new_asset_bytes": 5780074528
+  },
+  "resource_observation": {
+    "observed_at": "2026-11-02T06:41:03.594215+00:00",
+    "manifest_sha256": "e7a0a7a3bd17c75751010d0833c66462fb64480dc99c192e614b662172c79b27",
+    "total_asset_bytes": 5817420379,
+    "missing_assets": [
+      {
+        "path": "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+        "bytes": 5027784800
+      },
+      {
+        "path": "mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf",
+        "bytes": 752289728
+      }
+    ],
+    "missing_asset_bytes": 5780074528,
+    "free_disk_bytes": 13035077632,
+    "total_physical_ram_bytes": 17024741376,
+    "available_physical_ram_bytes": 1692057600,
+    "disk_reserve_bytes": 10737418240,
+    "ram_start_reserve_bytes": 4294967296,
+    "download_headroom_ok": false,
+    "inference_start_headroom_ok": false,
+    "additional_disk_bytes_needed": 3482415136,
+    "additional_available_ram_bytes_needed": 2602909696,
+    "disk_guard_origin": "Existing setup_vision_candidate.py ten-GiB reserve",
+    "ram_guard_origin": "Conservative research startup guard; not a published model requirement or proof inference will fit",
+    "existing_installer_asset_cap_bytes": 4000000000,
+    "existing_installer_accepts_this_manifest": false,
+    "model_downloads": 0,
+    "native_inference_calls": 0,
+    "external_receipt_uploads": 0,
+    "receipt_files_read": false
+  },
+  "prepared_pairs": 3,
+  "prepared_requests": 6,
+  "native_inference_calls": 0,
+  "model_weight_downloads": 0,
+  "private_uploads": 0,
+  "public_metadata_fetches": 1,
+  "web_research": "Official Qwen model card and llama.cpp multimodal documentation; no receipt content sent",
+  "accuracy_latency_results": null,
+  "app_provider_changed": false,
+  "existing_installer_cap_changed": false,
+  "disposition": "Await resource configuration. Current disk/RAM checks fail. Verify a bounded installation path and runtime low-memory abort before executing the fixed six-call comparison. No larger-model superiority claim.",
+  "git": {
+    "parent_commit": "e7191c9b30d1d5a4d77f406ae832d64ce7653b59",
+    "stable": "ee725ba45e799bee8501d3de034e0302c0127afd",
+    "original_head": "29a187af7347be94c0728f4785be674500833748",
+    "original_diff_sha256": "72fe803bf341a3052a441b7144838d06e7f4cbea5b59d612feb649368442e31b",
+    "merge_push_deploy": false
+  },
+  "evidence_sha256": {
+    "receipt_training/evaluation/qwen8b-candidate-manifest.json": "e7a0a7a3bd17c75751010d0833c66462fb64480dc99c192e614b662172c79b27",
+    "qa-artifacts/qwen8b-feasibility-v1/public-model-metadata.json": "29327b9db1ecc76649a44c7d5d44a097a74636bd768d0a150f988c70f4723c39",
+    "qa-artifacts/qwen8b-feasibility-v1/selected-files.json": "a0846458d4d26b08b0e751a0fe668b522da65a9d72316756c38aa31d76db5df4",
+    "qa-artifacts/qwen8b-feasibility-v1/resources.json": "00273259cc796fd41aceed9c630c7513da1c1c48f0d8665e16f51ad6c0985479",
+    "qa-artifacts/qwen8b-comparison-v1/plan.json": "13ac2f7538385bc5c508371b12bc25207c9b4233c0d176a180ea77362149bf18",
+    "qa-artifacts/row-first-original50-v1/plan.json": "ea2fb16624db3b6f4211400e7b15ad62ca0e19cd62fd9ea2b9db0e0e8f7380ac",
+    "receipt_training/evaluation/vision-candidate-manifest.json": "73d7afcf45b4fd2f024cd35f556548918bce4b781f660f4ed0c0cd164c569d70",
+    "qa-artifacts/row-first-original50-v1/14-candidate-request.json": "26e3ddd4d1edf7432fa43a09ccf5ac0c62063d49eb27911cb5ac59240d9e0a60",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-013/panel-1.jpg": "b66a79d2826bc62a1ee3b66dc9c0158dddacc57be6eb1ea73d51013ec7512987",
+    "qa-artifacts/row-first-original50-v1/06-candidate-request.json": "4757bb3e48a4c64d9e323653e1da0f0ff504507059406164dab7681a9f1dc784",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-005/panel-1.jpg": "c289cde71d7a4f2fb7da23b8bd465281e0f5c0f32a514bbaf96ac58a011c163a",
+    "qa-artifacts/row-first-original50-v1/24-candidate-request.json": "94d99ea852657d3c04b776cf5e8c834dc81270de19e1ba54f34a532dc1f71b8f",
+    "receipt_training/evaluation/runs/current-native-original50-v1/cord-v2-train-023/panel-1.jpg": "394c6260c4bd5d8d900fa04be2bf784a6445762d8fd7bd90afd557a0c1c37e3c",
+    "receipt_training/scripts/prepare_qwen8b_comparison.py": "f95e41faa4cdbf9c22d107321e52a085ff28ae4e7786b4880d05bd3c05a5bbf6",
+    "receipt_training/scripts/benchmark_vision_cli.py": "2dcd59499545a354a17897b05d8dd8adb033897d800184cb6c150f53164e4d2d",
+    "receipt_training/scripts/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "receipt_training/scripts/qwen8b_resources.py": "0ed53ca626ad06c609f5f545d72fa3af753c4db8a7b2b76617f4557c47746ded",
+    "qa-artifacts/qwen8b-comparison-v1/1-4b-request.json": "94aedf37373c12e61fdc627276ab8b3648bdfc2c5fd8730207b08c7c2be51b2d",
+    "qa-artifacts/qwen8b-comparison-v1/1-8b-request.json": "7d62d1a5d84e4d719859d04ed11e3cd467489df0bacc0b4bda3822cf8dfb09e8",
+    "qa-artifacts/qwen8b-comparison-v1/2-4b-request.json": "6dac736b25b7f1c6bed020789d75c131ae91a9d6df0d8575352a904fdb95055b",
+    "qa-artifacts/qwen8b-comparison-v1/2-8b-request.json": "4e112222f951eb1864f4c9272fcf496721a09db4dab127be0e4241b9c8990929",
+    "qa-artifacts/qwen8b-comparison-v1/3-4b-request.json": "6cb40ac3df61999c7aff8dee535657fb7174371790c18887c4a0b04a41d42fc5",
+    "qa-artifacts/qwen8b-comparison-v1/3-8b-request.json": "b9b635bb9ae8c581a23d164856ce3b40fcb97e516475ed6227d249eb19a3b54d",
+    "qa-artifacts/qwen8b-comparison-v1/benchmark_vision_cli.py": "2dcd59499545a354a17897b05d8dd8adb033897d800184cb6c150f53164e4d2d",
+    "qa-artifacts/qwen8b-comparison-v1/prepare_qwen8b_comparison.py": "f95e41faa4cdbf9c22d107321e52a085ff28ae4e7786b4880d05bd3c05a5bbf6",
+    "qa-artifacts/qwen8b-comparison-v1/qwen8b_resources.py": "0ed53ca626ad06c609f5f545d72fa3af753c4db8a7b2b76617f4557c47746ded",
+    "qa-artifacts/qwen8b-comparison-v1/vision_cli_text.py": "04ff425db298f4e095c5a909a46dd70429431c96864e32e577e8aab214d9e10a",
+    "receipt_training/scripts/build_qwen8b_feasibility_report.py": "bcfc6c869e994399ee435a8ebcf42982133bb607b2fdbb41d583fef3fb8adc9e",
+    "receipt_training/scripts/setup_vision_candidate.py": "f5193cdb84ebe7fbb88242c9806d05ff4276cb9d95c65de06a4eedccac9749ba",
+    "receipt_training/evaluation/QWEN8B_FEASIBILITY.md": "6fa0da80906a28af68c28be8e257849d104356bb638d2fb54934133a2a55aba9",
+    "receipt_training/evaluation/GOAL_ACCEPTANCE_AUDIT.md": "2586dc30e2a72cdf76c673b952b3b097be4eecd4d5c5f3ce18a6f7fbb3e5b15a"
+  }
+}

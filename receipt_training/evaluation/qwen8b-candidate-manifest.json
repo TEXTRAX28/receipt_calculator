@@ -1,0 +1,30 @@
+{
+  "model": "Qwen/Qwen3-VL-8B-Instruct-GGUF",
+  "revision": "f982a07559d4a2f6c8744d840bf6fccab30eea96",
+  "license": "apache-2.0",
+  "runtime_release_marker": "v0.8.0",
+  "runtime_build": "b11960",
+  "runtime_commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+  "research_only": true,
+  "private_uploads": 0,
+  "files": [
+    {
+      "path": "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+      "bytes": 5027784800,
+      "sha256": "67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2",
+      "url": "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF/resolve/f982a07559d4a2f6c8744d840bf6fccab30eea96/Qwen3VL-8B-Instruct-Q4_K_M.gguf"
+    },
+    {
+      "path": "mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf",
+      "bytes": 752289728,
+      "sha256": "c6ba85508d82f42590e6eb77d5340369ab6fecf107a7561d809523d8aa5f3bfd",
+      "url": "https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF/resolve/f982a07559d4a2f6c8744d840bf6fccab30eea96/mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf"
+    },
+    {
+      "path": "llama-b11960-bin-win-vulkan-x64.zip",
+      "bytes": 37345851,
+      "sha256": "bac6914b5e83523eb008c6789eaa12669f93fbc196c3b9e8237b6672323b33e9",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11960/llama-b11960-bin-win-vulkan-x64.zip"
+    }
+  ]
+}
