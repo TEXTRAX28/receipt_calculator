@@ -8,6 +8,7 @@ import {
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
 import { separatePurchaseRows } from "./purchase-expression";
+import { matchFinancialSummaryRow } from "./financial-basis";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -162,10 +163,28 @@ export function parseReceiptWithSources(
   let taxAmount = "";
   const extraCharges: {
     label: string;
-    kind: "fee" | "tip" | "deposit";
+    kind: "fee" | "tip" | "deposit" | "discount" | "rounding";
     amount: string;
   }[] = [];
-  for (const line of lines) {
+  const financialRows = new Map<
+    number,
+    NonNullable<ReturnType<typeof matchFinancialSummaryRow>>
+  >();
+  let inSummary = false;
+  for (const [lineIndex, line] of lines.entries()) {
+    if (line === PHOTO_SEPARATOR) inSummary = false;
+    let financial = matchFinancialSummaryRow(line);
+    // A purchased service can be named simply "Service" or "Fee". Only the
+    // subtotal section establishes those otherwise ambiguous words as charges.
+    if (
+      financial?.role === "fee" &&
+      /^(?:service|fee)$/i.test(financial.label) &&
+      !inSummary
+    )
+      financial = null;
+    if (financial) financialRows.set(lineIndex, financial);
+    if (financial?.role === "subtotal") inSummary = true;
+    if (isFinalTotal(line)) inSummary = false;
     const code = line.match(
       /^([A-Z][A-Z0-9]{0,5})\s+(\d+(?:[.,]\d+)?)\s*%\s+[\d,.]+\s+[\d,.]+\s*$/,
     );
@@ -183,16 +202,34 @@ export function parseReceiptWithSources(
         );
       receipt.printedTotal = candidate || receipt.printedTotal;
     }
-    if (/\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line))
-      receipt.subtotal = lastAmount(line) || receipt.subtotal;
     if (
+      financial?.role === "subtotal" ||
+      /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(line)
+    )
+      receipt.subtotal = lastAmount(line) || receipt.subtotal;
+    if (financial?.role === "tax")
+      taxAmount = normalize(financial.literal) || taxAmount;
+    else if (
       /^(?:vat amount|tax amount|sales tax|vat|tax)\s*[:£$€]?\s*[-−]?\s*\d/i.test(
         line,
       ) &&
       !/%/.test(line)
     )
       taxAmount = lastAmount(line) || taxAmount;
-    if (
+    if (financial && ["fee", "discount", "rounding"].includes(financial.role)) {
+      const amount = normalize(financial.literal);
+      if (amount)
+        extraCharges.push({
+          label: financial.label,
+          kind: financial.role as "fee" | "discount" | "rounding",
+          amount:
+            financial.role === "discount" ? amount.replace(/^-/, "") : amount,
+        });
+      if (financial.role === "discount" && amount)
+        receipt.warnings.push(
+          `Confirm whether “${financial.label}” applies to the whole receipt or a particular item.`,
+        );
+    } else if (
       /^(?:service (?:charge|fee)|delivery fee|shipping|tip|gratuity|deposit)\b/i.test(
         line,
       )
@@ -331,6 +368,7 @@ export function parseReceiptWithSources(
     }
     if (
       itemSectionEnded ||
+      financialRows.has(lineIndex) ||
       /bottom of basket|BOB count|vat code|^\s*[A-Z]\s+\d+[.,]\d+%|subtotal|sub total|total.*excl|vat amount|^tax\b|^vat\b|service (?:charge|fee)|^delivery fee|^shipping|^tip\b|^gratuity\b|^deposit\b|^savings\b/i.test(
         line,
       )

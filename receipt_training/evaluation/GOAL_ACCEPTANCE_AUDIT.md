@@ -11,6 +11,12 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+Latest implementation: [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
+improve explicit-currency hybrid fees from 4/8 to 7/8, printed tax from 13/22 to
+16/22 and receipt discounts from 2/4 to 3/4, without scored known-field
+regressions. Source checks remain mandatory. The new result packet supplements
+the earlier 514-file corpus/baseline audit; it does not rewrite that checkpoint.
+
 ## 1. Existing system and protected baseline
 
 The original scanner uses browser-hosted English Tesseract.js 6.0.1, bounded image
@@ -92,11 +98,11 @@ branch. It is user context, not successful model currency recognition.
 | Line totals /143 | 5 | 116 | 131 |
 | Unit prices /31 | 3 | 22 | 25 |
 | Item discounts /7 | 0 | 5 | 5 |
-| Receipt discounts /4 | 0 | 2 | 2 |
+| Receipt discounts /4 | 0 | 2 | 3 |
 | Printed subtotals /34 | 0 | 25 | 27 |
-| Printed tax amounts /22 | 0 | 13 | 13 |
+| Printed tax amounts /22 | 0 | 13 | 16 |
 | Printed final totals /49 | 0 | 34 | 41 |
-| Service/other known fees /8 | 0 | 4 | 4 |
+| Service/other known fees /8 | 0 | 4 | 7 |
 | Known price basis /9 | 0 | 0 | 4 |
 | Known grouping /14 | 3 | 11 | 11 |
 | Known merchant /6 | 1 | 1 | 1 |
@@ -111,7 +117,7 @@ false purchases. Zero arithmetic discrepancy is not trusted reconciliation if
 currency, fields, charges or source review remain unresolved.
 
 The conditional result still misses two referenced rows and twelve known line
-prices, one quantity and eight copied final totals. Only four of eight service
+prices, one quantity and eight copied final totals. Seven of eight service
 amounts match. All fifty drafts require review. Recoveries and tax-basis
 proposals are retained as unconfirmed source checks, rather than silently
 accepted corrections.
@@ -157,8 +163,8 @@ preserves the primary draft and mandatory coverage checks; it never triggers an
 unapproved cloud fallback. Optional cloud readers are not silently selected.
 
 Source locations were verified against graph nodes and actual code:
-`src/lib/compared-reader.ts:L19`, `src/lib/verify-readings.ts:L159`,
-`src/lib/financial-basis.ts:L23`, `src/lib/pdf.ts:L25`,
+`src/lib/compared-reader.ts:L19`, `src/lib/verify-readings.ts:L163`,
+`src/lib/financial-basis.ts:L36`, `src/lib/pdf.ts:L25`,
 `src/lib/engine.ts:L55` and `src/lib/engine.ts:L479`.
 
 ## 5. Implemented improvements and latest validation fix
@@ -190,7 +196,7 @@ This is an envelope/dimension guard, **not a full JPEG decoder or OS sandbox**.
 Browser inputs already pass bounded decode/re-encode handling. Source locations:
 `server/receipt-api.mjs:L42`, `server/receipt-zip.mjs:L74`.
 
-Current fresh checks pass **653 unit tests**, **175 standard browser tests**
+Current fresh checks pass **674 unit tests**, **177 standard browser tests**
 with one existing duplicate-breakpoint skip, production build/typecheck,
 formatting and graph refresh. Browser checks cover desktop and phone-sized
 Chromium, actual synthetic Tesseract/PDF paths, checked upload-to-split journeys,
@@ -274,10 +280,11 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The current code checkpoint adds only the Gemini guard, eight HTTP cases and
-valid JPEG transport fixtures; the audit script/report add no runtime dependency,
-model download, training, provider request or paid feature. Earlier app commit
-`4686b8e` and research commit `b6a7dcf` remain independently reviewable. The exact
+The latest code checkpoint adds literal financial-role proposals and their
+source-review workflow; the preceding `6e22912` adds the Gemini guard and corpus
+audit. Neither adds a runtime dependency, model download, training, real provider
+request or paid feature. Earlier app commit `4686b8e` and research commit
+`b6a7dcf` remain independently reviewable. The exact
 commit for this checkpoint is obtained from the local Git log; its machine packet
 records its parent to avoid a self-referential commit hash.
 

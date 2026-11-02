@@ -84,6 +84,7 @@ export async function extractComparedReceipt(
       unitRecoveries: [],
       scalarRecoveries: [],
       taxBasisRecovery: null,
+      financialRoleRecovery: null,
       removedAdjustments: [],
       agreements: 0,
       matchedPurchases: 0,

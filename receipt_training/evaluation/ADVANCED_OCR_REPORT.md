@@ -2,13 +2,21 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Its [514-file offline audit](advanced-goal-acceptance-audit-v1.json) accounts for
+The latest [literal financial-summary role proposals](FINANCIAL_ROLE_RECOVERY.md)
+improve explicit-currency hybrid fees 4/8 → 7/8, printed tax 13/22 → 16/22 and
+receipt discounts 2/4 → 3/4 with no scored known-field regression. All proposals
+retain source checks; automatic hybrid counts and trusted reconciliation are
+unchanged. Final validation passes 674 unit tests and 177 browser tests with one
+existing skip. Saved Azure/Veryfi price scores are preserved with zero uploads.
+The full goal remains active.
+
+The preceding [514-file offline audit](advanced-goal-acceptance-audit-v1.json) accounts for
 all 53 unique source hashes and reproduces both retained Tesseract baselines
 against the current references. Automatic known line-price matches improve from
 5/143 to 116/143; explicit-currency hybrid matches 131/143. Trusted reconciliation
 remains 0/49 and original whole-receipt accuracy remains unscorable. The latest
 Gemini upload boundary rejects invalid/oversized prepared JPEG sections before
-provider calls. Fresh checks pass 653 unit tests, 175 browser tests with one
+provider calls. That checkpoint passed 653 unit tests, 175 browser tests with one
 existing skip, build/typecheck, formatting and graph refresh. No new model call,
 private upload, paid activation, merge, push or deployment occurred. The full
 twelve-phase goal remains active.

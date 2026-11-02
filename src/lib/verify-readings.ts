@@ -25,7 +25,11 @@ import { normalizeReceiptDate } from "./receipt-date";
 import { matchInformationalAdjustment } from "./receipt-summaries";
 import { recoverInvalidPrice } from "./recover-invalid-price";
 import { isPurchaseExpressionLine } from "./purchase-expression";
-import { recoverExclusivePriceBasis } from "./financial-basis";
+import {
+  recoverExclusivePriceBasis,
+  readFinancialSummary,
+} from "./financial-basis";
+import { recoverFinancialRoles } from "./financial-roles";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -997,6 +1001,91 @@ export function verifyIndependentReadings(
         text,
       ),
     );
+  const financialSection =
+    sourceRecoveryAllowed &&
+    !options.blockedScalarFields?.length &&
+    !inclusive &&
+    (raw.pricesIncludeTax === false || taxBasisRecovery)
+      ? readFinancialSummary(lines, recognition, receipt.currency)
+      : null;
+  const wordsIn = (text: string): string[] =>
+    text.toUpperCase().match(/[\p{L}\p{N}]+/gu) || [];
+  const codedPurchasesSupported = receipt.items.some((item) => {
+    const code = item.taxCode.trim().toUpperCase();
+    if (!code) return false;
+    const nativeIndex = originalItems.indexOf(item),
+      sourceIndex = paired.get(nativeIndex),
+      source = sourceIndex === undefined ? undefined : sourceRows[sourceIndex];
+    // A printed item code, incomplete item evidence or a code not confined to
+    // summary labels prevents switching the tax calculation convention.
+    return (
+      !source ||
+      !source.good ||
+      source.regions.some((region) => region.confidence < 0.98) ||
+      !!source.item.taxCode ||
+      source.regions.some((region) => wordsIn(region.text).includes(code)) ||
+      !financialSection?.some((row) => wordsIn(row.label).includes(code))
+    );
+  });
+  const financialRoleRecovery = financialSection
+    ? recoverFinancialRoles(receipt, financialSection, codedPurchasesSupported)
+    : null;
+  if (financialRoleRecovery) {
+    receipt.adjustments = financialRoleRecovery.adjustments;
+    receipt.printedTax = financialRoleRecovery.printedTax;
+    receipt.taxMode = financialRoleRecovery.taxMode;
+    fieldSources.pricesIncludeTax = [
+      ...new Set([
+        ...(fieldSources.pricesIncludeTax || []),
+        ...financialRoleRecovery.sourceIndices,
+      ]),
+    ];
+    const changedFields: ReceiptReviewField[] = ["adjustments"];
+    if (financialRoleRecovery.previous.printedTax !== receipt.printedTax)
+      changedFields.push("printedTax");
+    if (financialRoleRecovery.previous.taxMode !== receipt.taxMode)
+      changedFields.push("taxCodes");
+    for (const field of changedFields) {
+      globalCheck(
+        field,
+        "recovered",
+        "Printed financial rows supplied the proposed fee/tax roles. Check every change.",
+      );
+      const check = checks.find(
+        (entry) => entry.scope === "receipt" && entry.field === field,
+      )!;
+      check.details = [
+        ...financialRoleRecovery.details,
+        ...(field === "printedTax"
+          ? [
+              {
+                label: "Previous printed tax",
+                value:
+                  financialRoleRecovery.previous.printedTax || "Unreadable",
+              },
+            ]
+          : []),
+        ...(field === "taxCodes"
+          ? [
+              {
+                label: "Previous tax calculation",
+                value: financialRoleRecovery.previous.taxMode,
+              },
+              {
+                label: "Proposed tax calculation",
+                value: "Printed receipt tax",
+              },
+            ]
+          : []),
+      ];
+      fieldSources[field] = [
+        ...new Set([
+          ...(fieldSources[field] || []),
+          ...financialRoleRecovery.sourceIndices,
+        ]),
+      ];
+    }
+  }
   const suppliedRates = receipt.taxCodes.filter((entry) => entry.rate !== "");
   const rateWitnesses = lines.flatMap((line) => {
     const match = line?.text.match(
@@ -1051,11 +1140,16 @@ export function verifyIndependentReadings(
       "coverage",
       "A printed rate for a purchase code is missing from the draft",
     );
-  fieldSources.taxCodes = sourceIndices((text) =>
-    /^\s*[A-Z][A-Z0-9]{0,5}\s+\d+(?:[.,]\d+)?\s*%|^(?:vat|tax)\s+code/i.test(
-      text,
-    ),
-  );
+  fieldSources.taxCodes = [
+    ...new Set([
+      ...(fieldSources.taxCodes || []),
+      ...sourceIndices((text) =>
+        /^\s*[A-Z][A-Z0-9]{0,5}\s+\d+(?:[.,]\d+)?\s*%|^(?:vat|tax)\s+code/i.test(
+          text,
+        ),
+      ),
+    ]),
+  ];
   const financialAdjustments = receipt.adjustments
     .map(({ kind, amount }) => `${kind}:${amount}`)
     .sort();
@@ -1071,6 +1165,7 @@ export function verifyIndependentReadings(
 
   fieldSources.adjustments = [
     ...new Set([
+      ...(fieldSources.adjustments || []),
       ...removedAdjustments.flatMap((adjustment) => adjustment.sourceIndices),
       ...sourceIndices((text) =>
         /\b(?:discount|coupon|savings|fee|charge|tip|gratuity|deposit|rounding|reward|earned)\b/i.test(
@@ -1159,6 +1254,7 @@ export function verifyIndependentReadings(
     unitRecoveries,
     scalarRecoveries,
     taxBasisRecovery,
+    financialRoleRecovery,
     removedAdjustments,
     agreements,
     matchedPurchases: pairs.length,

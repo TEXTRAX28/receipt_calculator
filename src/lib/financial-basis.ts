@@ -16,24 +16,32 @@ const labels = [
 ] as const;
 const compact = (text: string) => text.replace(/\s/g, "");
 
+/** Printed roles and tokens only; no confidence or arithmetic is inferred here. */
+export function matchFinancialSummaryRow(text: string) {
+  const role = labels.find(([, pattern]) => pattern.test(text));
+  if (!role) return null;
+  const prefix = text.match(role[1])![0];
+  const suffix = text
+    .slice(prefix.length)
+    .match(/^\s*(?:\d+(?:[.,]\d+)?\s*%)?\s*:?\s*([-−]?\d[\d., ]*-?)\s*$/);
+  return suffix
+    ? { role: role[0], label: prefix, literal: suffix[1].trim() }
+    : null;
+}
+
 /** A source-layout proposal, never independent model agreement or a confirmed bill.
  * Every amount is printed. Arithmetic only rejects inconsistent interpretations;
  * it cannot supply a missing amount, row, rate or adjustment.
  */
-export function recoverExclusivePriceBasis(
+export function readFinancialSummary(
   lines: (EvidenceLine | null)[],
   recognition: Recognition,
   currency: Currency,
 ) {
   const rows = lines.map((line, index) => {
     if (!line || line.confidence < 0.98) return null;
-    const role = labels.find(([, pattern]) => pattern.test(line.text));
-    if (!role) return null;
-    const prefix = line.text.match(role[1])![0];
-    const suffix = line.text
-      .slice(prefix.length)
-      .match(/^\s*(?:\d+(?:[.,]\d+)?\s*%)?\s*:?\s*([-−]?\d[\d., ]*-?)\s*$/);
-    if (!suffix) return null;
+    const row = matchFinancialSummaryRow(line.text);
+    if (!row) return null;
     const panel = recognition.panels.find(
       (panel) => panel.photo === line.photo && panel.part === line.part,
     );
@@ -56,11 +64,11 @@ export function recoverExclusivePriceBasis(
     )
       return null;
     try {
-      const literal = suffix[1].trim();
-      const value = money(printedAmount(literal, { currency }), currency, true);
-      if (value < 0n && role[0] !== "rounding" && role[0] !== "discount")
+      const amount = printedAmount(row.literal, { currency });
+      const value = money(amount, currency, true);
+      if (value < 0n && row.role !== "rounding" && row.role !== "discount")
         return null;
-      return { role: role[0], label: prefix, literal, value, index, line };
+      return { ...row, amount, value, index, line };
     } catch {
       return null;
     }
@@ -98,10 +106,7 @@ export function recoverExclusivePriceBasis(
         first.value,
       );
     if (expected !== last.value || last.value === first.value) continue;
-    candidates.push({
-      sourceIndices: known.map((row) => row.index),
-      rows: known.map(({ label, literal }) => ({ label, literal })),
-    });
+    candidates.push(known);
   }
   // Multiple sections can be separate bills or overlapping photos. Do not choose
   // the one that happens to balance, or turn unclear source rows into absence.
@@ -113,5 +118,19 @@ export function recoverExclusivePriceBasis(
   ).length;
   return candidates.length === 1 && subtotalCount === 1 && totalCount === 1
     ? candidates[0]
+    : null;
+}
+
+export function recoverExclusivePriceBasis(
+  lines: (EvidenceLine | null)[],
+  recognition: Recognition,
+  currency: Currency,
+) {
+  const section = readFinancialSummary(lines, recognition, currency);
+  return section
+    ? {
+        sourceIndices: section.map((row) => row.index),
+        rows: section.map(({ label, literal }) => ({ label, literal })),
+      }
     : null;
 }
