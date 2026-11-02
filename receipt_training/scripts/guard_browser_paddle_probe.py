@@ -20,10 +20,21 @@ def main():
     assert all(re.fullmatch(r"[\w-]+", s) for s in [tag, plan])
     extra = sys.argv[3:]
     app_ui = extra == ["--app-uk"]
-    medium_study = extra == ["--medium-study", "browser-paddle-medium-paired-plan-v1"]
+    medium_study = (len(extra) == 2 and extra[0] == "--medium-study"
+                    and bool(re.fullmatch(r"browser-paddle-medium-paired-plan-v[1-9]\d*", extra[1])))
     assert (extra in ([], ["--production"], ["--app-uk"], ["--capture-study", "genuine-capture-read-v1"])
             or medium_study
             or (len(extra) == 2 and extra[0] == "--cohort-plan" and re.fullmatch(r"[\w-]+", extra[1])))
+    if medium_study:
+        study_path = ROOT / "qa-artifacts" / extra[1] / "study-plan.json"
+        study = json.loads(study_path.read_text(encoding="utf-8"))
+        assert study["study_id"] == extra[1].replace("-plan-", "-")
+        for name, expected in study["input_sha256"].items():
+            path = (ROOT / name).resolve()
+            path.relative_to(ROOT)
+            assert not path.name.startswith(".env")
+            with path.open("rb") as source:
+                assert hashlib.file_digest(source, "sha256").hexdigest() == expected, "Frozen input changed: " + name
     control = ROOT / "qa-artifacts" / (tag + "-control")
     control.mkdir()
     sources = {}

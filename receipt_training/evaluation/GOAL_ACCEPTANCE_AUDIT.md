@@ -546,3 +546,12 @@ Actual offline checks preserve all five prior tiny receipt panels and the six
 lines of a retained medium synthetic observation. These are adapter checks,
 not new medium receipt readings. Paired accuracy and latency remain unmeasured,
 the original fifty are untouched, and application behavior is unchanged.
+
+The current resume plan is `browser-paddle-medium-paired-plan-v2`, frozen after
+`a407133`. It preserves all models, images, references, limits and parameters
+while binding the current parser/observer. The controller verifies frozen
+inputs before launch; three offline protocol tests pass. Its actual start
+refused at 3,849,785,344 bytes available against the unchanged 3,885,219,840-byte
+guard, before any process or image attempt. `advanced-browser-paddle-medium-resume-v2.json`
+retains the plan, stop and checks. There is still no new model comparison result;
+application source and the previous 940-unit/223-browser validation are unchanged.

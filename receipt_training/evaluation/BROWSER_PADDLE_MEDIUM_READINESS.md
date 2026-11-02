@@ -5,7 +5,55 @@ The larger PP-OCRv6 medium model and the current tiny model are already cached.
 The requested local 8B trial remains separate; its disk and RAM guards are
 unchanged and no 8B files were downloaded.
 
-## Fixed comparison
+## Current resume checkpoint
+
+The current plan is **`browser-paddle-medium-paired-plan-v2`**, frozen at
+`a4071332ccd6897644d084fc70efffda0d038a6f`. Version 1 remains retained below as
+historical preparation. The newer plan includes the corrected process observer,
+current parser and summary-fragment changes. Models, eight image inputs,
+parameters, references, scoring rules, call limits and resource guards are
+byte-identical or structurally identical to version 1, as applicable.
+
+The controller now verifies every frozen input hash before process launch.
+Three local protocol tests confirm rejection of changed inputs and invalid
+version/path arguments, and retention of the original memory guard. JavaScript
+syntax/formatting, graph and diff checks pass. These are test-harness changes;
+the application's source, dependencies and tests remain unchanged from the
+preceding 940-unit / 223-browser-pass checkpoint (one existing browser skip).
+
+The actual version-2 startup check refused at **3,849,785,344 bytes available**,
+below 3,885,219,840 required. It created no Node/browser process and consumed
+zero synthetic or receipt image attempts. After the protocol tests ended, a
+read-only observation still found only 3,773,931,520 bytes available. No new OCR,
+model download or private external upload occurred. The paired recognizer,
+parser replay and scoring paths remain unexecuted; no accuracy gain is claimed.
+Evidence: `advanced-browser-paddle-medium-resume-v2.json`.
+
+When the existing resource guard permits, use new unused output names:
+
+```powershell
+python -X utf8 receipt_training/scripts/guard_browser_paddle_probe.py browser-paddle-paired-tiny-v3 browser-paddle-tiny-plan-v1 --medium-study browser-paddle-medium-paired-plan-v2
+```
+
+Only after checking that arm's actual success, all eight expected image results,
+network/write logs and resource record, run the medium arm with the same plan:
+
+```powershell
+python -X utf8 receipt_training/scripts/guard_browser_paddle_probe.py browser-paddle-paired-medium-v1 browser-paddle-medium-plan-v1 --medium-study browser-paddle-medium-paired-plan-v2
+```
+
+Adapt both successful results into separate unused directories, then pass the
+explicit version-2 plan as the replay's fourth positional argument:
+
+```powershell
+node receipt_training/scripts/replay_browser_paddle_medium_study.mjs NEW_REPLAY_TAG TINY_ADAPTED_TAG MEDIUM_ADAPTED_TAG browser-paddle-medium-paired-plan-v2
+python -X utf8 receipt_training/scripts/score_browser_paddle_medium_study.py NEW_REPLAY_TAG
+```
+
+Do not rerun a started image attempt or replace a failed/partial result. A later
+source change requires another preserved plan version before inference.
+
+## Original preparation: fixed comparison
 
 `qa-artifacts/browser-paddle-medium-paired-plan-v1/study-plan.json` was recorded
 before any new inference. It freezes the existing JPEG bytes, model archives,
@@ -66,7 +114,10 @@ source, dependencies and tests remain byte-identical to the parent checkpoint;
 the preceding 912 unit passes and 197 browser passes plus one existing skip are
 historical evidence, not a newly rerun suite.
 
-## Resume when resources permit
+## Historical version-1 resume instructions
+
+These commands describe the original checkpoint. Use the version-2 instructions
+above with the current source; the controller now rejects stale input hashes.
 
 First verify that current comparison scripts still match their hashes in the
 frozen plan. If they changed, preserve this plan and create a new version before

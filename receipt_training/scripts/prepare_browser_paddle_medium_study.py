@@ -2,12 +2,15 @@
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 import subprocess
+import sys
 
 from audit_evidence_integrity import sha
 
 ROOT = Path(__file__).resolve().parents[2]
-TAG = "browser-paddle-medium-paired-plan-v1"
+TAG = sys.argv[1] if len(sys.argv) > 1 else "browser-paddle-medium-paired-plan-v1"
+assert re.fullmatch(r"browser-paddle-medium-paired-plan-v[1-9]\d*", TAG)
 
 
 def main():
@@ -86,7 +89,7 @@ def main():
                  "receipt_training/annotations/private/supplement-financial-v2-labels.jsonl",
                  "receipt_training/evaluation/config.json"):
         checked(name)
-    plan = {"study_id": "browser-paddle-medium-paired-v1", "created_at": datetime.now(timezone.utc).isoformat(),
+    plan = {"study_id": TAG.replace("-plan-", "-"), "created_at": datetime.now(timezone.utc).isoformat(),
             "recorded_before_new_ocr": True, "parent_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
             "models": models, "cases": cases, "source_sha256": sources, "input_sha256": inputs,
             "limits": {"synthetic_calls_per_model": 1, "maximum_receipt_image_calls_per_model": 8,

@@ -7,8 +7,14 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const [tag, tinyTag, mediumTag] = process.argv.slice(2);
+const [
+  tag,
+  tinyTag,
+  mediumTag,
+  studyTag = "browser-paddle-medium-paired-plan-v1",
+] = process.argv.slice(2);
 assert([tag, tinyTag, mediumTag].every((s) => /^[\w-]+$/.test(s || "")));
+assert(/^browser-paddle-medium-paired-plan-v[1-9]\d*$/.test(studyTag));
 const out = resolve(root, "qa-artifacts", tag);
 await mkdir(out);
 const sha = (raw) => createHash("sha256").update(raw).digest("hex");
@@ -37,9 +43,9 @@ const write = async (name, value) => {
     { flag: "wx" },
   );
 };
-const planBase = "qa-artifacts/browser-paddle-medium-paired-plan-v1";
+const planBase = `qa-artifacts/${studyTag}`;
 const plan = await json(planBase + "/study-plan.json");
-assert.equal(plan.study_id, "browser-paddle-medium-paired-v1");
+assert.equal(plan.study_id, studyTag.replace("-plan-", "-"));
 const frozen = new Map(),
   loaded = {};
 for (const [name, expected] of Object.entries(plan.source_sha256)) {

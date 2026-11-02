@@ -20,7 +20,8 @@ assert(cohortTag === null || /^[\w-]+$/.test(cohortTag));
 const studyIndex = process.argv.indexOf("--medium-study");
 const studyTag = studyIndex < 0 ? null : process.argv[studyIndex + 1];
 assert(
-  studyTag === null || studyTag === "browser-paddle-medium-paired-plan-v1",
+  studyTag === null ||
+    /^browser-paddle-medium-paired-plan-v[1-9]\d*$/.test(studyTag),
 );
 assert([captureTag, cohortTag, studyTag].filter(Boolean).length <= 1);
 const production = process.argv.includes("--production");
@@ -119,7 +120,7 @@ if (cohortTag) {
 if (studyTag) {
   const source = `qa-artifacts/${studyTag}`;
   const study = JSON.parse(await input(source + "/study-plan.json"));
-  assert.equal(study.study_id, "browser-paddle-medium-paired-v1");
+  assert.equal(study.study_id, studyTag.replace("-plan-", "-"));
   const arm = study.models.find((m) => m.plan_path === planPath);
   assert(arm && arm.plan_sha256 === sha(raw));
   assert.deepEqual(
