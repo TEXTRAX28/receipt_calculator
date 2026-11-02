@@ -510,3 +510,18 @@ strict 0/1 and blocked despite a balanced GBP 176.78. These focused improvements
 are new evidence for explicit manual correction, not a claim of automatic
 whole-receipt accuracy or independent model verification. Public-readiness and
 the wider goal remain incomplete.
+
+## Larger browser-model comparison prepared, 2 November 2026
+
+`BROWSER_PADDLE_MEDIUM_READINESS.md` and
+`advanced-browser-paddle-medium-readiness-v1.json` freeze a paired tiny/medium
+comparison on three known-failure UK crops and four complete development
+receipts. Both official model archives are cached; no download is necessary.
+The startup guard refused at 2,724,827,136 bytes of available RAM against a
+3,885,219,840-byte threshold, before process launch or model inference.
+The guard and existing 8B resource limits remain unchanged.
+
+Actual offline checks preserve all five prior tiny receipt panels and the six
+lines of a retained medium synthetic observation. These are adapter checks,
+not new medium receipt readings. Paired accuracy and latency remain unmeasured,
+the original fifty are untouched, and application behavior is unchanged.

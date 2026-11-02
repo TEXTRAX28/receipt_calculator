@@ -17,10 +17,15 @@ assert(captureTag === null || captureTag === "genuine-capture-read-v1");
 const cohortIndex = process.argv.indexOf("--cohort-plan");
 const cohortTag = cohortIndex < 0 ? null : process.argv[cohortIndex + 1];
 assert(cohortTag === null || /^[\w-]+$/.test(cohortTag));
-assert(!(captureTag && cohortTag));
+const studyIndex = process.argv.indexOf("--medium-study");
+const studyTag = studyIndex < 0 ? null : process.argv[studyIndex + 1];
+assert(
+  studyTag === null || studyTag === "browser-paddle-medium-paired-plan-v1",
+);
+assert([captureTag, cohortTag, studyTag].filter(Boolean).length <= 1);
 const production = process.argv.includes("--production");
 assert(
-  !production || !(captureTag || cohortTag),
+  !production || !(captureTag || cohortTag || studyTag),
   "First production trial is synthetic only",
 );
 const out = resolve(root, "qa-artifacts", tag);
@@ -111,6 +116,40 @@ if (cohortTag) {
   }
   await write("capture-input.json", { source, cases: captureCases });
 }
+if (studyTag) {
+  const source = `qa-artifacts/${studyTag}`;
+  const study = JSON.parse(await input(source + "/study-plan.json"));
+  assert.equal(study.study_id, "browser-paddle-medium-paired-v1");
+  const arm = study.models.find((m) => m.plan_path === planPath);
+  assert(arm && arm.plan_sha256 === sha(raw));
+  assert.deepEqual(
+    plan.models.map((m) => m.name),
+    [`PP-OCRv6_${arm.size}_det`, `PP-OCRv6_${arm.size}_rec`],
+  );
+  assert.equal(study.cases.length, 7);
+  assert.equal(
+    study.cases.reduce((n, c) => n + c.frames.length, 0),
+    8,
+  );
+  for (const entry of study.cases) {
+    assert(/^[\w-]+$/.test(entry.receipt_id));
+    for (const frame of entry.frames) {
+      assert(frame.path.startsWith("qa-artifacts/"));
+      assert(frame.width * frame.height <= 4_000_000);
+      assert(frame.width <= 4000 && frame.height <= 4000);
+      const bytes = await input(frame.path, frame.sha256);
+      assert.equal(bytes.length, frame.bytes);
+      assert(bytes.length <= 6 * 1024 * 1024);
+    }
+    // Only image metadata reaches prediction; no labels or previous OCR.
+    captureCases.push({
+      receipt_id: entry.receipt_id,
+      image_sha256: entry.image_sha256,
+      frames: entry.frames,
+    });
+  }
+  await write("capture-input.json", { source, cases: captureCases });
+}
 const dependencyLock = await input(
   "receipt_training/.cache/browser-paddle-sdk-v1/package-lock.json",
 );
@@ -127,8 +166,8 @@ await write("starting.json", {
   started_at: new Date().toISOString(),
   plan_path: planPath,
   plan_sha256: sha(raw),
-  synthetic_only: !(captureTag || cohortTag),
-  capture_source: captureTag || cohortTag,
+  synthetic_only: !(captureTag || cohortTag || studyTag),
+  capture_source: captureTag || cohortTag || studyTag,
   production_bundle: production,
   input_sha256: inputs,
 });
@@ -406,7 +445,7 @@ try {
     }),
   );
   if (result.error) process.exitCode = 1;
-  else if (captureTag || cohortTag) {
+  else if (captureTag || cohortTag || studyTag) {
     assert.equal(result.reading?.length, 1);
     assert.deepEqual(
       result.reading[0].items.map((item) => item.text),
@@ -498,7 +537,10 @@ try {
       input_sha256: inputs,
       errors,
       requests,
-      engine: "paddle-ppocrv6-tiny-browser-wasm",
+      engine:
+        plan.models[0].name === "PP-OCRv6_medium_det"
+          ? "paddle-ppocrv6-medium-browser-wasm"
+          : "paddle-ppocrv6-tiny-browser-wasm",
       sdk_version: "0.4.2",
       ort_version: "1.31.1",
       browser: browser.version(),

@@ -20,7 +20,9 @@ def main():
     assert all(re.fullmatch(r"[\w-]+", s) for s in [tag, plan])
     extra = sys.argv[3:]
     app_ui = extra == ["--app-uk"]
+    medium_study = extra == ["--medium-study", "browser-paddle-medium-paired-plan-v1"]
     assert (extra in ([], ["--production"], ["--app-uk"], ["--capture-study", "genuine-capture-read-v1"])
+            or medium_study
             or (len(extra) == 2 and extra[0] == "--cohort-plan" and re.fullmatch(r"[\w-]+", extra[1])))
     control = ROOT / "qa-artifacts" / (tag + "-control")
     control.mkdir()
@@ -42,9 +44,11 @@ def main():
     observation.mkdir()
     initial = available_memory()[1]
     result = {"started_at": datetime.now(timezone.utc).isoformat(), "startup_available_ram": initial,
-              "startup_required_ram": 2684354560, "runtime_ram_floor": RUNTIME_RAM_FLOOR,
+              "startup_required_ram": 2811478016 + RUNTIME_RAM_FLOOR if medium_study else 2684354560, "runtime_ram_floor": RUNTIME_RAM_FLOOR,
+              "startup_guard_basis": "Prior sampled medium browser tree peak plus 1 GiB reserve, identical for both study arms" if medium_study else "Existing 2.5 GiB browser trial guard",
               "scope": "Experimental single-browser resource guard, not a vendor requirement or guarantee of peak memory fit. Local synthetic input plus optional fixed receipt cohort. Observer is a sibling, process tree contains development tools and browser, not model-only memory or a phone measurement.",
-              "source_sha256": sources, "capture_study": app_ui or "--capture-study" in extra or "--cohort-plan" in extra,
+              "source_sha256": sources, "capture_study": app_ui or medium_study or "--capture-study" in extra or "--cohort-plan" in extra,
+              "medium_study": medium_study,
               "production_bundle": "--production" in extra, "production_app_ui": app_ui,
               "spawned": False, "model_downloads": 0, "private_receipt_uploads": 0}
     if initial < result["startup_required_ram"]:

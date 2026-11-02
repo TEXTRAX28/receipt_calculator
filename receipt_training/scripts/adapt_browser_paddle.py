@@ -36,7 +36,7 @@ def main():
     metadata = load(source + "/capture-results.json")
     assert not metadata["errors"]
     assert not metadata["requests"]["external"] and not metadata["requests"]["writes"]
-    assert metadata["engine"] == "paddle-ppocrv6-tiny-browser-wasm"
+    assert metadata["engine"] in {"paddle-ppocrv6-tiny-browser-wasm", "paddle-ppocrv6-medium-browser-wasm"}
     for name, digest in metadata["input_sha256"].items():
         read(name, digest)
     cases = []
@@ -77,7 +77,7 @@ def main():
         (output / Path(name).name).write_bytes(raw)
     result = {"cases": cases, "input_sha256": hashes,
               "actual_ocr_sections": sum(len(c["frames"]) for c in cases),
-              "scope": "Actual detected text-line fragments retain SDK scores and axis-aligned envelopes of their actual polygons. Native local reader reading_lines geometry grouping reused without financial changes. Not native medium Paddle; engine identity remains browser tiny WASM. No inferred character/word boxes, provider calls or new OCR in adaptation."}
+              "scope": "Actual detected text-line fragments retain SDK scores and axis-aligned envelopes of their actual polygons. Native local reader reading_lines geometry grouping reused without financial changes. Browser WASM engine identity retained, not a native Python engine. No inferred character/word boxes, provider calls or new OCR in adaptation."}
     (output / "adapted.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"cases": len(cases), "panels": result["actual_ocr_sections"], "new_ocr_calls": 0}))
 
