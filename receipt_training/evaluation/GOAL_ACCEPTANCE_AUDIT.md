@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [reduced selling-price role correction](REDUCED_PRICE_ROLE_RECOVERY.md)
+The latest [Gemini draft retention](GEMINI_DRAFT_INTAKE.md) keeps six of six saved
+responses editable instead of four, preserving literal comma-formatted prices
+without interpreting them. Five additional names and four quantities survive;
+all monetary scores and original-fifty results are unchanged. Invalid amounts
+still block sharing. All 1,010 unit tests, build/typecheck and 27 browser cases
+pass, including the previously pending financial-column and reduced-price-role
+journeys. The browser cases use synthetic responses and phone emulation.
+No new model request, upload, default-provider change or paid activation occurred.
+Larger model trials remain below their existing resource requirements.
+
+The preceding [reduced selling-price role correction](REDUCED_PRICE_ROLE_RECOVERY.md)
 recovers two Tesco prices misplaced into model discounts, raising the offline
 Azure/Gemini supplied-currency result 22/25 to 24/25. Both fields remain pending
 source review. Original-fifty scores are unchanged with no scored regressions;

@@ -68,24 +68,62 @@ const receiptStructure = z.strictObject({
   adjustments: z.array(adjustment).max(30),
   warnings: z.array(z.string().max(350)).max(30),
 });
-export const aiReceiptSchema = receiptStructure.superRefine(
-  (receipt, context) => {
-    const hasReturn = receipt.items.some((item) => {
-      const value = item.lineTotal || item.unitPrice;
-      return value.startsWith("-") && /[1-9]/.test(value);
+function validateAdjustments(receipt, context) {
+  const hasReturn = receipt.items.some((item) => {
+    const value = item.lineTotal || item.unitPrice;
+    return value.startsWith("-") && /[1-9]/.test(value);
+  });
+  if (!hasReturn)
+    receipt.adjustments.forEach((entry, index) => {
+      if (entry.kind !== "rounding" && entry.amount.startsWith("-"))
+        context.addIssue({
+          code: "custom",
+          path: ["adjustments", index, "amount"],
+          message:
+            "A negative non-rounding adjustment needs an explicit returned item.",
+        });
     });
-    if (!hasReturn)
-      receipt.adjustments.forEach((entry, index) => {
-        if (entry.kind !== "rounding" && entry.amount.startsWith("-"))
-          context.addIssue({
-            code: "custom",
-            path: ["adjustments", index, "amount"],
-            message:
-              "A negative non-rounding adjustment needs an explicit returned item.",
-          });
-      });
-  },
-);
+}
+export const aiReceiptSchema =
+  receiptStructure.superRefine(validateAdjustments);
+
+// Gemini can copy printed grouping despite the canonical request contract.
+// Preserve these bounded literals as invalid financial inputs, never normalize
+// them here. Quantities, tax rates, keys, photo references and bounds stay strict.
+const groupedAmount = z
+  .string()
+  .max(40)
+  .regex(/^[0-9]{1,3}(?:,[0-9]{3}){1,3}(?:[.][0-9]{1,6})?$/);
+const groupedSignedAmount = z
+  .string()
+  .max(40)
+  .regex(/^-?[0-9]{1,3}(?:,[0-9]{3}){1,3}(?:[.][0-9]{1,6})?$/);
+const draftAmount = amount.or(groupedAmount);
+const draftSignedAmount = signedAmount.or(groupedSignedAmount);
+export const geminiReceiptDraftSchema = receiptStructure
+  .extend({
+    subtotal: draftSignedAmount,
+    printedTotal: draftSignedAmount,
+    printedTax: draftSignedAmount,
+    items: z
+      .array(
+        receiptStructure.shape.items.element.extend({
+          unitPrice: draftSignedAmount,
+          lineTotal: draftSignedAmount,
+          discount: draftAmount,
+        }),
+      )
+      .max(300),
+    adjustments: z
+      .array(
+        z.union([
+          adjustment.options[0].extend({ amount: draftSignedAmount }),
+          adjustment.options[1].extend({ amount: draftSignedAmount }),
+        ]),
+      )
+      .max(30),
+  })
+  .superRefine(validateAdjustments);
 // Keep decoding constraints small. Large nested array/numeric bounds can make
 // Gemini reject or stall a request. The full strict Zod schema above is still
 // applied to every returned result on the server and in the browser.

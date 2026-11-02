@@ -1,4 +1,7 @@
-import { aiReceiptSchema } from "./extraction-schema.mjs";
+import {
+  aiReceiptSchema,
+  geminiReceiptDraftSchema,
+} from "./extraction-schema.mjs";
 import { newItem, newReceipt, receiptSchema, type Receipt } from "./model";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 import type { ReceiptImage } from "./images";
@@ -15,7 +18,9 @@ export function receiptFromAi(
   provider: "Gemini" | "Local vision" = "Gemini",
   context?: ReadingContext,
 ): Receipt {
-  const data = aiReceiptSchema.parse(output);
+  const data = (
+    provider === "Gemini" ? geminiReceiptDraftSchema : aiReceiptSchema
+  ).parse(output);
   const selected = readingContextSchema.optional().parse(context);
   const receipt = newReceipt();
   receipt.source = "ai";
@@ -60,6 +65,43 @@ export function receiptFromAi(
     `${provider} prepared this draft from your photos. Check every purchase, discount, tax code and the printed total against the originals.`,
     ...data.warnings,
   ];
+  for (const item of receipt.items)
+    for (const field of ["unitPrice", "lineTotal", "discount"] as const)
+      if (item[field].includes(","))
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field,
+          reason: "unclear",
+          other:
+            "Check the number separators and enter the amount in decimal form.",
+          details: [{ label: "Unchanged reader amount", value: item[field] }],
+          confirmedValue: "",
+        });
+  for (const field of ["subtotal", "printedTotal", "printedTax"] as const)
+    if (receipt[field].includes(","))
+      receipt.reviewChecks.push({
+        scope: "receipt",
+        field,
+        reason: "unclear",
+        other:
+          "Check the number separators and enter the amount in decimal form.",
+        details: [{ label: "Unchanged reader amount", value: receipt[field] }],
+        confirmedValue: "",
+      });
+  if (receipt.adjustments.some((entry) => entry.amount.includes(",")))
+    receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "adjustments",
+      reason: "unclear",
+      other:
+        "Check the number separators in each receipt adjustment against the original.",
+      confirmedValue: "",
+    });
+  if (receipt.reviewChecks.length)
+    receipt.warnings.push(
+      "Some reader amounts contain grouping separators. They are kept exactly as returned. Check their meaning and currency, then enter decimal amounts before sharing.",
+    );
   if (selected) {
     receipt.warnings.push(
       `Receipt currency supplied by you: ${selected.currency}. Returned model amounts have not been reinterpreted or converted.`,

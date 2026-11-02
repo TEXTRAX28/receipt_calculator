@@ -2,7 +2,16 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [reduced selling-price correction](REDUCED_PRICE_ROLE_RECOVERY.md): two
+Latest [Gemini draft retention](GEMINI_DRAFT_INTAKE.md): all six saved responses
+now produce editable drafts; two keep literal comma-formatted amounts blocked
+for correction. Five additional names and four quantities are retained, with
+unchanged monetary and original-fifty scores. All 1,010 unit tests, build/typecheck
+and 27 synthetic browser cases pass, including the formerly pending financial
+column and reduced-price-role journeys. No new model requests, private uploads,
+provider switches or paid activation occurred. Larger model trials still lack
+resources; this delivery improvement does not complete the full goal.
+
+The preceding [reduced selling-price correction](REDUCED_PRICE_ROLE_RECOVERY.md): two
 source-backed Tesco prices move out of erroneous model discounts, improving the
 offline Azure/Gemini supplied-currency result 22/25 to 24/25. Mandatory source
 checks remain, all original-fifty scores are unchanged and the combination still

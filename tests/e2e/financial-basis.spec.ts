@@ -319,6 +319,20 @@ for (const scenario of [
         .getByRole("button", { name: "Back to receipt", exact: true })
         .click();
     }
+    if (scenario === "slanted-columns") {
+      // DUE is not supported by the primary total parser. Financial role
+      // recovery must not silently confirm the separate model total.
+      await expect(confirm).toBeDisabled();
+      await expect(
+        page.getByLabel("Printed total", { exact: true }),
+      ).toHaveValue("21.00");
+      await page
+        .getByRole("checkbox", {
+          name: "I checked printed total against the original",
+          exact: true,
+        })
+        .check();
+    }
     await info.attach("Financial source protocol runtime", {
       body: Buffer.from(
         JSON.stringify({

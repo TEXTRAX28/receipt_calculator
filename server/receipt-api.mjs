@@ -1,6 +1,7 @@
 import {
   aiReceiptSchema,
   aiReceiptJsonSchema,
+  geminiReceiptDraftSchema,
 } from "../src/lib/extraction-schema.mjs";
 import {
   DEFAULT_GEMINI_MODEL,
@@ -145,7 +146,7 @@ export async function extractWithGemini(
       502,
       "Gemini returned no receipt draft. Your photos are still available; try again later or enter the receipt manually.",
     );
-  const draft = aiReceiptSchema.parse(JSON.parse(text));
+  const draft = geminiReceiptDraftSchema.parse(JSON.parse(text));
   const suppliedPhotos = new Set(panels.map((panel) => panel.photo));
   if (
     draft.items.some((item) =>
