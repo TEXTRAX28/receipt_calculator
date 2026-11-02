@@ -11,7 +11,15 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-Latest implementation: [printed purchase columns](COLUMN_PURCHASES.md) improve
+Latest implementation: [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
+preserves originals and native long-receipt sections, adds explicit corrected
+previews and mandatory source review, and passes 716 unit tests plus 183 browser
+tests with one existing skip. The real on-device synthetic journey still needs
+one recorded name edit before an exact £2.75/£2.75 split. A white outside margin
+fixes one native synthetic unit-price error; no financial field is edited. It does not establish
+general genuine-photo accuracy or physical-phone acceptance.
+
+The preceding [printed purchase columns](COLUMN_PURCHASES.md) improve
 explicit-currency hybrid line prices from 131/143 to 132/143 and primary
 quantities from 30/120 to 32/120, with no scored per-case regressions. Source
 checks remain mandatory. Validation passes 693 unit tests and 179 browser tests
@@ -229,7 +237,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. | Closed-provider real-receipt comparison unestablished: Gemini 503; OpenAI/Claude access absent. Do not count synthetic transport as accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
-| P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice; optional bounded edge/crop suggestions and original preservation. `src/lib/image-quality.ts:L68`, `src/lib/receipt-edges.ts:L26`. | Crop-clipping, arbitrary rotation/skew and perspective/distortion diagnostics/correction are not implemented or calibrated. Existing advice cannot be presented as covering them. |
+| P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
 | P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, scanned/mixed fallback. | Image subtype classification is not implemented; genuine retailer digital/PDF accuracy absent. |
 | P4.3: best practical primary extraction of all structured purchase/financial fields | Paddle primary and optional readers implemented/tested; source-preserving parser and review work. | Known missing products, prices, merchant, fee/tax/payment roles and totals remain. A schema-valid draft is not a correct receipt. |
 | P4.4: independent image-based verification/recovery for uncertainty, discounts, duplicate rows and failed arithmetic; bounded extra calls | Implemented automatic local policy, independent original-image VLM, guarded source proposals, bounded batches and fallback checks; same-reading gains measured. | General automatic recovery and difficult overlap/role errors remain. Current selection is a checked-draft hybrid. |
@@ -240,7 +248,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; optional Azure/Veryfi finite allowances and scan consent. No new upload or paid activation in this audit. | Public terms/region/retention review and account-specific training commitments remain incomplete. Gemini consent/rate bounds are not a durable public spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
 | P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and browser journeys, including signed refund-credit ownership and rounding. | Genuine refund-format accuracy is unmeasured; this does not invalidate the tested exact allocation rules. |
-| P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Responsive tested browser workflow, camera file capture, reordered photos, progress/cancel, source edits/rereads and checked exact summaries. | Live-camera framing/rotation/perspective guidance, physical-device camera and Safari testing remain open. |
+| P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Responsive browser workflow, camera file capture, reordered photos, progress/cancel, optional rotation/perspective preview, source edits/rereads and checked exact summaries. | Live-camera framing/pose guidance, physical-device camera and Safari testing remain open. |
 | P10: secure uploads/types/size, hostile data/prompt injection, validation/rate/auth/keys/logs/retention/retries/quotas/privacy | Local boundary reviewed/tested; new Gemini envelope/dimension guard; provider output remains untrusted, no model tools; finite cloud allowances where implemented. | Public authentication/TLS, multi-user quotas/spend limits, durable jobs/crash cleanup/OS isolation and jurisdiction-specific privacy acceptance are not delivered. Loopback checks are not public authentication. |
 | P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Fresh current software checks pass; original-fifty native readings and latest offline field replay preserved; actual local-model and synthetic/provider browser paths distinguished. | Latest full native latency cohort, genuine new input types, independent full financial truth and real handset evidence are incomplete. Thirteen historical artifact declarations cannot be reproduced from missing bytes. |
 | P12: existing assessment, technology/architecture, improvements, measurements, Git/tests, limits and release path | This consolidated report and its machine-readable checkpoint supply those sections with provenance and limits. | Final acceptance remains open because P4/P9 capabilities and financial/public-readiness evidence above remain partial. |
@@ -279,8 +287,8 @@ Before public release, the remaining work is concrete:
 1. Resolve source-grounded financial-role and missing-price failures, measuring
    the same frozen references without fitting values to a desired total. Keep
    failed proposals and source-review requirements visible.
-2. Add and verify clipping/rotation/perspective capture diagnostics and practical
-   correction. Preserve readable originals and abstain on unsupported frames.
+2. Calibrate clipping/rotation/perspective diagnostics and test the new optional
+   correction on genuine photos. Preserve originals and abstain on unsupported frames.
 3. Obtain genuine digital/scan/screenshot/PDF and refund examples when available;
    keep new cases separate from the original cohort. Independently review enough
    financial truth for an honest whole-receipt metric.
@@ -294,8 +302,9 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest code checkpoint adds printed-column interpretation and mandatory
-source checks. The preceding `3409145` adds financial-role proposals, while
+The latest code checkpoint adds optional image geometry and its checked-source
+workflow. The preceding `e0db735` adds printed-column interpretation; `72bbd35`
+preserves verification when archived build paths disappear. `3409145` adds financial-role proposals, while
 `6e22912` adds the Gemini guard and corpus audit. No runtime dependency, model
 download, training or paid feature is added. The separate synthetic Gemini
 request is recorded above. Earlier app commit `4686b8e` and research commit

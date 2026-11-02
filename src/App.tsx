@@ -94,6 +94,8 @@ import ImageCropper from "./ImageCropper";
 import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
 import PhotoGuidance from "./PhotoGuidance";
+import ReceiptPhotos from "./ReceiptPhotos";
+import { requireCorrectedPhotoReview } from "./lib/capture-review";
 import RefundControl from "./RefundControl";
 import {
   collectReceiptEvidence,
@@ -644,7 +646,13 @@ export default function App() {
           images,
         );
         setRawText(output.text);
-        replaceReceipt(output.receipt, evidence);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            output.receipt,
+            images.some((image) => !!image.geometry),
+          ),
+          evidence,
+        );
         setNotice(
           "PDF text read on this device. Check every purchase against the page previews; scanned content may be missing from a text layer.",
         );
@@ -684,7 +692,13 @@ export default function App() {
           compared.fieldSources,
         );
         setRawText(compared.text);
-        replaceReceipt(compared.receipt, evidence);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            compared.receipt,
+            images.some((image) => !!image.geometry),
+          ),
+          evidence,
+        );
         setNotice(
           compared.comparisonComplete
             ? "Both local readings finished. Check the marked values and every purchase against your photos before confirming."
@@ -701,7 +715,12 @@ export default function App() {
           setScanStatus,
           readingContext,
         );
-        replaceReceipt(parsed);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            parsed,
+            images.some((image) => !!image.geometry),
+          ),
+        );
         setNotice(
           "Local vision finished. This reader is experimental: check every purchase, discount, tax setting and amount against your photos before confirming.",
         );
@@ -726,7 +745,13 @@ export default function App() {
           images,
         );
         setRawText(parsed.text);
-        replaceReceipt(parsed.receipt, evidence);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            parsed.receipt,
+            images.some((image) => !!image.geometry),
+          ),
+          evidence,
+        );
         setNotice(
           output.cleanup === "provider-reported-success"
             ? "Azure finished and reported deletion of its results. Check every purchase and amount against the photos; a deletion response is not an independent erasure audit."
@@ -742,7 +767,12 @@ export default function App() {
         );
         const parsed = receiptFromVeryfiText(output.text, readingContext);
         setRawText(output.text);
-        replaceReceipt(parsed);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            parsed,
+            images.some((image) => !!image.geometry),
+          ),
+        );
         setNotice(
           output.cleanup === "provider-reported-success"
             ? "Veryfi finished and reported deletion of its new receipt record. Check the draft against every photo. Deletion does not guarantee zero retention or exclude model improvement."
@@ -757,7 +787,12 @@ export default function App() {
           setScanStatus,
           readingContext,
         );
-        replaceReceipt(parsed);
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            parsed,
+            images.some((image) => !!image.geometry),
+          ),
+        );
         setAiConsented(false);
         setNotice(
           "Gemini finished. Check the combined receipt against every photo before confirming.",
@@ -807,7 +842,13 @@ export default function App() {
           "Some source areas could not be matched. Check those purchases against the full receipt photos.",
         ].slice(0, 60);
       parsed.source = "ocr";
-      replaceReceipt(parsed, evidence);
+      replaceReceipt(
+        requireCorrectedPhotoReview(
+          parsed,
+          images.some((image) => !!image.geometry),
+        ),
+        evidence,
+      );
       setNotice(
         "OCR finished. Check the extracted details against your images before confirming.",
       );
@@ -1180,6 +1221,7 @@ export default function App() {
                             ? `PDF page ${image.document.page}`
                             : `Image ${i + 1}`}
                           {image.crop ? " · cropped" : ""}
+                          {image.geometry ? " · corrected" : ""}
                           {image.panels
                             ? ` · ${image.panels.length} sections`
                             : ""}
@@ -2843,7 +2885,9 @@ export default function App() {
               : sourceOpen
                 ? `Receipt source for purchase ${sourceItemIndex + 1}`
                 : zoomImage
-                  ? "Original receipt image"
+                  ? zoomImage.geometry
+                    ? "Original and corrected receipt"
+                    : "Original receipt image"
                   : "Your privacy at Gather"
         }
       >
@@ -2866,11 +2910,22 @@ export default function App() {
             image={cropTarget}
             onCancel={() => setCropTarget(null)}
             onApply={(cropped) => {
-              setImages((current) =>
-                current.map((image) =>
-                  image.id === cropped.id ? cropped : image,
-                ),
+              const next = images.map((image) =>
+                image.id === cropped.id ? cropped : image,
               );
+              if (
+                next.reduce(
+                  (count, image) => count + readingBlobs(image).length,
+                  0,
+                ) > MAX_READING_PANELS
+              ) {
+                setImageError(
+                  "This correction creates more than 24 detail sections. Use fewer photos or trim the receipt first.",
+                );
+                setCropTarget(null);
+                return;
+              }
+              setImages(next);
               setAiConsented(false);
               setCropTarget(null);
             }}
@@ -3002,17 +3057,7 @@ export default function App() {
             </button>
           </ReceiptSource>
         ) : zoomImage ? (
-          <div className="image-dialog">
-            <h2>Original receipt</h2>
-            <p>
-              Zoom with your browser or device gestures. Compare it with the
-              editable details.
-            </p>
-            <img
-              src={zoomImage.url}
-              alt="Original receipt, enlarged for review"
-            />
-          </div>
+          <ReceiptPhotos key={zoomImage.id} image={zoomImage} />
         ) : (
           <div className="privacy-dialog">
             <ShieldCheck size={32} />

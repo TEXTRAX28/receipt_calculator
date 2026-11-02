@@ -2,7 +2,16 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [printed purchase-column interpretation](COLUMN_PURCHASES.md) improves
+The latest [optional rotation and perspective correction](CAPTURE_GEOMETRY.md)
+preserves originals and native long-receipt sections, with explicit preview and
+mandatory purchase-list review. It passes 716 unit tests and 183 browser tests
+with one existing skip, including editor accessibility and a real on-device
+synthetic workflow. A white outside margin fixes one unit-price error on that
+fixture. The remaining name error needs one explicit user edit before an exact
+£2.75/£2.75 split; that edit is excluded from accuracy counts.
+No new private upload, default-reader change or genuine-photo accuracy claim.
+
+The preceding [printed purchase-column interpretation](COLUMN_PURCHASES.md) improves
 explicit-currency hybrid line prices 131/143 → 132/143 and primary quantities
 30/120 → 32/120, with no scored per-case regression. Source checks remain
 mandatory. Current validation passes 693 unit tests and 179 browser tests with

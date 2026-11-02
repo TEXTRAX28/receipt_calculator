@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, RotateCcw, ScanLine } from "lucide-react";
 import { cropImage, type CropBounds, type ReceiptImage } from "./lib/images";
 import { suggestReceiptEdges } from "./lib/edge-preview";
+import ImageGeometry from "./ImageGeometry";
 export default function ImageCropper({
   image,
   onApply,
@@ -23,6 +24,7 @@ export default function ImageCropper({
     image.crop || { left: 0, right: 0, top: 0, bottom: 0 },
   );
   const [busy, setBusy] = useState(false);
+  const [geometryOpen, setGeometryOpen] = useState(!!image.geometry);
   const [error, setError] = useState("");
   const [finding, setFinding] = useState(false);
   const [edgeMessage, setEdgeMessage] = useState("");
@@ -81,10 +83,29 @@ export default function ImageCropper({
       if (live.current) setBusy(false);
     }
   }
+  if (geometryOpen)
+    return (
+      <ImageGeometry
+        image={image}
+        bounds={bounds}
+        onApply={onApply}
+        onCancel={onCancel}
+        onBack={() => setGeometryOpen(false)}
+      />
+    );
   return (
     <div className="cropper">
       <h2>{title}</h2>
       <p>{description}</p>
+      {allowEdgeSuggestion && !image.document && (
+        <button
+          className="button button-outline"
+          disabled={busy || finding}
+          onClick={() => setGeometryOpen(true)}
+        >
+          Rotate or straighten
+        </button>
+      )}
       {allowEdgeSuggestion && !image.document && (
         <div className="crop-edge-tools">
           <button

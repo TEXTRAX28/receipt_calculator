@@ -1,5 +1,6 @@
 import type { PdfPageText } from "./pdf-text";
 import { inspectCapture, type CaptureQuality } from "./image-quality";
+import type { ReceiptGeometry } from "./image-geometry";
 
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_PIXELS = 25_000_000;
@@ -118,6 +119,7 @@ export interface ReceiptImage {
   ocrBlob?: Blob;
   panels?: Blob[];
   crop?: CropBounds;
+  geometry?: ReceiptGeometry;
   quality?: CaptureQuality;
   document?: {
     kind: "pdf";
@@ -152,6 +154,22 @@ export function previewDimensions(
   return {
     width: Math.max(1, Math.floor(width * scale)),
     height: Math.max(1, Math.floor(height * scale)),
+  };
+}
+
+/** Keep the selected area inside a bounded white outside margin, even for thin previews. */
+export function paddedCorrectionFrame(width: number, height: number) {
+  const output = previewDimensions(width + 20, height + 20);
+  // The margin must shrink for extremely narrow/short previews; a fixed 10px
+  // offset would otherwise put the selected content outside their canvas.
+  const left = Math.min(10, Math.floor((output.width - 1) / 4));
+  const top = Math.min(10, Math.floor((output.height - 1) / 4));
+  return {
+    ...output,
+    left,
+    top,
+    contentWidth: output.width - 2 * left,
+    contentHeight: output.height - 2 * top,
   };
 }
 
@@ -281,6 +299,7 @@ export async function cropImage(
       ocrBlob,
       panels,
       crop: bounds,
+      geometry: undefined,
       quality: inspectCapture(bitmap, x, y, width, height),
     };
   } finally {
