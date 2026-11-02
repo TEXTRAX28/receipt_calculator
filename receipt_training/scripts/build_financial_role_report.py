@@ -14,7 +14,8 @@ HASHES = {}
 
 def read(path, expected=None):
     assert not path.name.startswith(".env"), "Never capture live configuration"
-    raw = path.read_bytes()
+    assert path.is_file() or expected, str(path)
+    raw = path.read_bytes() if path.is_file() else b""
     digest = hashlib.sha256(raw).hexdigest()
     if expected and digest != expected:
         raw = (ROOT / "qa-artifacts/evidence-blobs" / expected).read_bytes()
