@@ -31,6 +31,7 @@ import {
 } from "./financial-basis";
 import { recoverFinancialRoles } from "./financial-roles";
 import { findPaymentAdjustments } from "./payment-rows";
+import { recoverReducedPriceRole } from "./reduced-price-role";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -445,6 +446,42 @@ export function verifyIndependentReadings(
           sameAmount(owner.quantity, leading[1], receipt.currency, true) &&
           nameKey(owner.description) === nameKey(leading[2]));
       if (!sameName) continue;
+      const reduced =
+        nameKey(owner.description) === nameKey(source.item.description)
+          ? recoverReducedPriceRole(
+              owner,
+              source,
+              recognition,
+              receipt.currency,
+            )
+          : null;
+      if (reduced) {
+        const previousDiscount = owner.discount;
+        owner.lineTotal = reduced.value;
+        owner.discount = "0";
+        correctedOwners.add(owner.id);
+        itemCheck(owner, "lineTotal", "recovered", reduced.previous);
+        itemCheck(owner, "discount", "recovered", previousDiscount);
+        for (const check of checks) {
+          if (
+            check.scope === "item" &&
+            check.itemId === owner.id &&
+            (check.field === "lineTotal" || check.field === "discount")
+          )
+            check.details = [
+              {
+                label: "Printed reduced selling price",
+                value: reduced.literal,
+              },
+              { label: "Previous vision deduction", value: previousDiscount },
+            ];
+        }
+        priceRecoveries.push({
+          itemId: owner.id,
+          sourceIndices: source.indices,
+          evidence: reduced,
+        });
+      }
       const columnLine = source.column && lines[source.column.lineIndex];
       const columnToken = (field: "unitPrice" | "lineTotal") =>
         source.column && columnLine

@@ -2,7 +2,15 @@
 
 Current consolidated status, 2 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [Gemini 3.5 Flash-Lite evidence](GEMINI35_SIX_RESULT.md): six separately
+Latest [reduced selling-price correction](REDUCED_PRICE_ROLE_RECOVERY.md): two
+source-backed Tesco prices move out of erroneous model discounts, improving the
+offline Azure/Gemini supplied-currency result 22/25 to 24/25. Mandatory source
+checks remain, all original-fifty scores are unchanged and the combination still
+does not beat Azure alone. All 987 unit tests and build/typecheck pass. The new
+browser scenario remains pending after a RAM-guard refusal. No new model calls,
+uploads, provider switches or live cloud-combination integration occurred.
+
+The preceding [Gemini 3.5 Flash-Lite evidence](GEMINI35_SIX_RESULT.md): six separately
 approved requests completed, four schema-valid drafts, 17/25 known line prices
 delivered, 9/9 VAT letters and 0/3 coupon attachments. Mean request time was
 2.549 seconds on these small crops. The existing Azure-word reader preserves

@@ -11,7 +11,15 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Gemini 3.5 Flash-Lite comparison](GEMINI35_SIX_RESULT.md) completed
+The latest [reduced selling-price role correction](REDUCED_PRICE_ROLE_RECOVERY.md)
+recovers two Tesco prices misplaced into model discounts, raising the offline
+Azure/Gemini supplied-currency result 22/25 to 24/25. Both fields remain pending
+source review. Original-fifty scores are unchanged with no scored regressions;
+the combined reader still trails Azure alone and is not integrated live.
+All 987 unit tests and build/typecheck pass. The new browser scenario remains
+unexecuted after a RAM-guard refusal. No new model calls/uploads occurred.
+
+The preceding [Gemini 3.5 Flash-Lite comparison](GEMINI35_SIX_RESULT.md) completed
 six separately approved requests: all HTTP 200, four usable drafts and 17/25
 known line prices delivered, compared with Azure's earlier 23/25 native fields
 and Veryfi's 18/25. The saved-output combination with Azure words regresses
@@ -470,10 +478,12 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The latest app checkpoint `a4a5b88` adds the guarded slanted financial-column
-proposal with 966 passing unit tests; its new browser scenario remains pending
-the unchanged resource guard. The subsequent Gemini comparison changes only
-research scripts and reports. Earlier checkpoint `cbe9c91` shares native-PDF invoice columns with
+The current app adds the guarded reduced selling-price correction on parent
+`9f8db67`, with 987 passing unit tests and its browser scenario pending the
+unchanged resource guard. Earlier app checkpoint `a4a5b88` adds the guarded
+slanted financial-column proposal; that browser scenario is also pending.
+The intervening Gemini comparison changed only research scripts and reports.
+Earlier checkpoint `cbe9c91` shares native-PDF invoice columns with
 source-owned on-device OCR and preserves mandatory checks/printed inconsistencies.
 `756dc44` adds the separately tested, still-unexecuted 8B trial controls.
 The genuine-photo preparation comparison is research only, with no provider or
