@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { receiptFromAi } from "../src/lib/gemini";
 import { calculateReceipt, calculateSplit } from "../src/lib/engine";
 import { extractWithGemini } from "../server/receipt-api.mjs";
@@ -147,9 +148,9 @@ describe("explicit structured receipt rounding", () => {
         {
           photo: 1,
           part: 1,
-          data: Buffer.from([255, 216, 255, 224, 0, 1, 2, 3]).toString(
-            "base64",
-          ),
+          data: readFileSync(
+            new URL("./fixtures/prepared-section.jpg", import.meta.url),
+          ).toString("base64"),
         },
       ],
       {

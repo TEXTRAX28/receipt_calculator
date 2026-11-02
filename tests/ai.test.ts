@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { readFileSync } from "node:fs";
 import {
   createReceiptApi,
   extractWithGemini as serverExtract,
@@ -13,9 +14,11 @@ import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { planReadingPanels } from "../src/lib/images";
 import { joinDetailText } from "../src/lib/ocr";
 
-const panelData = Buffer.from([
-  255, 216, 255, 224, 0, 1, 2, 3, 255, 217,
-]).toString("base64");
+// A real encoded JPEG for transport tests; mocked drafts are not OCR evidence.
+const jpeg = readFileSync(
+  new URL("./fixtures/prepared-section.jpg", import.meta.url),
+);
+const panelData = jpeg.toString("base64");
 const panels = [
   { photo: 1, part: 1, data: panelData },
   { photo: 2, part: 1, data: panelData },
@@ -251,6 +254,52 @@ describe("Gemini receipts are evidence for the exact engine", () => {
 });
 
 describe("server-held credentials and bounded provider calls", () => {
+  const withDimensions = (width: number, height: number) => {
+    const bytes = Buffer.from(jpeg);
+    const frame = bytes.indexOf(Buffer.from([0xff, 0xc0]));
+    if (frame < 0) throw new Error("JPEG fixture needs a baseline frame");
+    bytes.writeUInt16BE(height, frame + 5);
+    bytes.writeUInt16BE(width, frame + 7);
+    return bytes;
+  };
+  const noFrame = Buffer.alloc(300);
+  noFrame.set([0xff, 0xd8, 0xff, 0xda]);
+  noFrame.set([0xff, 0xd9], noFrame.length - 2);
+  const badSegment = Buffer.from(jpeg);
+  badSegment.writeUInt16BE(0xffff, 4);
+
+  it.each([
+    [
+      "signature-only bytes",
+      Buffer.from([255, 216, 255, 224, 0, 1, 2, 3, 255, 217]),
+    ],
+    ["missing end marker", jpeg.subarray(0, -2)],
+    ["missing frame dimensions", noFrame],
+    ["segment extending outside the file", badSegment],
+    ["excessive width", withDimensions(4001, 8)],
+    ["excessive height", withDimensions(8, 4001)],
+    ["excessive pixel area", withDimensions(2500, 2000)],
+    ["zero frame dimension", withDimensions(0, 8)],
+  ])(
+    "rejects %s in a later section before any provider call and permits a corrected scan",
+    async (_name, bytes) => {
+      const upstream = vi.fn(async () => response());
+      const { post } = await localApi({
+        apiKey: "test-key",
+        fetcher: upstream,
+      });
+      const invalid = await post({
+        consent: true,
+        panels: [panels[0], { ...panels[1], data: bytes.toString("base64") }],
+      });
+      expect(invalid.status).toBe(400);
+      expect((await invalid.json()).error).toMatch(/invalid or too large/);
+      expect(upstream).not.toHaveBeenCalled();
+      expect((await post()).status).toBe(200);
+      expect(upstream).toHaveBeenCalledOnce();
+    },
+  );
+
   it("reads the REST model_output steps and ignores thoughts, user echoes and tool results", async () => {
     const result = await serverExtract(panels, {
       apiKey: "test-key",

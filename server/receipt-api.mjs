@@ -22,6 +22,7 @@ import {
   planVisionBatches,
 } from "../src/lib/vision-plan.mjs";
 import { MAX_READING_PANELS } from "../src/lib/scan-limits.mjs";
+import { validatePreparedJpeg } from "./receipt-zip.mjs";
 
 const requestSchema = z.strictObject({
   consent: z.literal(true),
@@ -50,11 +51,14 @@ export async function extractWithGemini(
   ];
   for (const panel of panels) {
     const bytes = Buffer.from(panel.data, "base64");
-    if (bytes[0] !== 255 || bytes[1] !== 216 || bytes[2] !== 255)
+    try {
+      validatePreparedJpeg(bytes);
+    } catch {
       throw new ScanError(
         400,
-        "A receipt panel is not a valid JPEG. Choose the photos again.",
+        "A receipt photo is invalid or too large to read. Choose the photos again.",
       );
+    }
     input.push({
       type: "text",
       text: `Original photo ${panel.photo}, detail panel ${panel.part}.`,

@@ -1,0 +1,68 @@
+{
+  "scope": "Prepared JPEG envelope/dimension validation for Gemini, eight real-local-HTTP negative/recovery cases, valid synthetic transport fixtures and fresh app regression checks. Provider calls are injected synthetic responses; no cloud extraction accuracy claim.",
+  "boundaries": {
+    "maximum_side": 4000,
+    "maximum_pixels": 4000000,
+    "maximum_bytes": 5242880,
+    "full_jpeg_decoder": false
+  },
+  "negative_cases": [
+    "signature-only bytes",
+    "missing end marker",
+    "no frame dimensions",
+    "segment outside file",
+    "width above limit",
+    "height above limit",
+    "pixel area above limit",
+    "zero dimension"
+  ],
+  "assertion": "Each invalid second panel is rejected with HTTP 400 before any provider call; the next valid scan succeeds with one synthetic provider call.",
+  "verification": {
+    "targeted_tests": 34,
+    "unit_tests": 653,
+    "standard_browser_passes": 175,
+    "existing_browser_skip": 1,
+    "build_typecheck_format_graph": "passed",
+    "initial_full_unit_run": "652 passed / one old transport fixture rejected; corrected fixture, then all 653 passed"
+  },
+  "git": {
+    "branch": "feature/advanced-ocr-vision-ai",
+    "parent_commit": "b6a7dcfbb519c254e615f03569a21956c7019fea",
+    "stable": "ee725ba45e799bee8501d3de034e0302c0127afd"
+  },
+  "new_model_requests": 0,
+  "external_requests": 0,
+  "new_receipt_latency_samples": 0,
+  "billing_activation": false,
+  "limits": [
+    "This reuses an envelope/dimension guard, not full JPEG validation or OS isolation.",
+    "Browser checks emulate phones; no physical handset or genuine-cloud extraction is established.",
+    "Receipt-recognition scores are unchanged; the paired corpus rescore is recorded separately.",
+    "Global evidence integrity retains thirteen historical missing artifact declarations, not zero."
+  ],
+  "evidence_sha256": {
+    "server/receipt-api.mjs": "c77894a0dcb321c1c48da12301ceef4694d6e7982cc3a134dd38aec1fc642496",
+    "qa-artifacts/gemini-upload-guard-v1/source/server/receipt-api.mjs": "c77894a0dcb321c1c48da12301ceef4694d6e7982cc3a134dd38aec1fc642496",
+    "server/receipt-zip.mjs": "0108ca93003ef07828b98990ce6eefbd2047ab256f2cf484a6079aa79238c8d7",
+    "qa-artifacts/gemini-upload-guard-v1/source/server/receipt-zip.mjs": "0108ca93003ef07828b98990ce6eefbd2047ab256f2cf484a6079aa79238c8d7",
+    "tests/ai.test.ts": "8a94f6ab2e0ce632cc95c85e5c9e1cd836d00da04a4e87eb42073ab7909d373f",
+    "qa-artifacts/gemini-upload-guard-v1/source/tests/ai.test.ts": "8a94f6ab2e0ce632cc95c85e5c9e1cd836d00da04a4e87eb42073ab7909d373f",
+    "tests/structured-rounding.test.ts": "0113a2c75945a3ab0ccde7c71657439471f890b805ea4dfa5c9b44bfa12b36c4",
+    "qa-artifacts/gemini-upload-guard-v1/source/tests/structured-rounding.test.ts": "0113a2c75945a3ab0ccde7c71657439471f890b805ea4dfa5c9b44bfa12b36c4",
+    "tests/fixtures/prepared-section.jpg": "4b60414679afea54c0bdb28a125b52e8a6a8855ab0f462a8af6ca6d0255ca239",
+    "qa-artifacts/gemini-upload-guard-v1/source/tests/fixtures/prepared-section.jpg": "4b60414679afea54c0bdb28a125b52e8a6a8855ab0f462a8af6ca6d0255ca239",
+    "qa-artifacts/gemini-upload-guard-v1/browser-results/.last-run.json": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+    "qa-artifacts/gemini-upload-guard-v1/browser-tests.txt": "58e9423c4deb0d7714e790a6350363f7c7269e8c29e20e4f8dae95bfafce2314",
+    "qa-artifacts/gemini-upload-guard-v1/build.txt": "e04d6113a276d63ce220f019c0f7e58ab03904a41e8deca6f2f709472175f735",
+    "qa-artifacts/gemini-upload-guard-v1/format.txt": "d60025cea7df18f9b353207e11c22a4c2897b63d4885e6445eaccce620bdda41",
+    "qa-artifacts/gemini-upload-guard-v1/graph-refresh-final.txt": "a0556713a69989d873785f3a90451ac9c8b8812683ccc8d9bba319394cd76ca4",
+    "qa-artifacts/gemini-upload-guard-v1/graph-refresh.txt": "36799303bf461b6c91147fce7e31cb7dc081585b33153cdfe619012cf1c7392a",
+    "qa-artifacts/gemini-upload-guard-v1/targeted-tests.txt": "37afb6159d9a02972748bf7707a891d59590ed77e5a724e26e6782e471560830",
+    "qa-artifacts/gemini-upload-guard-v1/unit-tests-final.txt": "6d808c0bcbb095b753386d6e11c2ff968069a658c1b077a637dc9e9a21719e09",
+    "qa-artifacts/gemini-upload-guard-v1/unit-tests.txt": "c6a301b0379b2587202358709deab3b220486fed22b6ecff42d72224a0b6106f",
+    "qa-artifacts/gemini-upload-guard-v1/build-packet.py": "28d24dcc7774879c7449eb6650ef48ad6d4fea859823ea963068faddfece10b6",
+    "receipt_training/evaluation/GOAL_ACCEPTANCE_AUDIT.md": "f4549d222fa471525c7742eb12a6a2e6240a26d40fc5ce2b96949994f2b528a9",
+    "receipt_training/evaluation/ADVANCED_OCR_REPORT.md": "8cffdb8073d59517b6ad7ecd92b53d85c44e04743e8aafaa6dfc3f5fdf53ab5e",
+    "receipt_training/evaluation/advanced-goal-acceptance-audit-v1.json": "cf1fb9e12cd3559f7c5f30d2218d9c27e99e836df74c9cac76029c6ba44c3abc"
+  }
+}

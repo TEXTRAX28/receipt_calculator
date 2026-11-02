@@ -1,5 +1,24 @@
 # Advanced OCR investigation — work in progress
 
+Current consolidated status, 2 November 2026:
+[technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+Its [514-file offline audit](advanced-goal-acceptance-audit-v1.json) accounts for
+all 53 unique source hashes and reproduces both retained Tesseract baselines
+against the current references. Automatic known line-price matches improve from
+5/143 to 116/143; explicit-currency hybrid matches 131/143. Trusted reconciliation
+remains 0/49 and original whole-receipt accuracy remains unscorable. The latest
+Gemini upload boundary rejects invalid/oversized prepared JPEG sections before
+provider calls. Fresh checks pass 653 unit tests, 175 browser tests with one
+existing skip, build/typecheck, formatting and graph refresh. No new model call,
+private upload, paid activation, merge, push or deployment occurred. The full
+twelve-phase goal remains active.
+
+## Historical checkpoint notes
+
+The following entries retain the measurements and next steps at their original
+checkpoints. “Latest,” “next” and “not configured” within those entries refer to
+that historical checkpoint; use the consolidated audit above for current state.
+
 Latest reference audit: [financial summaries and strict complete-receipt eligibility](FINANCIAL_SUMMARY_TRUTH.md) add nine source-checked tax-basis labels and one printed zero-rounding value while preserving every stored prediction and existing price/quantity/discount/total score. Across 306 retained views, all nine current hybrid basis values remain unresolved with pending source checks; only 4/8 known service amounts match. All fifty original complete receipts remain unscorable. The separate UK supplement becomes eligible but scores 0/1 per retained view; its earlier primary finances are correct while two exact O/0 product-name readings prevent strict success. Eight source/scoring tests pass. No app source change, model call, new latency sample or cloud upload is claimed.
 
 Latest reader integration: [optional Azure word reader](AZURE_APP_READER.md) preserves the six saved crops’ 25/25 known line prices with explicit currency (18/25 automatically), exact word/row geometry and all prior per-case known-field scores. It supplies real source highlights and mandatory review, ignores native financial fields and requires a separate finite section allowance plus scan consent. No new cloud request or default switch occurred; credentials alone keep it disabled. Verification passes 615 unit tests and 173 standard browser tests with one existing skip, plus local HTTP-to-split synthetic-provider controls. Full financial accuracy, physical-device and public-release acceptance remain open.
