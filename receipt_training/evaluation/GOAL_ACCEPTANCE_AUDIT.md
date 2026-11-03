@@ -12,7 +12,25 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [fallback source-review repair](FALLBACK_SOURCE_REVIEW.md) retains the
+The latest [zero-price purchase proposal](ZERO_PRICE_PURCHASES.md) recovers one
+development source row the independent vision draft had treated as a zero-valued
+fee. With supplied currency, original-fifty matches improve 143/145 to 144/145,
+names 132/145 to 133/145 and prices 134/143 to 135/143, without a scored
+regression. Existing product facts, all scalar fields and financial totals stay
+unchanged across 200 paired views; the twelve evaluation aggregates are
+unchanged. Quantity/unit price remain blank and both role changes require
+review. All 1,209 unit tests, typecheck/build and 130 focused tests pass.
+The new fourteen-case built-phone/desktop protocol selection is unexecuted:
+its 2.5 GiB startup guard refuses before spawning a browser. No new inference,
+receipt API request, private upload or existing-threshold change occurs.
+
+A separate [official Tesseract float preparation](TESSERACT_FLOAT_READINESS.md)
+retrieves one 15.4 MB public model and verifies local network-denial hooks.
+All three synthetic-probe preflights refuse before process creation. This is
+a floating-weight variant of the older best network, not a new VLM or a measured
+accuracy upgrade; no installed asset or reader default changes.
+
+The preceding [fallback source-review repair](FALLBACK_SOURCE_REVIEW.md) retains the
 parser's financial source mappings and weak-word checks when local comparison
 fails or is skipped. All 1,171 unit tests, typecheck/build and twelve built
 browser protocol tests pass. On 600 saved-response views of the original fifty,
@@ -488,11 +506,11 @@ branch. It is user context, not successful model currency recognition.
 
 | Field / available reference | Protected Tesseract baseline, automatic | Current hybrid, automatic | Current hybrid, explicit currency |
 |---|---:|---:|---:|
-| Matched priced rows /145 | 39 | 143 | 143 |
-| Predicted rows | 83 | 146 | 146 |
-| Exact normalized names /145 | 24 | 132 | 132 |
+| Matched priced rows /145 | 39 | 143 | 144 |
+| Predicted rows | 83 | 146 | 147 |
+| Exact normalized names /145 | 24 | 132 | 133 |
 | Quantities /120 | 3 | 119 | 119 |
-| Line totals /143 | 5 | 116 | 134 |
+| Line totals /143 | 5 | 116 | 135 |
 | Unit prices /31 | 3 | 22 | 26 |
 | Item discounts /7 | 0 | 5 | 5 |
 | Receipt discounts /4 | 0 | 2 | 3 |
@@ -506,19 +524,23 @@ branch. It is user context, not successful model currency recognition.
 | Trusted reconciliation /49 | 0 | 0 | 0 |
 | Strict whole-receipt accuracy | Unscorable | Unscorable | Unscorable |
 
-Scoped product recall rises from 26.90% to 98.62%, and scoped precision from
-46.99% to 97.95%. Automatic line-price equality rises from 3.50% to 81.12%;
-explicit-currency equality is 93.71%. The latest conditional values are bound by
-[the copied-price comparison](COPIED_PRICE_RECOVERY.md), following
+Automatic scoped product recall rises from 26.90% to 98.62%, and scoped
+precision from 46.99% to 97.95%. Supplied-currency recall is 99.31% and precision
+97.96%. Automatic line-price equality rises from 3.50% to 81.12%; explicit-
+currency equality is 94.41%. The latest conditional values are bound by
+[zero-price purchase recovery](ZERO_PRICE_PURCHASES.md), following
+[the copied-price comparison](COPIED_PRICE_RECOVERY.md),
 [financial-column recovery](FINANCIAL_WORD_COLUMNS.md) and the earlier
 [financial-summary comparison](FINANCIAL_SUMMARY_FRAGMENTS.md). These precision denominators reflect
 partial annotation scope: unmatched predictions are not automatically confirmed
 false purchases. Zero arithmetic discrepancy is not trusted reconciliation if
 currency, fields, charges or source review remain unresolved.
 
-The conditional result still misses two referenced rows and nine known line
-prices, one quantity and eight copied final totals. Seven of eight service
-amounts match. All fifty drafts require review. Recoveries and tax-basis
+The conditional result leaves one referenced zero-price option row unmatched;
+its text is retained in its parent purchase, rather than manufactured as a
+separate purchase. Eight known line prices, one quantity and eight copied final
+totals still do not match. Seven of eight service amounts match. All fifty
+drafts require review. Recoveries and tax-basis
 proposals are retained as unconfirmed source checks, rather than silently
 accepted corrections.
 

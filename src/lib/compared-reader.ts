@@ -9,6 +9,7 @@ import { MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 import { extractLocalVisionBatches } from "./local-vision-batches";
 import { joinVisionBatches } from "./join-vision-batches";
 import { reviewDeviceReading } from "./device-review";
+import { readZeroPriceRows } from "./zero-price-purchases";
 import type { ReadingContext } from "./reading-context.mjs";
 import {
   localCheckDecision,
@@ -34,6 +35,27 @@ export async function extractComparedReceipt(
   if (signal.aborted)
     throw new Error("Scan cancelled. Your photos are still available.");
   const parsed = parseReceiptWithSources(primary, context);
+  const missingZeroRows = readZeroPriceRows(
+    parsed,
+    primary.sourceLines,
+    primary.recognition,
+  ).filter((row) => !row.existing);
+  if (missingZeroRows.length) {
+    parsed.receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "items",
+      reason: "coverage",
+      other:
+        "Printed zero-price rows may be missing from the purchase list. Check their roles against the original.",
+      confirmedValue: "",
+    });
+    parsed.fieldSources.items = [
+      ...new Set([
+        ...(parsed.fieldSources.items || []),
+        ...missingZeroRows.map((row) => row.sourceIndex),
+      ]),
+    ];
+  }
   const decision = localCheckDecision(
     parsed.receipt,
     parsed.sources,

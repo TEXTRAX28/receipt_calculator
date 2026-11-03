@@ -32,6 +32,7 @@ import {
 import { recoverFinancialRoles } from "./financial-roles";
 import { findPaymentAdjustments } from "./payment-rows";
 import { recoverReducedPriceRole } from "./reduced-price-role";
+import { readZeroPriceRows } from "./zero-price-purchases";
 
 const SOURCE_THRESHOLD = 0.75;
 const currencyPatterns = Object.fromEntries(
@@ -176,6 +177,32 @@ export function verifyIndependentReadings(
   const originalItems = receipt.items;
   const assembled = assembleRecognition(recognition);
   const parsed = parseReceiptWithSources(assembled.text, context);
+  const zeroPriceRows = readZeroPriceRows(
+    parsed,
+    assembled.sourceLines,
+    recognition,
+  );
+  for (const row of zeroPriceRows) {
+    if (!row.existing && parsed.receipt.items.length < 300) {
+      parsed.receipt.items.push(row.item);
+      parsed.sources[row.item.id] = [row.sourceIndex];
+    }
+    if (parsed.receipt.items.some((item) => item.id === row.item.id))
+      parsed.receipt.reviewChecks.push({
+        scope: "item",
+        itemId: row.item.id,
+        field: "lineTotal",
+        reason: "source",
+        other: "Confirm the zero's role in the printed item-price column.",
+        confirmedValue: "",
+      });
+  }
+  if (zeroPriceRows.length)
+    parsed.receipt.items.sort(
+      (a, b) =>
+        Math.min(...(parsed.sources[a.id] || [Infinity])) -
+        Math.min(...(parsed.sources[b.id] || [Infinity])),
+    );
   const ocr = parsed.receipt,
     lines = assembled.sourceLines;
   // A crop can start at a purchase while retaining independent retailer context.
@@ -355,6 +382,17 @@ export function verifyIndependentReadings(
   }
   const paired = new Map(pairs);
   const pairedSource = new Set(pairs.map(([, index]) => index));
+  const agreedPriceRows = new Set(
+    pairs.flatMap(([visionIndex, sourceIndex]) =>
+      sameAmount(
+        raw.items[visionIndex].lineTotal,
+        sourceRows[sourceIndex].item.lineTotal,
+        receipt.currency,
+      )
+        ? sourceRows[sourceIndex].indices
+        : [],
+    ),
+  );
   const removed = new Set<number>();
   const correctedOwners = new Set<string>();
   const corrections: {
@@ -869,9 +907,125 @@ export function verifyIndependentReadings(
       }));
     }
   }
+  const zeroItemRecoveries: {
+    itemId: string;
+    sourceIndices: number[];
+    anchorSourceIndices: number[];
+  }[] = [];
+  if (sourceRecoveryAllowed && !options.blockedScalarFields?.length) {
+    for (const row of zeroPriceRows) {
+      const sourceIndex = sourceRows.findIndex(
+        (source) => source.item.id === row.item.id,
+      );
+      const region = lines[row.sourceIndex];
+      if (
+        sourceIndex < 0 ||
+        pairedSource.has(sourceIndex) ||
+        !region ||
+        receipt.items.length >= 300 ||
+        row.anchorIndices.filter((index) => agreedPriceRows.has(index)).length <
+          2 ||
+        Object.values(sources).some((indices) =>
+          indices.includes(row.sourceIndex),
+        ) ||
+        originalItems.some(
+          (item) =>
+            nameKey(item.description) !== nameKey(row.item.description) &&
+            nameKey(item.description).includes(nameKey(row.item.description)),
+        ) ||
+        originalItems.some(
+          (_, index) =>
+            !paired.has(index) &&
+            !removed.has(index) &&
+            raw.items[index].sourcePhotos.includes(region.photo),
+        )
+      )
+        continue;
+      const matchingAdjustments = receipt.adjustments.filter(
+        (adjustment) =>
+          nameKey(adjustment.label) === nameKey(row.item.description),
+      );
+      if (
+        matchingAdjustments.length &&
+        (matchingAdjustments.length !== 1 ||
+          matchingAdjustments[0].kind !== "fee" ||
+          !sameAmount(matchingAdjustments[0].amount, "0", receipt.currency))
+      )
+        continue;
+      const item = structuredClone(row.item);
+      item.note =
+        "Added from a printed zero-price row omitted by the other reading. Confirm this is a separate purchase and check its quantity.";
+      receipt.items.push(item);
+      sources[item.id] = [row.sourceIndex];
+      for (const field of ["description", "lineTotal"] as const) {
+        itemCheck(
+          item,
+          field,
+          "recovered",
+          "This zero-price row was absent from the other reading. Confirm the separate purchase against its source.",
+        );
+        checks.find(
+          (check) =>
+            check.scope === "item" &&
+            check.itemId === item.id &&
+            check.field === field,
+        )!.details = [
+          { label: "Previous draft purchase", value: "Not present" },
+          { label: "Printed row", value: region.text.slice(0, 180) },
+        ];
+      }
+      zeroItemRecoveries.push({
+        itemId: item.id,
+        sourceIndices: [row.sourceIndex],
+        anchorSourceIndices: row.anchorIndices,
+      });
+      const previous = matchingAdjustments[0];
+      if (previous) {
+        receipt.adjustments = receipt.adjustments.filter(
+          (entry) => entry.id !== previous.id,
+        );
+        removedAdjustments.push({
+          id: previous.id,
+          label: previous.label,
+          amount: previous.amount,
+          reason: "zero-price-purchase",
+          sourceIndices: [row.sourceIndex],
+        });
+        globalCheck(
+          "adjustments",
+          "recovered",
+          "A zero-valued fee was proposed as a separate purchase from its printed price-column row. Confirm both roles.",
+        );
+        const check = checks.find(
+          (entry) => entry.scope === "receipt" && entry.field === "adjustments",
+        )!;
+        check.details = [
+          ...(check.details || []),
+          {
+            label: "Previous fee role",
+            value: `${previous.label}: ${previous.amount}`.slice(0, 180),
+          },
+          { label: "Proposed purchase", value: region.text.slice(0, 180) },
+        ].slice(0, 30);
+      }
+    }
+  }
+  const unrepresentedZeroRows = zeroPriceRows.filter(
+    (row) =>
+      !Object.values(sources).some((indices) =>
+        indices.includes(row.sourceIndex),
+      ),
+  );
+  fieldSources.items = [
+    ...new Set([
+      ...fieldSources.items,
+      ...unrepresentedZeroRows.map((row) => row.sourceIndex),
+    ]),
+  ];
   if (
     pairs.length !== receipt.items.length ||
-    pairedSource.size !== sourceRows.length
+    pairedSource.size !== sourceRows.length ||
+    unrepresentedZeroRows.length > 0
   )
     globalCheck(
       "items",
@@ -1384,5 +1538,6 @@ export function verifyIndependentReadings(
     matchedPurchases: pairs.length,
     ocrPurchases: sourceRows.length,
     originalVisionPurchases: raw.items.length,
+    ...(zeroItemRecoveries.length ? { zeroItemRecoveries } : {}),
   };
 }

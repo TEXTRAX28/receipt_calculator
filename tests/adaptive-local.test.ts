@@ -76,6 +76,89 @@ function native() {
 afterEach(() => vi.resetAllMocks());
 
 describe("adaptive local model orchestration without real model/network calls", () => {
+  it.each(["success", "failure"])(
+    "an otherwise clear receipt with an omitted free row starts automatic comparison and retains review on %s",
+    async (outcome) => {
+      const output = primary([
+        "MARKET",
+        "Meal 1x 8.00 8.00",
+        "Tea 1x 2.00 2.00",
+        "Plastic bag 0",
+        "Prices include tax",
+        "TOTAL GBP 10.00",
+      ]);
+      const panel = output.recognition.panels[0];
+      panel.words = panel.lines.flatMap((line) => {
+        const split = line.text.match(/^(.*) (\d[\d.,]*)$/);
+        return split
+          ? [
+              {
+                ...line,
+                text: split[1],
+                box: [0.1, line.box[1], 0.6, line.box[3]] as [
+                  number,
+                  number,
+                  number,
+                  number,
+                ],
+              },
+              {
+                ...line,
+                text: split[2],
+                box: [0.8, line.box[1], 0.9, line.box[3]] as [
+                  number,
+                  number,
+                  number,
+                  number,
+                ],
+              },
+            ]
+          : [line];
+      });
+      const original = structuredClone(output);
+      const draft = native();
+      draft.printedTotal = "10.00";
+      draft.items = [
+        {
+          ...draft.items[0],
+          description: "Meal",
+          unitPrice: "8.00",
+          lineTotal: "8.00",
+        },
+        {
+          ...draft.items[0],
+          description: "Tea",
+          unitPrice: "2.00",
+          lineTotal: "2.00",
+        },
+      ];
+      if (outcome === "success")
+        vi.mocked(extractLocalVisionEvidence).mockResolvedValue(draft);
+      else
+        vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+          new Error("Synthetic model unavailable"),
+        );
+      const result = await extractComparedReceipt(
+        images,
+        new AbortController().signal,
+        vi.fn(),
+        undefined,
+        "auto",
+      );
+      expect(extractLocalVisionEvidence).toHaveBeenCalledOnce();
+      expect(result.decision.needed).toBe(true);
+      expect(result.comparisonAttempted).toBe(true);
+      expect(result.comparisonComplete).toBe(outcome === "success");
+      expect(result.receipt.items).toHaveLength(outcome === "success" ? 3 : 2);
+      expect(result.fieldSources.items).toContain(3);
+      const check = result.receipt.reviewChecks.find(
+        (check) => check.scope === "receipt" && check.field === "items",
+      )!;
+      expect(checkIsPending(result.receipt, check)).toBe(true);
+      expect(calculateReceipt(result.receipt).total).toBe(1000n);
+      expect(output).toEqual(original);
+    },
+  );
   it("a skipped comparison preserves the parser's scalar source mappings without confirming them", async () => {
     const output = primary();
     const expected = parseReceiptWithSources(output);

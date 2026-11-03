@@ -19,6 +19,7 @@ async function setup(
   rows = clear,
   failure = false,
   weakTotal = false,
+  zeroPurchase = false,
 ) {
   const posts: { path: string; body: unknown }[] = [];
   await page.route("**/api/receipts/**", async (route) => {
@@ -40,7 +41,7 @@ async function setup(
         })),
         rows,
       );
-      if (weakTotal)
+      if (weakTotal || zeroPurchase)
         for (const panel of output.recognition.panels) {
           // Match the known canvas rows below. Only recognition is substituted.
           panel.width = 700;
@@ -55,10 +56,38 @@ async function setup(
               (110 + index * 65 + 6) / 1100,
             ],
           }));
-          panel.words = panel.lines.map((line, index) => ({
-            ...line,
-            confidence: index === rows.length - 1 ? 0.2 : 0.99,
-          }));
+          panel.words = panel.lines.flatMap((line, index) => {
+            const split = zeroPurchase && line.text.match(/^(.*) (\d[\d.,]*)$/);
+            if (split)
+              return [
+                {
+                  ...line,
+                  text: split[1],
+                  box: [40 / 700, line.box[1], 500 / 700, line.box[3]] as [
+                    number,
+                    number,
+                    number,
+                    number,
+                  ],
+                },
+                {
+                  ...line,
+                  text: split[2],
+                  box: [600 / 700, line.box[1], 660 / 700, line.box[3]] as [
+                    number,
+                    number,
+                    number,
+                    number,
+                  ],
+                },
+              ];
+            return [
+              {
+                ...line,
+                confidence: weakTotal && index === rows.length - 1 ? 0.2 : 0.99,
+              },
+            ];
+          });
         }
       return route.fulfill({ json: output });
     }
@@ -69,6 +98,41 @@ async function setup(
           json: { error: "Synthetic reader unavailable" },
         });
       const sample = comparedDraft();
+      if (zeroPurchase)
+        return route.fulfill({
+          json: {
+            receipt: {
+              ...sample,
+              merchant: "MARKET",
+              subtotal: "",
+              printedTotal: "10.00",
+              printedTax: "",
+              pricesIncludeTax: true,
+              printedItemCount: 2,
+              taxCodes: [],
+              warnings: [],
+              adjustments: [{ label: "Plastic bag", kind: "fee", amount: "0" }],
+              items: [
+                {
+                  ...sample.items[0],
+                  description: "Meal",
+                  quantity: "1",
+                  unitPrice: "8.00",
+                  lineTotal: "8.00",
+                  taxCode: "",
+                },
+                {
+                  ...sample.items[0],
+                  description: "Tea",
+                  quantity: "1",
+                  unitPrice: "2.00",
+                  lineTotal: "2.00",
+                  taxCode: "",
+                },
+              ],
+            },
+          },
+        });
       return route.fulfill({
         json: {
           receipt: {
@@ -101,21 +165,30 @@ async function setup(
   await expect(
     page.getByRole("button", { name: "This computer", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  const image = await page.evaluate((texts) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 700;
-    canvas.height = 1100;
-    const context = canvas.getContext("2d")!;
-    context.fillStyle = "white";
-    context.fillRect(0, 0, 700, 1100);
-    context.fillStyle = "black";
-    context.font = "20px monospace";
-    context.fillText("SYNTHETIC PROTOCOL FIXTURE", 30, 40);
-    texts.forEach((text, index) =>
-      context.fillText(text, 40, 110 + index * 65),
-    );
-    return canvas.toDataURL("image/png").split(",")[1];
-  }, rows);
+  const image = await page.evaluate(
+    ({ texts, zeroPurchase }) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 700;
+      canvas.height = 1100;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "white";
+      context.fillRect(0, 0, 700, 1100);
+      context.fillStyle = "black";
+      context.font = "20px monospace";
+      context.fillText("SYNTHETIC PROTOCOL FIXTURE", 30, 40);
+      texts.forEach((text, index) => {
+        const split = zeroPurchase && text.match(/^(.*) (\d[\d.,]*)$/);
+        if (split) {
+          context.fillText(split[1], 40, 110 + index * 65);
+          context.textAlign = "right";
+          context.fillText(split[2], 660, 110 + index * 65);
+          context.textAlign = "left";
+        } else context.fillText(text, 40, 110 + index * 65);
+      });
+      return canvas.toDataURL("image/png").split(",")[1];
+    },
+    { texts: rows, zeroPurchase },
+  );
   await page.getByLabel("Upload receipt images").setInputFiles({
     name: "synthetic.png",
     mimeType: "image/png",
@@ -142,6 +215,86 @@ const coverage = (page: Page) =>
     name: "I checked purchase list against the original",
     exact: true,
   });
+
+test("automatic comparison recovers a missing free item with pending source and role review (mock protocol)", async ({
+  page,
+}, info) => {
+  const { scan, posts } = await setup(
+    page,
+    [
+      "MARKET",
+      "Meal 1x 8.00 8.00",
+      "Tea 1x 2.00 2.00",
+      "Plastic bag 0",
+      "TOTAL GBP 10.00",
+      "Prices include tax",
+    ],
+    false,
+    false,
+    true,
+  );
+  await scan.click();
+  await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(3);
+  expect(posts.map((post) => post.path)).toEqual([
+    "/api/receipts/recognize",
+    "/api/receipts/vision",
+  ]);
+  expect(posts[1].body).toEqual(posts[0].body);
+  const readSaved = () =>
+    page.evaluate(() => JSON.parse(localStorage.getItem("gather.receipt.v1")!));
+  const before = await readSaved();
+  const bag = before.receipt.items.find(
+    (item: { description: string }) => item.description === "Plastic bag",
+  );
+  expect(bag).toMatchObject({
+    quantity: "",
+    unitPrice: "",
+    lineTotal: "0",
+    taxCode: "",
+  });
+  expect(before.receipt.adjustments).toEqual([]);
+  for (const field of ["description", "lineTotal"])
+    expect(before.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        itemId: bag.id,
+        field,
+        reason: "recovered",
+        confirmedValue: "",
+      }),
+    );
+  const card = page.getByTestId("review-item-2");
+  await card
+    .getByRole("button", { name: "View source for item 3", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByTestId("source-region")).toHaveCount(1);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: await qaArtifactPath(info, `zero-purchase-source-${width}.png`),
+    });
+  }
+  await dialog
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  expect((await readSaved()).receipt).toEqual(before.receipt);
+  await coverage(page).check();
+  await expect(confirm(page)).toBeDisabled();
+  await writeFile(
+    await qaArtifactPath(info, "zero-purchase-review.json"),
+    JSON.stringify(
+      { receipt: before.receipt, posts: posts.map(({ path }) => path) },
+      null,
+      2,
+    ),
+    { flag: "wx" },
+  );
+});
 
 test("a failed comparison keeps the weak financial source check and highlighted total (mock protocol)", async ({
   page,

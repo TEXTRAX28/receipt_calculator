@@ -2,7 +2,22 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [fallback source-review correction](FALLBACK_SOURCE_REVIEW.md)
+The latest [zero-price purchase correction](ZERO_PRICE_PURCHASES.md) adds a
+source-supported free purchase omitted from the saved vision item list, with
+quantity/unit price unknown and mandatory role review. On the same original
+fifty, supplied-currency matches improve 143/145 to 144/145, exact names 132/145
+to 133/145 and line totals 134/143 to 135/143. No scored regressions occur;
+existing item facts, scalar fields and financial totals stay unchanged across
+200 paired views. Automatic and primary scores and all twelve evaluation
+aggregates are unchanged. All 1,209 unit tests, 130 focused cases, typecheck and
+isolated build pass. The new phone/desktop browser rerun is held before process
+creation by the unchanged RAM guard; it is not a verified phone journey.
+No new inference, receipt API request, private upload or provider switch occurs.
+The separate [Tesseract float preparation](TESSERACT_FLOAT_READINESS.md) retrieves
+one public model, but all three synthetic-probe preflights refuse to start.
+It supplies no compatibility or accuracy result. The wider goal remains active.
+
+The preceding [fallback source-review correction](FALLBACK_SOURCE_REVIEW.md)
 preserves financial source indices and weak-word checks when an extra local
 comparison is skipped or fails. All 1,171 unit tests, typecheck/build and twelve
 built browser protocol checks pass. All financial facts and decisions remain
