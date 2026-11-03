@@ -14,7 +14,12 @@ const clear = [
   "Prices include tax",
   "TOTAL GBP 5.50",
 ];
-async function setup(page: Page, rows = clear, failure = false) {
+async function setup(
+  page: Page,
+  rows = clear,
+  failure = false,
+  weakTotal = false,
+) {
   const posts: { path: string; body: unknown }[] = [];
   await page.route("**/api/receipts/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -27,18 +32,36 @@ async function setup(page: Page, rows = clear, failure = false) {
       });
     const body = route.request().postDataJSON();
     posts.push({ path, body });
-    if (path.endsWith("/recognize"))
-      return route.fulfill({
-        json: comparedRecognition(
-          body.panels.map(
-            ({ photo, part }: { photo: number; part: number }) => ({
-              photo,
-              part,
-            }),
-          ),
-          rows,
-        ),
-      });
+    if (path.endsWith("/recognize")) {
+      const output = comparedRecognition(
+        body.panels.map(({ photo, part }: { photo: number; part: number }) => ({
+          photo,
+          part,
+        })),
+        rows,
+      );
+      if (weakTotal)
+        for (const panel of output.recognition.panels) {
+          // Match the known canvas rows below. Only recognition is substituted.
+          panel.width = 700;
+          panel.height = 1100;
+          panel.lines = rows.map((text, index) => ({
+            text,
+            confidence: 0.99,
+            box: [
+              40 / 700,
+              (110 + index * 65 - 24) / 1100,
+              0.96,
+              (110 + index * 65 + 6) / 1100,
+            ],
+          }));
+          panel.words = panel.lines.map((line, index) => ({
+            ...line,
+            confidence: index === rows.length - 1 ? 0.2 : 0.99,
+          }));
+        }
+      return route.fulfill({ json: output });
+    }
     if (path.endsWith("/vision")) {
       if (failure)
         return route.fulfill({
@@ -119,6 +142,62 @@ const coverage = (page: Page) =>
     name: "I checked purchase list against the original",
     exact: true,
   });
+
+test("a failed comparison keeps the weak financial source check and highlighted total (mock protocol)", async ({
+  page,
+}, info) => {
+  const { scan, posts } = await setup(page, clear, true, true);
+  await scan.click();
+  const totalCheck = page.getByRole("checkbox", {
+    name: "I checked printed total against the original",
+    exact: true,
+  });
+  await expect(totalCheck).toBeVisible();
+  await coverage(page).check();
+  await expect(confirm(page)).toBeDisabled();
+  await expect(totalCheck).not.toBeChecked();
+  const before = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+  );
+  await page
+    .getByRole("button", { name: "View source for printed total", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Receipt source for printed total",
+    exact: true,
+  });
+  await expect(dialog.getByTestId("source-region")).toHaveCount(1);
+  await expect(
+    dialog.getByRole("checkbox", {
+      name: "I checked printed total against the original",
+      exact: true,
+    }),
+  ).not.toBeChecked();
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: await qaArtifactPath(info, `fallback-total-source-${width}.png`),
+    });
+  }
+  await dialog
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  const after = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+  );
+  expect(after.receipt).toEqual(before.receipt);
+  await expect(confirm(page)).toBeDisabled();
+  expect(posts.map((post) => post.path)).toEqual([
+    "/api/receipts/recognize",
+    "/api/receipts/vision",
+  ]);
+  expect(before.receipt.printedTotal).toBe("5.50");
+});
 
 test("automatic local check is the phone-safe default and invokes independent vision for a missing quantity (mock protocol)", async ({
   page,

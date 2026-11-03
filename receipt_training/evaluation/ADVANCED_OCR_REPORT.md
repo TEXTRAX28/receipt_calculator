@@ -2,7 +2,19 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [signed tax-summary proposal](REFUND_FINANCIAL_SUMMARY.md) makes the
+The latest [fallback source-review correction](FALLBACK_SOURCE_REVIEW.md)
+preserves financial source indices and weak-word checks when an extra local
+comparison is skipped or fails. All 1,171 unit tests, typecheck/build and twelve
+built browser protocol checks pass. All financial facts and decisions remain
+unchanged across 600 saved-response original-fifty views; all 100 successful
+control pairs remain entirely unchanged. One supplied-currency fallback
+scenario now retains 33 total, 24 subtotal and 15 tax source links, previously
+discarded. Individual checks still block after purchase coverage alone is
+confirmed, with source views fitting 320/390px. No new inference, upload, cloud
+request or threshold change occurs; this is review reliability, not new model
+accuracy. The wider goal remains active.
+
+The preceding [signed tax-summary proposal](REFUND_FINANCIAL_SUMMARY.md) makes the
 enhanced published refund calculate −$543.11 with USD supplied, while quantities,
 code rates and required source review remain unresolved. All 1,162 unit tests,
 typecheck/build and a genuine production phone scan pass, including the three

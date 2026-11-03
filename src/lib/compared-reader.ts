@@ -8,6 +8,7 @@ import { panelsForImages } from "./panel-transport";
 import { MAX_LOCAL_VISION_PANELS } from "./scan-limits.mjs";
 import { extractLocalVisionBatches } from "./local-vision-batches";
 import { joinVisionBatches } from "./join-vision-batches";
+import { reviewDeviceReading } from "./device-review";
 import type { ReadingContext } from "./reading-context.mjs";
 import {
   localCheckDecision,
@@ -40,11 +41,13 @@ export async function extractComparedReceipt(
     primary.recognition,
   );
   const firstReading = (failed: boolean, error?: unknown) => {
-    const receipt: Receipt = {
-      ...parsed.receipt,
-      source: "ocr",
-      reviewChecks: [...parsed.receipt.reviewChecks],
-    };
+    const receipt: Receipt = reviewDeviceReading(
+      { ...parsed.receipt, source: "ocr" },
+      parsed.sources,
+      primary.sourceLines,
+      primary.recognition,
+      parsed.fieldSources,
+    );
     if (
       !receipt.reviewChecks.some(
         (check) => check.scope === "receipt" && check.field === "items",
@@ -75,7 +78,7 @@ export async function extractComparedReceipt(
       receipt,
       itemAnchors: [],
       sources: parsed.sources,
-      fieldSources: {},
+      fieldSources: parsed.fieldSources,
       recognition: primary.recognition,
       text: primary.text,
       sourceLines: primary.sourceLines,

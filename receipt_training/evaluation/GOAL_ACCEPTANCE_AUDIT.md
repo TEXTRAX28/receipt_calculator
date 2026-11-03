@@ -12,7 +12,19 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [signed financial-summary interpretation](REFUND_FINANCIAL_SUMMARY.md)
+The latest [fallback source-review repair](FALLBACK_SOURCE_REVIEW.md) retains the
+parser's financial source mappings and weak-word checks when local comparison
+fails or is skipped. All 1,171 unit tests, typecheck/build and twelve built
+browser protocol tests pass. On 600 saved-response views of the original fifty,
+all receipt facts, money values, decisions and exact image requests stay
+unchanged; 100 successful-control pairs are entirely unchanged. With supplied
+currency, one fifty-case failure scenario retains source regions for 33 totals,
+24 subtotals and 15 tax amounts, previously all dropped. Pending field checks
+still block after purchase coverage alone is confirmed; 320/390px source views
+pass. No new inference, upload, cloud request or threshold change occurs.
+This improves review reliability; it does not increase model-accuracy scores.
+
+The preceding [signed financial-summary interpretation](REFUND_FINANCIAL_SUMMARY.md)
 proposes separately printed tax without inventing a rate, quantity or amount.
 With USD supplied, the enhanced published refund now calculates −$543.11 with
 zero discrepancy; its source checks and unknown quantity still block acceptance.

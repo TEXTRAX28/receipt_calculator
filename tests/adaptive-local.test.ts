@@ -7,7 +7,12 @@ import {
   type Recognition,
 } from "../src/lib/receipt-layout";
 import { calculateReceipt } from "../src/lib/engine";
-import { confirmReviewCheck, reviewKey } from "../src/lib/review-checks";
+import {
+  checkIsPending,
+  confirmReviewCheck,
+  reviewKey,
+} from "../src/lib/review-checks";
+import { parseReceiptWithSources } from "../src/lib/parser";
 import {
   comparedDraft,
   comparedRecognition,
@@ -71,6 +76,187 @@ function native() {
 afterEach(() => vi.resetAllMocks());
 
 describe("adaptive local model orchestration without real model/network calls", () => {
+  it("a skipped comparison preserves the parser's scalar source mappings without confirming them", async () => {
+    const output = primary();
+    const expected = parseReceiptWithSources(output);
+    const before = structuredClone(output);
+    const result = await extractComparedReceipt(
+      images,
+      new AbortController().signal,
+      vi.fn(),
+      undefined,
+      "auto",
+    );
+    expect(result.fieldSources).toEqual(expected.fieldSources);
+    expect(result.fieldSources.printedTotal).toEqual([3]);
+    expect(result.fieldSources.pricesIncludeTax).toEqual([2]);
+    expect(output).toEqual(before);
+    expect(result.comparisonAttempted).toBe(false);
+    expect(
+      result.receipt.reviewChecks.some((check) =>
+        checkIsPending(result.receipt, check),
+      ),
+    ).toBe(true);
+  });
+  it.each(["word", "line"])(
+    "a failed comparison retains a weak %s total check after purchase coverage is confirmed",
+    async (weak) => {
+      const output = primary();
+      output.recognition.panels[0].words = structuredClone(
+        output.recognition.panels[0].words,
+      );
+      if (weak === "word")
+        output.recognition.panels[0].words[3].confidence = 0.2;
+      else output.sourceLines[3]!.confidence = 0.2;
+      vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+        new Error("Synthetic model unavailable"),
+      );
+      const result = await extractComparedReceipt(
+        images,
+        new AbortController().signal,
+        vi.fn(),
+        undefined,
+        "always",
+      );
+      expect(result.receipt.printedTotal).toBe("5.50");
+      expect(result.fieldSources.printedTotal).toEqual([3]);
+      const check = result.receipt.reviewChecks.find(
+        (check) => check.scope === "receipt" && check.field === "printedTotal",
+      )!;
+      expect(check).toMatchObject({ reason: "source", confirmedValue: "" });
+      const coverage = result.receipt.reviewChecks.find(
+        (check) => check.field === "items",
+      )!;
+      const reviewed = confirmReviewCheck(result.receipt, reviewKey(coverage));
+      expect(checkIsPending(reviewed, check)).toBe(true);
+      expect(calculateReceipt(reviewed).issues).toContainEqual(
+        expect.objectContaining({ path: "printedTotal" }),
+      );
+      expect(extractLocalVisionEvidence).toHaveBeenCalledOnce();
+    },
+  );
+  it.each(["subtotal", "printedTax", "printedTotal"] as const)(
+    "a failed comparison preserves actual %s regions and flags its weak words",
+    async (field) => {
+      const output = primary([
+        "MARKET",
+        "Meal 1x 18.00 18.00",
+        "Subtotal 18.00",
+        "Tax 2.00",
+        "Total GBP 20.00",
+        "Prices exclude tax",
+      ]);
+      const expected = parseReceiptWithSources(output);
+      const index = { subtotal: 2, printedTax: 3, printedTotal: 4 }[field];
+      output.recognition.panels[0].words = structuredClone(
+        output.recognition.panels[0].words,
+      );
+      output.recognition.panels[0].words[index].confidence = 0.2;
+      vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+        new Error("Synthetic model unavailable"),
+      );
+      const result = await extractComparedReceipt(
+        images,
+        new AbortController().signal,
+        vi.fn(),
+      );
+      expect(result.fieldSources).toEqual(expected.fieldSources);
+      expect(result.fieldSources[field]).toEqual([index]);
+      for (const key of [
+        "subtotal",
+        "printedTax",
+        "printedTotal",
+        "pricesIncludeTax",
+        "taxMode",
+        "taxCodes",
+      ] as const)
+        expect(result.receipt[key]).toEqual(expected.receipt[key]);
+      expect(
+        result.receipt.adjustments.map(({ id: _id, ...row }) => row),
+      ).toEqual(expected.receipt.adjustments.map(({ id: _id, ...row }) => row));
+      expect(result.receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          scope: "receipt",
+          field,
+          reason: "source",
+          confirmedValue: "",
+        }),
+      );
+    },
+  );
+  it("a weak purchase keeps individual field checks after a failed comparison and coverage review", async () => {
+    const output = primary();
+    output.recognition.panels[0].words = structuredClone(
+      output.recognition.panels[0].words,
+    );
+    output.recognition.panels[0].words[1].confidence = 0.2;
+    vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+      new Error("Synthetic model unavailable"),
+    );
+    const result = await extractComparedReceipt(
+      images,
+      new AbortController().signal,
+      vi.fn(),
+    );
+    const coverage = result.receipt.reviewChecks.find(
+      (check) => check.field === "items",
+    )!;
+    const reviewed = confirmReviewCheck(result.receipt, reviewKey(coverage));
+    for (const field of [
+      "description",
+      "quantity",
+      "unitPrice",
+      "lineTotal",
+    ] as const) {
+      const check = reviewed.reviewChecks.find(
+        (check) => check.scope === "item" && check.field === field,
+      )!;
+      expect(check).toMatchObject({ reason: "source", confirmedValue: "" });
+      expect(checkIsPending(reviewed, check)).toBe(true);
+    }
+    expect(calculateReceipt(reviewed).issues.length).toBeGreaterThan(0);
+  });
+  it("a failed comparison flags conflicting totals without changing the selected literal", async () => {
+    primary([...clear, "TOTAL GBP 6.50"]);
+    vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+      new Error("Synthetic model unavailable"),
+    );
+    const result = await extractComparedReceipt(
+      images,
+      new AbortController().signal,
+      vi.fn(),
+    );
+    expect(result.receipt.printedTotal).toBe("6.50");
+    expect(result.fieldSources.printedTotal).toEqual([4]);
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        field: "printedTotal",
+        reason: "source",
+        confirmedValue: "",
+      }),
+    );
+  });
+  it("missing source geometry produces pending checks without fabricated regions", async () => {
+    const output = primary();
+    output.sourceLines = [];
+    vi.mocked(extractLocalVisionEvidence).mockRejectedValue(
+      new Error("Synthetic model unavailable"),
+    );
+    const result = await extractComparedReceipt(
+      images,
+      new AbortController().signal,
+      vi.fn(),
+    );
+    expect(result.sourceLines).toEqual([]);
+    expect(result.fieldSources.printedTotal).toEqual([3]);
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        field: "printedTotal",
+        reason: "source",
+        confirmedValue: "",
+      }),
+    );
+  });
   it("reads the primary once, skips unnecessary vision and still requires source review", async () => {
     primary();
     const result = await extractComparedReceipt(

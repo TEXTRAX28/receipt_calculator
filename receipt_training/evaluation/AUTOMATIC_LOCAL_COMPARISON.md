@@ -1,5 +1,12 @@
 # Automatic local comparison
 
+Current follow-up, 3 November 2026:
+[fallback source review](FALLBACK_SOURCE_REVIEW.md) restores receipt-field source
+mappings and weak-financial-word checks after a skipped or failed comparison.
+The current 1,171-unit/twelve-browser-test evidence and 600 saved-response replay
+views are separate from this document's historical checkpoint below. No model,
+financial value or comparison policy changes.
+
 The improvement branch now defaults **This computer** to **When details need a
 check**, when both local readers are installed. The first OCR draft requests an
 independent local vision reading for validation issues, parser warnings,
