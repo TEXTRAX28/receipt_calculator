@@ -1,6 +1,7 @@
 import { matchCostcoRow } from "./costco-row";
 import { recognitionSchema } from "./recognition-schema.mjs";
 import type { EvidenceLine } from "./receipt-layout";
+import type { FinalTotalFragment } from "./final-total-fragments";
 
 type Row = NonNullable<ReturnType<typeof matchCostcoRow>>;
 export type ObservedCostcoRow = Row & {
@@ -40,6 +41,7 @@ export function readCostcoWordRows(
   output: unknown,
   texts: string[],
   enabled: boolean,
+  finalTotals: FinalTotalFragment[] = [],
 ) {
   const empty = () => ({
     rows: {} as Partial<Record<number, ObservedCostcoRow>>,
@@ -98,6 +100,11 @@ export function readCostcoWordRows(
     >();
     for (const panel of panels) {
       const words = panel.words;
+      const reserved = new Set(
+        finalTotals
+          .filter((row) => row.photo === panel.photo && row.part === panel.part)
+          .map((row) => row.wordIndex),
+      );
       const skus = words.flatMap((w, i) =>
         /^\d{4,12}$/.test(w.text.trim()) && w.confidence >= 0.75 ? [i] : [],
       );
@@ -187,6 +194,51 @@ export function readCostcoWordRows(
               ? [i]
               : [],
           );
+        const closedCoverage = (indices: number[], selected: number[]) => {
+          if (selected.length > 32) return false;
+          let work = 0,
+            solutions = 0;
+          const all = (1n << BigInt(selected.length)) - 1n;
+          const visit = (
+            lineNumber: number,
+            offset: number,
+            used: bigint,
+            lastX: number,
+          ): void => {
+            if (solutions > 1 || ++work > 10000) return;
+            if (lineNumber === indices.length) {
+              if (used === all) solutions++;
+              return;
+            }
+            const line = lines[indices[lineNumber]]!,
+              target = compact(line.text);
+            if (offset === target.length) {
+              visit(lineNumber + 1, 0, used, -1);
+              return;
+            }
+            for (const [position, i] of selected.entries()) {
+              const bit = 1n << BigInt(position),
+                word = words[i],
+                piece = compact(word.text);
+              if (
+                !(used & bit) &&
+                piece &&
+                word.box[0] >= lastX &&
+                contains(line.box, center(word.box)) &&
+                target.startsWith(piece, offset)
+              )
+                visit(
+                  lineNumber,
+                  offset + piece.length,
+                  used | bit,
+                  word.box[0],
+                );
+              if (work > 10000 || solutions > 1) return;
+            }
+          };
+          visit(0, 0, 0n, -1);
+          return work <= 10000 && solutions === 1;
+        };
         let sourceIndices: number[], titleIndex: number, description: string;
         const inlineWords = associated([index]);
         const inlineNames = inlineWords
@@ -221,17 +273,49 @@ export function readCostcoWordRows(
             continue;
           if (complete) description = title.text.trim();
           else {
-            const match = title.text.match(
-              /^(.*?)\s+(\d[\d,.]*[.,]\d{2,3}\s*-?\s*[A-Z])\s*$/i,
-            );
+            const combined = associated([index - 1, index]);
+            const names = combined
+              .filter((i) => !roleIndices.has(i) && !reserved.has(i))
+              .sort((a, b) => words[a].box[0] - words[b].box[0]);
+            const sharedFooter =
+              combined.some((i) => reserved.has(i)) &&
+              finalTotals.some(
+                (row) =>
+                  row.photo === panel.photo &&
+                  row.part === panel.part &&
+                  row.sourceIndices.includes(index),
+              );
             if (
-              !match ||
-              compact(match[2]) !== compact(total.text) ||
-              compact(mainLine.text) !==
-                compact([sku.text, quantity.text, unit.text].join(" "))
-            )
-              continue;
-            description = match[1].trim();
+              sharedFooter &&
+              closedCoverage([index - 1, index], combined) &&
+              [...roleIndices].every((i) => combined.includes(i)) &&
+              names.length &&
+              names.every(
+                (i) =>
+                  contains(title.box, center(words[i].box)) &&
+                  center(words[i].box)[1] <
+                    s[1] +
+                      slope * (center(words[i].box)[0] - s[0]) -
+                      0.25 * Math.min(height(sku.box), height(words[i].box)),
+              )
+            ) {
+              description = names
+                .map((i) => words[i].text)
+                .join(" ")
+                .trim();
+            } else {
+              const match = title.text.match(
+                /^(.*?)\s+(\d[\d,.]*[.,]\d{2,3}\s*-?\s*[A-Z])\s*$/i,
+              );
+              if (
+                !match ||
+                compact(match[2]) !== compact(total.text) ||
+                compact(mainLine.text) !==
+                  compact([sku.text, quantity.text, unit.text].join(" "))
+              )
+                continue;
+              description = match[1].trim();
+            }
           }
           sourceIndices = [index - 1, index];
           titleIndex = index - 1;
@@ -246,7 +330,7 @@ export function readCostcoWordRows(
           continue;
         const sourceWords = associated(sourceIndices);
         const names = sourceWords
-          .filter((i) => !roleIndices.has(i))
+          .filter((i) => !roleIndices.has(i) && !reserved.has(i))
           .sort((a, b) => words[a].box[0] - words[b].box[0]);
         if (
           !names.length ||
@@ -254,7 +338,10 @@ export function readCostcoWordRows(
           sourceWords.some((i) => words[i].confidence < 0.75) ||
           compact(names.map((i) => words[i].text).join(" ")) !==
             compact(description) ||
-          sourceWords.length !== roleIndices.size + names.length ||
+          sourceWords.length !==
+            roleIndices.size +
+              names.length +
+              sourceWords.filter((i) => reserved.has(i)).length ||
           [...roleIndices].some((i) => !sourceWords.includes(i))
         )
           continue;

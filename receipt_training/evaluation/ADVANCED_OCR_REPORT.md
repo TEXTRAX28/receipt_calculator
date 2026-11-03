@@ -2,7 +2,19 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [Costco coupon-column repair](COSTCO_COUPON_COLUMNS.md) uses actual
+The latest [final-total fragment repair](FINAL_TOTAL_FRAGMENTS.md) retains both
+Bristol cashew purchases, separates printed 74.57 from the mixed SKU row and
+excludes the vision draft's false footer product. Hybrid unmatched scored
+predictions fall 1 to 0 in both currency modes. Primary supplied-currency matches
+improve 123/145 to 124/145 and line prices 121/143 to 122/143. The other 49
+transactions' facts/totals and evaluation aggregate counts remain unchanged.
+All 1,256 unit tests, 194 focused cases, typecheck and isolated build pass; no
+new phone journey is executed. The retained restaurant pre-tax TOTAL mistake
+is corrected before the final replay. Bristol still calculates 64.81 against
+printed 74.57 with unresolved tax context, so no whole-transaction success is
+claimed. There is no new inference, upload, provider-default or guard change.
+
+The preceding [Costco coupon-column repair](COSTCO_COUPON_COLUMNS.md) uses actual
 word positions to interpret joined and fragmented rows, retaining source regions
 and mandatory role checks. On the same fifty saved readings, hybrid known
 discounts improve 5/7 to 7/7 and grouping 11/14 to 13/14, removing two false
@@ -11,7 +23,7 @@ improve 34/120 to 36/120 and prices 120/143 to 121/143. Only Bristol changes;
 the other 49 transaction facts/totals and evaluation aggregates are unchanged.
 All 1,231 unit tests, 174 focused cases, typecheck and isolated build pass.
 The sixteen-case browser rerun is unexecuted after a RAM-guard refusal. Bristol
-still misclassifies its footer and lacks tax evidence, so no whole-transaction
+at that checkpoint misclassifies its footer and lacks tax evidence, so no whole-transaction
 success is claimed. No new inference, upload or provider-default change occurs;
 existing confidence thresholds remain in place. The wider goal stays active.
 

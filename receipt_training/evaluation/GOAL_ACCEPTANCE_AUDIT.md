@@ -12,7 +12,21 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Costco word-column interpretation](COSTCO_COUPON_COLUMNS.md) recovers
+The latest [final-total fragment interpretation](FINAL_TOTAL_FRAGMENTS.md)
+separates Bristol's last cashew purchase from its printed total and excludes
+the vision draft's false footer product. Both drafts retain the nine actual
+purchases; the primary also reads printed 74.57. Hybrid unmatched scored
+predictions fall 1 to 0 in both currency modes. Primary supplied-currency matches
+improve 123/145 to 124/145 and line prices 121/143 to 122/143. Only Bristol changes;
+all other 49 transaction facts/totals and evaluation aggregate counts stay
+unchanged. All 1,256 unit tests, 194 focused cases, typecheck and isolated build
+pass. A pre-tax restaurant TOTAL proposal and missing conflict-view context
+were exposed, retained and corrected before the final frozen replay. Browser
+and phone journeys are not newly executed. Bristol's 64.81 calculation still
+differs from printed 74.57 by -9.76, with unavailable tax context; it is not a
+whole-transaction success. No inference or upload occurs.
+
+The preceding [Costco word-column interpretation](COSTCO_COUPON_COLUMNS.md) recovers
 the Bristol backpack/egg coupons across joined and split OCR rows. Same-fifty
 hybrid discounts improve 5/7 to 7/7 and grouping 11/14 to 13/14 in both currency
 modes, removing two false coupon purchases. Primary supplied-currency quantities
@@ -20,8 +34,8 @@ improve 34/120 to 36/120 and prices 120/143 to 121/143. All other 49 transaction
 facts/totals and every evaluation aggregate stay unchanged, with no scored
 regressions. All 1,231 unit tests, 174 focused cases, typecheck and build pass.
 The sixteen-case browser rerun is held before process creation by the unchanged
-RAM guard. Bristol still has a separate footer-as-product error and unavailable
-tax context; its whole transaction is not correct. No inference or upload occurs.
+RAM guard. At that checkpoint Bristol still has a footer-as-product error and
+unavailable tax context; its whole transaction is not correct. No inference or upload occurs.
 
 The targeted retention check finds two additional missing historical generated
 graph declarations in the zero-price packet. Together with the thirteen already
@@ -535,7 +549,7 @@ branch. It is user context, not successful model currency recognition.
 | Field / available reference | Protected Tesseract baseline, automatic | Current hybrid, automatic | Current hybrid, explicit currency |
 |---|---:|---:|---:|
 | Matched priced rows /145 | 39 | 143 | 144 |
-| Predicted rows | 83 | 144 | 145 |
+| Predicted rows | 83 | 143 | 144 |
 | Exact normalized names /145 | 24 | 132 | 133 |
 | Quantities /120 | 3 | 119 | 119 |
 | Line totals /143 | 5 | 116 | 135 |
@@ -553,9 +567,10 @@ branch. It is user context, not successful model currency recognition.
 | Strict whole-receipt accuracy | Unscorable | Unscorable | Unscorable |
 
 Automatic scoped product recall rises from 26.90% to 98.62%, and scoped
-precision from 46.99% to 99.31%. Supplied-currency recall and precision are both
-99.31%. Automatic line-price equality rises from 3.50% to 81.12%; explicit-
+precision from 46.99% to 100%. Supplied-currency recall is 99.31% and scoped
+precision 100%. Automatic line-price equality rises from 3.50% to 81.12%; explicit-
 currency equality is 94.41%. The latest conditional values are bound by
+[final-total fragment recovery](FINAL_TOTAL_FRAGMENTS.md),
 [Costco word-column recovery](COSTCO_COUPON_COLUMNS.md) and
 [zero-price purchase recovery](ZERO_PRICE_PURCHASES.md), following
 [the copied-price comparison](COPIED_PRICE_RECOVERY.md),

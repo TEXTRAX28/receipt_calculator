@@ -10,6 +10,7 @@ import {
 } from "./model";
 import { money, weight } from "./money";
 import { matchCostcoRow } from "./costco-row";
+import { finalTotalHeading } from "./final-total-fragments";
 import {
   normalizeAmount,
   parseReceiptWithSources,
@@ -762,6 +763,62 @@ export function verifyIndependentReadings(
       });
     }
   }
+  const removedSummaryItems: {
+    itemId: string;
+    description: string;
+    literal: string;
+    sourceIndices: number[];
+  }[] = [];
+  if (
+    options.allowPriceRecovery !== false &&
+    !assembled.sourceConflicts?.length &&
+    !options.blockedScalarFields?.includes("printedTotal")
+  ) {
+    for (const footer of parsed.finalTotalFragments || []) {
+      const matches = originalItems.flatMap((item, index) => {
+        if (
+          removed.has(index) ||
+          paired.has(index) ||
+          item.quantity ||
+          item.unitPrice ||
+          item.taxCode ||
+          item.packSize ||
+          !finalTotalHeading(item.description) ||
+          nameKey(item.description) !==
+            nameKey(lines[footer.headingIndex]!.text) ||
+          raw.items[index].sourcePhotos.length !== 1 ||
+          raw.items[index].sourcePhotos[0] !== footer.photo
+        )
+          return [];
+        try {
+          return normalizeAmount(item.lineTotal) ===
+            normalizeAmount(footer.literal) &&
+            normalizeAmount(receipt.printedTotal) ===
+              normalizeAmount(footer.literal) &&
+            normalizeAmount(item.discount || "0") === "0"
+            ? [index]
+            : [];
+        } catch {
+          return [];
+        }
+      });
+      if (
+        matches.length !== 1 ||
+        (parsed.finalTotalFragments || []).filter(
+          (other) => other.photo === footer.photo,
+        ).length !== 1
+      )
+        continue;
+      const index = matches[0];
+      removed.add(index);
+      removedSummaryItems.push({
+        itemId: originalItems[index].id,
+        description: originalItems[index].description,
+        literal: footer.literal,
+        sourceIndices: footer.sourceIndices,
+      });
+    }
+  }
   const sources: Record<string, number[]> = {};
   let agreements = 0;
   for (let index = 0; index < receipt.items.length; index++) {
@@ -817,6 +874,25 @@ export function verifyIndependentReadings(
   fieldSources.items = sourceRows.flatMap((source, index) =>
     !pairedSource.has(index) ? source.indices : [],
   );
+  if (removedSummaryItems.length) {
+    fieldSources.items = [
+      ...new Set([
+        ...fieldSources.items,
+        ...removedSummaryItems.flatMap((row) => row.sourceIndices),
+      ]),
+    ].sort((a, b) => a - b);
+    globalCheck(
+      "items",
+      "classification",
+      "A printed final-total summary was excluded from products. Confirm the row's role against the original.",
+    );
+    checks.find(
+      (check) => check.scope === "receipt" && check.field === "items",
+    )!.details = removedSummaryItems.map((row) => ({
+      label: `Excluded summary: ${row.description}`.slice(0, 100),
+      value: row.literal,
+    }));
+  }
   if (
     ocr.reviewChecks.some(
       (check) =>
@@ -1147,6 +1223,19 @@ export function verifyIndependentReadings(
     /\b(?:subtotal|sub total|total\s*\(?\s*excl)/i.test(text),
   );
   scalar("printedTotal", isFinalTotal);
+  if (parsed.finalTotalFragments?.length) {
+    fieldSources.printedTotal = [
+      ...new Set([
+        ...(fieldSources.printedTotal || []),
+        ...parsed.finalTotalFragments.flatMap((row) => row.sourceIndices),
+      ]),
+    ].sort((a, b) => a - b);
+    globalCheck(
+      "printedTotal",
+      "source",
+      "Check the final-total label and amount across the original source fragments.",
+    );
+  }
   scalar("printedTax", (text) =>
     /^(?:vat amount|tax amount|sales tax|vat|tax)\s*[:£$€]?\s*\d/i.test(text),
   );
@@ -1561,6 +1650,7 @@ export function verifyIndependentReadings(
     taxBasisRecovery,
     financialRoleRecovery,
     removedAdjustments,
+    ...(removedSummaryItems.length ? { removedSummaryItems } : {}),
     agreements,
     matchedPurchases: pairs.length,
     ocrPurchases: sourceRows.length,

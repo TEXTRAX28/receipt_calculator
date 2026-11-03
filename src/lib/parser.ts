@@ -10,6 +10,10 @@ import { printedAmount } from "./printed-amount";
 import { normalizeReceiptDate } from "./receipt-date";
 import { matchCostcoRow } from "./costco-row";
 import { readCostcoWordRows, type ObservedCostcoRow } from "./costco-word-rows";
+import {
+  readFinalTotalFragments,
+  type FinalTotalFragment,
+} from "./final-total-fragments";
 import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
@@ -65,6 +69,7 @@ export function parseReceiptWithSources(
   columnSources: Record<string, ColumnSource>;
   fieldSources: Partial<Record<ReceiptReviewField, number[]>>;
   observedCostcoRows?: Partial<Record<number, ObservedCostcoRow>>;
+  finalTotalFragments?: FinalTotalFragment[];
 } {
   const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
@@ -196,6 +201,7 @@ export function parseReceiptWithSources(
       );
   }
   let taxAmount = "";
+  const finalTotals = readFinalTotalFragments(output, lines);
   const extraCharges: {
     label: string;
     kind: "fee" | "tip" | "deposit" | "discount" | "rounding";
@@ -296,6 +302,44 @@ export function parseReceiptWithSources(
         });
     }
   }
+  const fragmentValues = new Set(
+    finalTotals.map((row) => normalize(row.literal)).filter(Boolean),
+  );
+  if (finalTotals.length) {
+    const candidate = fragmentValues.size === 1 ? [...fragmentValues][0] : "";
+    const different =
+      fragmentValues.size > 1 ||
+      Boolean(
+        candidate && receipt.printedTotal && candidate !== receipt.printedTotal,
+      );
+    if (candidate && !receipt.printedTotal) receipt.printedTotal = candidate;
+    fieldSources.printedTotal = [
+      ...new Set([
+        ...(fieldSources.printedTotal || []),
+        ...finalTotals.flatMap((row) => row.sourceIndices),
+      ]),
+    ].sort((a, b) => a - b);
+    receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "printedTotal",
+      reason: different ? "different" : candidate ? "source" : "unclear",
+      other: different
+        ? "Different printed final-total candidates were observed. Check every highlighted region against the original."
+        : "Check the final-total label and amount across the original source fragments; the amount shares another OCR row.",
+      ...(different && candidate
+        ? {
+            details: [
+              {
+                label: "Existing total candidate",
+                value: receipt.printedTotal,
+              },
+              { label: "Fragmented footer candidate", value: candidate },
+            ],
+          }
+        : {}),
+      confirmedValue: "",
+    });
+  }
   // Repeated photographs can repeat a VAT legend; keep one definition, never remove purchased items.
   receipt.taxCodes = receipt.taxCodes.filter(
     (entry, index, all) =>
@@ -344,7 +388,7 @@ export function parseReceiptWithSources(
   let pendingDescription = "";
   let pendingSource: number | undefined;
   let itemSectionEnded = false;
-  const observed = readCostcoWordRows(output, lines, isCostco);
+  const observed = readCostcoWordRows(output, lines, isCostco, finalTotals);
   const separate = separatePurchaseRows(lines, PHOTO_SEPARATOR, isFinalTotal);
   const columns = columnPurchaseRows(
     lines,
@@ -393,7 +437,11 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    if (isFinalTotal(line)) itemSectionEnded = true;
+    if (
+      isFinalTotal(line) ||
+      finalTotals.some((row) => row.headingIndex === lineIndex)
+    )
+      itemSectionEnded = true;
     if (itemSectionEnded) continue;
     if (!observedRow && columns.titles.has(lineIndex)) continue;
     const column = !observedRow && columns.rows.get(lineIndex);
@@ -884,6 +932,7 @@ export function parseReceiptWithSources(
     sources,
     columnSources,
     fieldSources,
+    ...(finalTotals.length ? { finalTotalFragments: finalTotals } : {}),
     ...(Object.keys(observed.rows).length
       ? { observedCostcoRows: observed.rows }
       : {}),
