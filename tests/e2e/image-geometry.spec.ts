@@ -73,11 +73,13 @@ async function openGeometry(page: Page) {
 }
 async function corner(page: Page, name: string, x: number, y: number) {
   const stage = page.locator(".geometry-stage");
-  await stage.scrollIntoViewIfNeeded();
   const handle = page.getByRole("button", {
     name: name + " corner",
     exact: true,
   });
+  // On narrow screens the stage can be clipped by the scrolling dialog.
+  // Bring the actual pointer target into view before taking its coordinates.
+  await handle.scrollIntoViewIfNeeded();
   const box = (await handle.boundingBox())!,
     rect = (await stage.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

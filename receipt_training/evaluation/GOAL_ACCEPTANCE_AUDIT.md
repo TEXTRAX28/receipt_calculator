@@ -11,7 +11,18 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
+The latest [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) restores
+both corrected UK variants from 27 purchases/GBP279.87 to 18/GBP176.78 using
+known positions within one photo. All original-fifty and CORD preparation
+scores are unchanged. One straightened UK name regresses from `30M` to `3OM`;
+both readings remain visible and require review. Cross-photo joining also keeps
+any disputed purchase visible. All 1,064 unit tests, build
+and nine focused Chrome phone scenarios pass, including an actual four-section
+cropped UK scan at 320px. All fourteen checks remain pending; no upload, model
+download, provider promotion or automatic correction is enabled. The full goal
+remains open. Larger model plans retain their existing resource requirements.
+
+The preceding [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
 adds seventeen actual local receipt-section readings on four familiar transactions.
 With supplied currency, cropping raises restaurant line prices from 27/32 to
 28/32 and final totals from 1/3 to 2/3, but both corrected UK variants propose
@@ -19,7 +30,8 @@ With supplied currency, cropping raises restaurant line prices from 27/32 to
 automatic correction with current overlap assembly. Frozen inputs, initial
 harness failures, resource observations and all losing variants are retained.
 No app code, reference, provider default, private upload or billing changed.
-Source-supported overlap repair is the next concrete interpretation task.
+The repair above addresses this duplicate-row failure while preserving the
+original study and its limits.
 
 Latest [Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md): a key alone no
 longer enables uploads. An explicit persistent operator cap survives server

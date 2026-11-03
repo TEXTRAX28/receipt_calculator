@@ -170,7 +170,10 @@ export const enhancedOcrProvider: ExtractionProvider = {
             engine: "paddle-ppocrv6-tiny-browser-wasm",
             panels,
           };
-          const assembled = assembleRecognition(recognition);
+          const assembled = assembleRecognition(
+            recognition,
+            images.map((image) => image.readingWindows),
+          );
           extractionOutputSchema.parse({ text: assembled.text });
           return {
             ...assembled,

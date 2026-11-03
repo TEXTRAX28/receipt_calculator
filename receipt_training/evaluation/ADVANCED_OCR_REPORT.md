@@ -2,13 +2,23 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
+The latest [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) uses known
+same-photo section positions to remove nine false UK purchases, restoring
+18 purchases and GBP176.78 in both corrected variants. Original-fifty and CORD
+preparation scores are unchanged. One straightened product name regresses;
+both observations remain attached for review. Cross-photo joining preserves
+disputed purchases. All 1,064 unit tests, build and
+nine focused Chrome phone browser scenarios pass, including the real cropped
+UK flow at 320px with fourteen checks pending. No cloud upload, model download,
+provider promotion or automatic correction was enabled. The full goal stays active.
+
+The preceding [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
 completes seventeen local receipt-section readings. Supplied-currency restaurant
 prices improve 27/32 to 28/32 with crop, while corrected UK variants add nine
 false purchases and calculate GBP 279.87 instead of 176.78. Automatic correction
 is rejected with current overlap assembly. App source, references and defaults
 are unchanged; no upload or model download occurred. The preserved failure
-cases identify source-supported section joining as the next interpretation task.
+cases motivated the source-supported section joining now measured above.
 
 Latest [persistent Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md):
 explicit local request caps survive restart/key/model changes and retain failed

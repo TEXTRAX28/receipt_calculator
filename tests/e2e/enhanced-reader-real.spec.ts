@@ -6,7 +6,8 @@ import { resolve } from "node:path";
 import { calculateReceipt } from "../../src/lib/engine";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("original two-photo UK receipt through the enhanced app remains an unverified draft", async ({
+const cropPhotos = process.env.GATHER_ENHANCED_CROP_TEST === "1";
+test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the enhanced app remains an unverified draft`, async ({
   page,
 }, info) => {
   test.setTimeout(180000);
@@ -136,6 +137,35 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
   });
   await page.goto("/");
   await page.getByLabel("Upload receipt images").setInputFiles(files);
+  await expect(page.locator(".selected-image")).toHaveCount(2);
+  const crops = [];
+  if (cropPhotos) {
+    for (let photo = 1; photo <= 2; photo++) {
+      await page
+        .getByRole("button", { name: `Crop image ${photo}`, exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: "Find receipt edges", exact: true })
+        .click();
+      await expect(
+        page.getByText(/Suggested frame\. Check every corner/),
+      ).toBeVisible();
+      crops.push(
+        await page.getByRole("slider").evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            label: node.getAttribute("aria-label"),
+            value: (node as HTMLInputElement).value,
+          })),
+        ),
+      );
+      await page
+        .getByRole("button", { name: "Apply crop", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Apply crop", exact: true }),
+      ).toHaveCount(0);
+    }
+  }
   await page
     .getByRole("button", { name: "Enhanced on-device", exact: true })
     .click();
@@ -172,19 +202,63 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
   const state = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
+  // Preserve the actual draft and SDK observations even if a later assertion fails.
+  const initialCaptures = await page.evaluate(async () => {
+    const capture = (
+      window as unknown as {
+        enhancedAreaCapture: { calls: unknown[]; pending: Promise<void>[] };
+      }
+    ).enhancedAreaCapture;
+    await Promise.all(capture.pending);
+    return capture.calls;
+  });
+  await writeFile(
+    await artifact("initial-scan.json"),
+    JSON.stringify(
+      {
+        receipt: state.receipt,
+        modelCalls: initialCaptures,
+        elapsed_ms,
+        cropPhotos,
+        crops,
+        input_sha256: inputs,
+        external,
+        writes,
+        errors,
+      },
+      null,
+      2,
+    ) + "\n",
+    { flag: "wx" },
+  );
   expect(state.receipt.currency).toBe("GBP");
   expect(state.receipt.items).toHaveLength(18);
   expect(
+    state.receipt.reviewChecks.every(
+      (c: { confirmedValue: string }) => !c.confirmedValue,
+    ),
+  ).toBe(true);
+  if (cropPhotos) {
+    expect(state.receipt.warnings).toContainEqual(
+      expect.stringMatching(/Matched overlapping sections in a long photo/),
+    );
+    expect(state.receipt.warnings).toContainEqual(
+      expect.stringMatching(/overlapping sections disagree/),
+    );
+  }
+  expect(
     state.receipt.items.filter(
       (item: { description: string }) =>
-        item.description === "KS ROTISS CHICKEN",
+        item.description.trim().replace(/\s+/g, " ") === "KS ROTISS CHICKEN",
     ),
   ).toHaveLength(2);
   expect(state.receipt.items.at(-1)).toMatchObject({
-    description: "SPONTEX CLOTHS 24P",
     lineTotal: "6.99",
     discount: "1.50",
   });
+  expect(
+    state.receipt.items.at(-1).description.trim().replace(/\s+/g, " "),
+  ).toBe("SPONTEX CLOTHS 24P");
   expect(state.receipt.warnings).toContainEqual(
     expect.stringMatching(/Matched 2 overlapping purchases in photos 1 and 2/),
   );
@@ -200,8 +274,8 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
       exact: true,
     }),
   ).toBeDisabled();
-  await expect.poll(() => closed).toBe(1);
-  expect(workers).toHaveLength(1);
+  await expect.poll(() => closed).toBe(cropPhotos ? 3 : 1);
+  expect(workers).toHaveLength(cropPhotos ? 3 : 1);
   expect(external).toEqual([]);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
@@ -223,24 +297,51 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     .getByRole("dialog")
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
+  const alternateSources = [];
+  if (cropPhotos) {
+    await page
+      .getByRole("button", { name: "View source for item 12", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    const sections = dialog.locator(".source-section-picker button");
+    await expect(sections).toHaveCount(2);
+    for (let section = 0; section < 2; section++) {
+      await sections.nth(section).click();
+      await expect(dialog.getByTestId("source-region").first()).toBeVisible();
+      alternateSources.push({
+        label: await sections.nth(section).textContent(),
+        text: await dialog.locator(".source-text pre").textContent(),
+        regions: await dialog
+          .getByTestId("source-region")
+          .evaluateAll((nodes) => nodes.map((node) => node.outerHTML)),
+      });
+    }
+    await page.screenshot({ path: await artifact("overlap-source.png") });
+    await dialog
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+  }
   const areaReadings = [];
-  for (const [i, target] of [
-    {
-      name: "vat-legend",
-      source: "View source for tax code rates",
-      trigger: "Reread this area",
-    },
-    {
-      name: "chicken-skewer",
-      source: "View source for item 4",
-      trigger: "Reread this purchase",
-    },
-    {
-      name: "baby-plum-tomatoes",
-      source: "View source for item 13",
-      trigger: "Reread this purchase",
-    },
-  ].entries()) {
+  const areaTargets = cropPhotos
+    ? []
+    : [
+        {
+          name: "vat-legend",
+          source: "View source for tax code rates",
+          trigger: "Reread this area",
+        },
+        {
+          name: "chicken-skewer",
+          source: "View source for item 4",
+          trigger: "Reread this purchase",
+        },
+        {
+          name: "baby-plum-tomatoes",
+          source: "View source for item 13",
+          trigger: "Reread this purchase",
+        },
+      ];
+  for (const [i, target] of areaTargets.entries()) {
     await page
       .getByRole("button", { name: target.source, exact: true })
       .click();
@@ -300,9 +401,11 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
       exact: true,
     }),
   ).toBeDisabled();
-  expect(workers).toHaveLength(4);
-  expect(closed).toBe(4);
-  expect(workers.every((url) => /paddle\.worker/.test(url))).toBe(true);
+  expect(workers).toHaveLength(cropPhotos ? 3 : 4);
+  expect(closed).toBe(cropPhotos ? 3 : 4);
+  expect(workers.filter((url) => /paddle\.worker/.test(url))).toHaveLength(
+    cropPhotos ? 1 : 4,
+  );
   expect(external).toEqual([]);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
@@ -324,7 +427,7 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     await Promise.all(capture.pending);
     return capture.calls;
   });
-  expect(captures).toHaveLength(5);
+  expect(captures).toHaveLength(cropPhotos ? 4 : 5);
   const modelInputs = [];
   for (const capture of captures) {
     const { dataUrl, ...observation } = capture;
@@ -373,6 +476,7 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
     "src/lib/paddle.worker.ts",
     "src/lib/paddle-layout.ts",
     "src/lib/receipt-layout.ts",
+    "src/lib/window-overlap.ts",
     "src/lib/parser.ts",
     "src/lib/engine.ts",
     "scripts/enhanced-ocr-assets.json",
@@ -390,6 +494,9 @@ test("original two-photo UK receipt through the enhanced app remains an unverifi
         receipt: state.receipt,
         calculation,
         elapsed_ms,
+        cropPhotos,
+        crops,
+        alternateSources,
         noFinancialEdits: true,
         noChecksConfirmed: true,
         areaReadings,

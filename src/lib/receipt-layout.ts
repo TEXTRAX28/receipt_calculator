@@ -2,6 +2,8 @@ import type { z } from "zod";
 import type { recognitionSchema } from "./recognition-schema.mjs";
 import { matchCostcoRow } from "./costco-row";
 import { PHOTO_SEPARATOR, isFinalTotal } from "./parser";
+import type { ReadingWindow } from "./images";
+import { joinWindowRows, type WindowRow } from "./window-overlap";
 
 export type Recognition = z.infer<typeof recognitionSchema>;
 export type SourceRecognition = Omit<Recognition, "engine" | "panels"> & {
@@ -15,7 +17,15 @@ export type EvidenceLine = Recognition["panels"][number]["lines"][number] & {
   photo: number;
   part: number;
 };
-type Photo = { photo: number; lines: EvidenceLine[] };
+type Photo = {
+  photo: number;
+  lines: EvidenceLine[];
+  windowRows?: WindowRow[];
+  joinedSectionRows?: number;
+};
+type PhotoWindows = readonly (
+  readonly (ReadingWindow | undefined)[] | undefined
+)[];
 type PurchaseBlock = {
   sku: string;
   signature: string;
@@ -24,11 +34,15 @@ type PurchaseBlock = {
 const key = (text: string) => text.toUpperCase().replace(/\s+/g, "");
 
 /** Keep source regions while joining only exact adjacent windows of one image. */
-function photoEvidence(recognition: SourceRecognition): Photo[] {
+function photoEvidence(
+  recognition: SourceRecognition,
+  windows?: PhotoWindows,
+): Photo[] {
   const photos = new Map<number, EvidenceLine[]>();
-  for (const panel of [...recognition.panels].sort(
+  const panels = [...recognition.panels].sort(
     (a, b) => a.photo - b.photo || a.part - b.part,
-  )) {
+  );
+  for (const panel of panels) {
     const next = panel.lines
       .filter((line) => line.text.trim())
       .map((line) => ({ ...line, photo: panel.photo, part: panel.part }));
@@ -50,7 +64,22 @@ function photoEvidence(recognition: SourceRecognition): Photo[] {
     }
     photos.set(panel.photo, [...joined, ...next.slice(overlap)]);
   }
-  return [...photos].map(([photo, lines]) => ({ photo, lines }));
+  return [...photos].map(([photo, lines]) => {
+    const joined =
+      windows?.[photo - 1] &&
+      joinWindowRows(
+        panels.filter((panel) => panel.photo === photo),
+        windows[photo - 1]!,
+      );
+    return joined
+      ? {
+          photo,
+          lines: joined.rows.map((row) => row.source),
+          windowRows: joined.rows,
+          joinedSectionRows: joined.dropped,
+        }
+      : { photo, lines };
+  });
 }
 
 function endSection(photo: Photo) {
@@ -110,8 +139,11 @@ function endSection(photo: Photo) {
  * A cropped merchant heading is not required: identity comes from the exact
  * transaction reference and ordered purchase evidence, not a guessed retailer.
  */
-export function assembleRecognition(recognition: SourceRecognition) {
-  const photos = photoEvidence(recognition);
+export function assembleRecognition(
+  recognition: SourceRecognition,
+  windows?: PhotoWindows,
+) {
+  const photos = photoEvidence(recognition, windows);
   const removed = new Set<EvidenceLine>();
   const overlaps: {
     keptPhoto: number;
@@ -122,10 +154,20 @@ export function assembleRecognition(recognition: SourceRecognition) {
   const sections = photos.map((photo) => ({
     photo,
     section: endSection(photo),
+    conflicts: new Set(
+      photo.windowRows?.filter((row) => row.conflict).map((row) => row.source),
+    ),
   }));
   for (const candidate of sections) {
     const { section, photo } = candidate;
     if (!section || section.purchases.length < 2) continue;
+    // A matching chosen row must not hide another disputed reading of it.
+    if (
+      section.purchases.some((purchase) =>
+        purchase.lines.some((line) => candidate.conflicts.has(line)),
+      )
+    )
+      continue;
     if (new Set(section.purchases.map((p) => p.sku)).size < 2) continue;
     const first = section.purchases[0].lines[0];
     if (first.part !== 1 || first.box[1] > 0.18) continue;
@@ -139,7 +181,9 @@ export function assembleRecognition(recognition: SourceRecognition) {
         return false;
       const tail = other.section.purchases.slice(-section.purchases.length);
       return tail.every(
-        (p, i) => p.signature === section.purchases[i].signature,
+        (p, i) =>
+          p.signature === section.purchases[i].signature &&
+          !p.lines.some((line) => other.conflicts.has(line)),
       );
     });
     // Ambiguous alternative source photos do not authorize removing evidence.
@@ -153,6 +197,31 @@ export function assembleRecognition(recognition: SourceRecognition) {
       regions,
     });
   }
+  const sourceLines: (EvidenceLine | null)[] = [],
+    sourceAlternatives: Record<number, EvidenceLine[]> = {},
+    sourceConflicts: number[] = [];
+  for (const [index, photo] of photos.entries()) {
+    if (index) sourceLines.push(null);
+    const rows = new Map(photo.windowRows?.map((row) => [row.source, row]));
+    for (const line of photo.lines.filter((line) => !removed.has(line))) {
+      const row = rows.get(line);
+      for (const text of line.text
+        .replace(/\r/g, "")
+        .split("\n")
+        .map((text) => text.trim())
+        .filter(Boolean)) {
+        const offset = sourceLines.length;
+        sourceLines.push({ ...line, text });
+        if (row?.alternatives.length)
+          sourceAlternatives[offset] = row.alternatives;
+        if (row?.conflict) sourceConflicts.push(offset);
+      }
+    }
+  }
+  const joinedSectionRows = photos.reduce(
+    (count, photo) => count + (photo.joinedSectionRows || 0),
+    0,
+  );
   return {
     text: photos
       .map((photo) =>
@@ -163,23 +232,26 @@ export function assembleRecognition(recognition: SourceRecognition) {
       )
       .join(`\n${PHOTO_SEPARATOR}\n`),
     photos,
-    sourceLines: photos.flatMap((photo, index) => [
-      ...(index ? [null] : []),
-      ...photo.lines
-        .filter((line) => !removed.has(line))
-        .flatMap((line) =>
-          line.text
-            .replace(/\r/g, "")
-            .split("\n")
-            .map((text) => text.trim())
-            .filter(Boolean)
-            .map((text) => ({ ...line, text })),
-        ),
-    ]),
+    sourceLines,
+    ...(windows
+      ? { sourceAlternatives, sourceConflicts, joinedSectionRows }
+      : {}),
     overlaps,
-    warnings: overlaps.map(
-      (overlap) =>
-        `Matched ${overlap.purchases} overlapping purchases in photos ${overlap.keptPhoto} and ${overlap.removedPhoto} using their transaction reference and ordered product codes, prices and coupons. Check the originals; separate repeated purchases were kept.`,
-    ),
+    warnings: [
+      ...overlaps.map(
+        (overlap) =>
+          `Matched ${overlap.purchases} overlapping purchases in photos ${overlap.keptPhoto} and ${overlap.removedPhoto} using their transaction reference and ordered product codes, prices and coupons. Check the originals; separate repeated purchases were kept.`,
+      ),
+      ...(joinedSectionRows
+        ? [
+            "Matched overlapping sections in a long photo. Check the joined purchases against both source sections.",
+          ]
+        : []),
+      ...(sourceConflicts.length
+        ? [
+            "Some overlapping sections disagree. Check both readings before confirming those values.",
+          ]
+        : []),
+    ],
   };
 }
