@@ -97,7 +97,10 @@ import PhotoGuidance from "./PhotoGuidance";
 import ReceiptPhotos from "./ReceiptPhotos";
 import ReceiptCamera from "./ReceiptCamera";
 import { requireCorrectedPhotoReview } from "./lib/capture-review";
-import { reviewDeviceReading } from "./lib/device-review";
+import {
+  recoverDeviceFinancialSummary,
+  reviewDeviceReading,
+} from "./lib/device-review";
 import RefundControl from "./RefundControl";
 import {
   collectReceiptEvidence,
@@ -833,11 +836,19 @@ export default function App() {
           reader === "enhanced" ? enhancedOcrProvider : localOcrProvider
         ).extract(images, controller.current.signal, setScanStatus));
       setRawText(output.text);
+      const nativeParsed = parseReceiptWithSources(output, readingContext);
       const {
         receipt: parsed,
         sources,
         fieldSources,
-      } = parseReceiptWithSources(output, readingContext);
+      } = computerOutput
+        ? nativeParsed
+        : recoverDeviceFinancialSummary(
+            nativeParsed,
+            output.sourceLines || [],
+            output.recognition,
+            output.sourceConflicts,
+          );
       const evidence =
         output.recognition && output.sourceLines
           ? collectReceiptEvidence(

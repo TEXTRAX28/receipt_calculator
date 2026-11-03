@@ -1,7 +1,7 @@
 import type { Currency } from "./model";
 import { money } from "./money";
 import { printedAmount } from "./printed-amount";
-import type { EvidenceLine, Recognition } from "./receipt-layout";
+import type { EvidenceLine, SourceRecognition } from "./receipt-layout";
 
 const labels = [
   ["subtotal", /^(?:sub[-\s]?total|subttl)\b/i],
@@ -15,8 +15,12 @@ const labels = [
   ["total", /^(?:grand\s+total|total|amount\s+due|balance\s+due|due)\b/i],
 ] as const;
 const compact = (text: string) => text.replace(/\s/g, "");
+const financialText = (text: string) => text.replace(/^(?:\*+\s+)+/u, "");
+const informationalTotal =
+  /^total\s+(?:tax\b|number\s+of\s+items\b|items?\b|savings\b)/i;
 const amountOnly = /^[-−]?\d[\d., ]*-?$/;
 function headingRole(text: string) {
+  text = financialText(text);
   return labels.find(([, pattern]) => {
     const prefix = text.match(pattern);
     return (
@@ -33,6 +37,7 @@ type FinancialEntry = {
 
 /** Printed roles and tokens only; no confidence or arithmetic is inferred here. */
 export function matchFinancialSummaryRow(text: string) {
+  text = financialText(text);
   const role = labels.find(([, pattern]) => pattern.test(text));
   if (!role) return null;
   const prefix = text.match(role[1])![0];
@@ -44,8 +49,7 @@ export function matchFinancialSummaryRow(text: string) {
     : null;
 }
 
-function strongWords(line: EvidenceLine, recognition: Recognition) {
-  if (line.confidence < 0.98) return false;
+function strongWords(line: EvidenceLine, recognition: SourceRecognition) {
   const panel = recognition.panels.find(
     (panel) => panel.photo === line.photo && panel.part === line.part,
   );
@@ -61,10 +65,20 @@ function strongWords(line: EvidenceLine, recognition: Recognition) {
       );
     })
     .sort((a, b) => a.box[0] - b.box[0]);
+  if (words.map((word) => compact(word.text)).join("") !== compact(line.text))
+    return false;
+  // Only standalone leading asterisk words can explain a weak decorated row.
+  // Labels, signs and monetary words retain the same 0.98 threshold.
+  const title = financialText(line.text);
+  let first = 0;
+  if (title !== line.text)
+    while (first < words.length && /^\*+$/u.test(words[first].text)) first++;
+  const financialWords = words.slice(first);
   return (
-    words.length > 0 &&
-    words.every((word) => word.confidence >= 0.98) &&
-    words.map((word) => compact(word.text)).join("") === compact(line.text)
+    (line.confidence >= 0.98 || first > 0) &&
+    financialWords.length > 0 &&
+    financialWords.every((word) => word.confidence >= 0.98) &&
+    financialWords.map((word) => compact(word.text)).join("") === compact(title)
   );
 }
 
@@ -74,7 +88,7 @@ function strongWords(line: EvidenceLine, recognition: Recognition) {
  */
 function financialColumns(
   lines: (EvidenceLine | null)[],
-  recognition: Recognition,
+  recognition: SourceRecognition,
 ): FinancialEntry[] | null {
   if (
     lines.length > 512 ||
@@ -213,7 +227,7 @@ function financialColumns(
  */
 function financialEntries(
   lines: (EvidenceLine | null)[],
-  recognition: Recognition,
+  recognition: SourceRecognition,
 ): FinancialEntry[] {
   const columns = financialColumns(lines, recognition);
   if (columns) return columns;
@@ -296,7 +310,7 @@ function financialEntries(
  */
 export function readFinancialSummary(
   lines: (EvidenceLine | null)[],
-  recognition: Recognition,
+  recognition: SourceRecognition,
   currency: Currency,
 ) {
   const rows = financialEntries(lines, recognition).map(
@@ -308,8 +322,6 @@ export function readFinancialSummary(
       try {
         const amount = printedAmount(row.literal, { currency });
         const value = money(amount, currency, true);
-        if (value < 0n && row.role !== "rounding" && row.role !== "discount")
-          return null;
         return {
           ...row,
           amount,
@@ -325,7 +337,8 @@ export function readFinancialSummary(
   );
   const candidates = [];
   for (const [start, first] of rows.entries()) {
-    if (!first || first.role !== "subtotal" || first.value <= 0n) continue;
+    if (!first || first.role !== "subtotal" || first.value === 0n) continue;
+    const direction = first.value < 0n ? -1n : 1n;
     const end = rows.findIndex(
       (row, index) => index > start && row?.role === "total",
     );
@@ -344,8 +357,16 @@ export function readFinancialSummary(
     const known = section.filter((row) => row !== null);
     if (known.filter((row) => row.role === "subtotal").length !== 1) continue;
     const taxes = known.filter((row) => row.role === "tax");
-    if (!taxes.length || taxes.some((row) => row.value <= 0n)) continue;
+    if (!taxes.length || taxes.some((row) => row.value * direction <= 0n))
+      continue;
     const last = known.at(-1)!;
+    if (
+      last.value * direction <= 0n ||
+      known.some((row) => row.role === "fee" && row.value * direction < 0n) ||
+      // Refund discount conventions differ. Do not invent a coupon reversal.
+      (direction < 0n && known.some((row) => row.role === "discount"))
+    )
+      continue;
     const expected = known
       .slice(1, -1)
       .reduce(
@@ -362,10 +383,13 @@ export function readFinancialSummary(
   // Multiple sections can be separate bills or overlapping photos. Do not choose
   // the one that happens to balance, or turn unclear source rows into absence.
   const subtotalCount = lines.filter(
-    (line) => line && labels[0][1].test(line.text),
+    (line) => line && labels[0][1].test(financialText(line.text)),
   ).length;
   const totalCount = lines.filter(
-    (line) => line && labels[5][1].test(line.text),
+    (line) =>
+      line &&
+      labels[5][1].test(financialText(line.text)) &&
+      !informationalTotal.test(financialText(line.text)),
   ).length;
   return candidates.length === 1 && subtotalCount === 1 && totalCount === 1
     ? candidates[0]
@@ -374,7 +398,7 @@ export function readFinancialSummary(
 
 export function recoverExclusivePriceBasis(
   lines: (EvidenceLine | null)[],
-  recognition: Recognition,
+  recognition: SourceRecognition,
   currency: Currency,
 ) {
   const section = readFinancialSummary(lines, recognition, currency);

@@ -188,7 +188,7 @@ try {
             await import("/src/lib/paddle-browser.ts");
           const { parseReceiptWithSources } =
             await import("/src/lib/parser.ts");
-          const { reviewDeviceReading } =
+          const { recoverDeviceFinancialSummary, reviewDeviceReading } =
             await import("/src/lib/device-review.ts");
           const { calculateReceipt } = await import("/src/lib/engine.ts");
           const { collectReceiptEvidence } =
@@ -230,9 +230,14 @@ try {
             const reading_ms = performance.now() - readBegin;
             const predictions = [];
             for (const mode of ["automatic", "supplied-USD"]) {
-              const parsed = parseReceiptWithSources(
-                output,
-                mode === "automatic" ? undefined : { currency: "USD" },
+              const parsed = recoverDeviceFinancialSummary(
+                parseReceiptWithSources(
+                  output,
+                  mode === "automatic" ? undefined : { currency: "USD" },
+                ),
+                output.sourceLines || [],
+                output.recognition,
+                output.sourceConflicts,
               );
               parsed.receipt.source = "ocr";
               parsed.receipt.warnings = [

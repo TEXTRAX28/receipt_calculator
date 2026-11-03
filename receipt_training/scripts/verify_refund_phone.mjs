@@ -19,11 +19,13 @@ const write = (name, value) =>
   });
 const buildTag = process.argv[4] || "refund-document-validation-v1";
 assert(
-  /^(?:refund-document-validation|receipt-date-parser)-v[1-9]\d*$/.test(
+  /^(?:refund-document-validation|receipt-date-parser|refund-financial-summary)-v[1-9]\d*$/.test(
     buildTag,
   ),
 );
 const buildFolder = "qa-artifacts/" + buildTag;
+const suppliedCurrency = process.argv[5] || null;
+assert(suppliedCurrency === null || suppliedCurrency === "USD");
 const controller = JSON.parse(
   await readFile(resolve(root, buildFolder, "build-controller.json")),
 );
@@ -109,6 +111,10 @@ try {
     worker.on("close", () => closedWorkers++);
   });
   await page.goto(origin);
+  if (suppliedCurrency)
+    await page
+      .getByLabel("Receipt currency (optional)", { exact: true })
+      .selectOption(suppliedCurrency);
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(resolve(root, imagePath));
@@ -136,6 +142,26 @@ try {
   assert.equal(state.receipt.printedTax, "-43.12");
   assert.equal(state.receipt.printedTotal, "-543.11");
   assert.equal(state.receipt.date, "2026-07-21");
+  if (suppliedCurrency) {
+    assert.equal(state.receipt.currency, suppliedCurrency);
+    assert.equal(state.receipt.currencyUnresolved, false);
+    assert.equal(state.receipt.pricesIncludeTax, false);
+    assert.equal(state.receipt.taxMode, "printed");
+    assert.equal(state.receipt.items[0].taxCode, "Y");
+    assert.deepEqual(state.receipt.taxCodes, []);
+    assert.equal(state.receipt.adjustments.length, 1);
+    assert.equal(state.receipt.adjustments[0].kind, "tax");
+    assert.equal(state.receipt.adjustments[0].amount, "-43.12");
+    for (const field of ["pricesIncludeTax", "taxCodes", "adjustments"])
+      assert(
+        state.receipt.reviewChecks.some(
+          (check) =>
+            check.field === field &&
+            check.reason === "recovered" &&
+            !check.confirmedValue,
+        ),
+      );
+  }
   await expect(
     page.getByLabel("Receipt date (optional)", { exact: true }),
   ).toHaveValue("2026-07-21");
@@ -153,6 +179,22 @@ try {
     exact: true,
   });
   await expect(confirm).toBeDisabled();
+  if (suppliedCurrency) {
+    await expect(
+      page
+        .locator("dt")
+        .filter({ hasText: /^Calculated total$/ })
+        .locator("..")
+        .locator("dd"),
+    ).toHaveText("−$543.11");
+    await expect(
+      page
+        .locator("dt")
+        .filter({ hasText: /^Added tax$/ })
+        .locator("..")
+        .locator("dd"),
+    ).toHaveText("−$43.12");
+  }
   const fit = [];
   const lineError = page.locator(
     "[data-testid='review-item-0'] .item-editor-top .field-error",
@@ -213,6 +255,35 @@ try {
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
+  let financialSourceRegions = null;
+  if (suppliedCurrency) {
+    await page
+      .getByRole("button", {
+        name: "View source for whether item prices include tax",
+        exact: true,
+      })
+      .click();
+    const financialDialog = page.getByRole("dialog", {
+      name: "Receipt source for whether item prices include tax",
+      exact: true,
+    });
+    await expect(financialDialog.getByTestId("source-region")).toHaveCount(3);
+    financialSourceRegions = 3;
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const scrollWidth = await page.evaluate(
+        () => document.documentElement.scrollWidth,
+      );
+      assert(scrollWidth <= width);
+      fit.push({ view: "financial-source", width, scroll_width: scrollWidth });
+      await page.screenshot({
+        path: resolve(out, `financial-source-${width}.png`),
+      });
+    }
+    await financialDialog
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+  }
   await expect(confirm).toBeDisabled();
   const finalState = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")),
@@ -228,6 +299,8 @@ try {
     elapsed_ms,
     fit,
     source_regions: 2,
+    financial_source_regions: financialSourceRegions,
+    supplied_currency: suppliedCurrency,
     financial_fields_edited: false,
     checks_confirmed: 0,
     confirmation_blocked: true,
@@ -241,7 +314,7 @@ try {
     build_source_sha256: controller.source_sha256,
     physical_phone_verified: false,
     scope:
-      "One genuine public refund through actual production upload/enhanced OCR/review/source UI. Two viewport sizes of one scan; no corrected quantity/tax setup/date, source-check approval or finalized split.",
+      "One genuine public refund through actual production upload/enhanced OCR/review/source UI. Two viewport sizes of one scan. Optional reading currency is explicit setup; no extracted financial field edits, source-check approval or finalized split.",
   });
 } finally {
   await browser?.close();

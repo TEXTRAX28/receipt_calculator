@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     tag = sys.argv[1]
     assert re.fullmatch(r"[\w-]+", tag)
-    assert sys.argv[2:] in ([], ["--phone"]) or (len(sys.argv) == 4 and sys.argv[2] == "--phone" and re.fullmatch(r"(?:refund-document-validation|receipt-date-parser)-v[1-9]\d*", sys.argv[3]))
+    assert sys.argv[2:] in ([], ["--phone"]) or (len(sys.argv) in (4, 6) and sys.argv[2] == "--phone" and re.fullmatch(r"(?:refund-document-validation|receipt-date-parser|refund-financial-summary)-v[1-9]\d*", sys.argv[3]) and (len(sys.argv) == 4 or sys.argv[4:] == ["--currency", "USD"]))
     script = "verify_refund_phone.mjs" if sys.argv[2:] else "benchmark_refund_receipts.mjs"
     control = ROOT / "qa-artifacts" / (tag + "-control")
     control.mkdir()
@@ -36,8 +36,10 @@ def main():
         node = shutil.which("node.exe")
         assert node
         arguments = [node, "receipt_training/scripts/" + script, tag, "--await-observer"]
-        if len(sys.argv) == 4:
+        if len(sys.argv) >= 4:
             arguments.append(sys.argv[3])
+        if len(sys.argv) == 6:
+            arguments.append(sys.argv[5])
         with (control / "stdout.log").open("xb") as output, (control / "stderr.log").open("xb") as errors:
             process = subprocess.Popen(arguments, cwd=ROOT, env=env, stdout=output, stderr=errors,
                                        stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)

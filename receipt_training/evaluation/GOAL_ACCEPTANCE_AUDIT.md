@@ -6,12 +6,24 @@ the longer investigation history. Historical paragraphs describe their own
 checkpoints; they must not be read as the latest configuration or test count.
 
 Recognition has improved substantially, and the implementation is a functioning
-checked-draft workflow. **The full goal remains active.** Trusted automatic
-financial acceptance and public-release readiness have not been demonstrated.
+checked-draft workflow. **The full goal remains active.** Genuine-photo/capture
+coverage and public-release readiness remain partial. Human source review is
+intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [OCR date integration](OCR_DATE_EVIDENCE.md) reuses the existing
+The latest [signed financial-summary interpretation](REFUND_FINANCIAL_SUMMARY.md)
+proposes separately printed tax without inventing a rate, quantity or amount.
+With USD supplied, the enhanced published refund now calculates −$543.11 with
+zero discrepancy; its source checks and unknown quantity still block acceptance.
+All 1,162 tests, typecheck/build and a genuine built local scan pass. The product
+and three financial source rows fit 320/390px with no edits or approvals. On the
+same original fifty, primary supplied-currency price basis improves 0/9 to 3/9,
+with no scored regressions; all product and printed scalar facts stay unchanged.
+Automatic currency, basic OCR errors and full-receipt accuracy stay unresolved.
+No private upload, provider request, quota probe or reader-default change occurs.
+
+The preceding [OCR date integration](OCR_DATE_EVIDENCE.md) reuses the existing
 calendar helper instead of forcing every numeric date into day/month order.
 Both local readers now retain the two published dates correctly, with actual
 date-source indices; ambiguous/invalid literals stay unresolved. All 1,129

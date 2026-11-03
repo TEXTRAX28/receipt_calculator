@@ -2,7 +2,18 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [OCR date-source integration](OCR_DATE_EVIDENCE.md) corrects both
+The latest [signed tax-summary proposal](REFUND_FINANCIAL_SUMMARY.md) makes the
+enhanced published refund calculate −$543.11 with USD supplied, while quantities,
+code rates and required source review remain unresolved. All 1,162 unit tests,
+typecheck/build and a genuine production phone scan pass, including the three
+financial source regions and 320/390px fit. Original-fifty supplied-currency
+primary price basis improves 0/9 to 3/9 without a scored regression; product and
+printed scalar facts, hybrid counts and automatic-mode counts stay unchanged.
+The basic reader's decimal/missing-total errors remain. No provider request,
+private upload, quota probe or reader-default change occurs. The wider goal
+remains active; human review is intentional, not an extra completion gate.
+
+The preceding [OCR date-source integration](OCR_DATE_EVIDENCE.md) corrects both
 published dates in both device readers using the existing calendar helper.
 Ambiguous/invalid literals remain unresolved; date sources are retained rather
 than a locale inferred from currency. All 1,129 unit tests, typecheck/build and
