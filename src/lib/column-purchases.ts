@@ -2,6 +2,7 @@ import type { Currency } from "./model";
 import { money, weight, roundDiv, SCALE } from "./money";
 import { printedAmount } from "./printed-amount";
 import {
+  isItemCountLine,
   isPurchaseSummaryLine,
   separatePurchaseRows,
 } from "./purchase-expression";
@@ -13,6 +14,7 @@ const header =
 const otherHeader = /\b(?:qty|quantity)\b.*\b(?:price|total|amount)\b/i;
 const product = (text: string) =>
   /\p{L}/u.test(text) &&
+  !isItemCountLine(text) &&
   !isPurchaseSummaryLine(text) &&
   !/^(?:discount|disc|coupon|savings?|rebate|IRC|receipt|invoice|currency|merchant|phone|tel|date|time|table|server|order|qty|quantity|unit price|description|product|item)\b/i.test(
     text,

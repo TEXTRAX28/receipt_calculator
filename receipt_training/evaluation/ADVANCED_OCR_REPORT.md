@@ -2,7 +2,16 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [source-supported price recovery](COPIED_PRICE_RECOVERY.md) improves
+The latest [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
+false primary-reader purchases on the original fifty without changing matched
+products or other scored fields. Hybrid scores remain unchanged. All 122
+focused tests, typecheck and build pass, but the full interim unit run has
+1,080 passes and thirteen Windows process-cleanup failures. A separate fixture
+reproduces the five-second `taskkill.exe` timeout; this remains unresolved.
+Phone verification is prepared but unexecuted under the existing RAM guard.
+No new inference, provider upload, quota probe or billing activation occurred.
+
+The preceding [source-supported price recovery](COPIED_PRICE_RECOVERY.md) improves
 conditional original-fifty line prices 133/143 to 134/143. A unique source match,
 printed quantity and matching numeric token support one invalid-price proposal
 despite a name disagreement; mandatory source review remains. Other field

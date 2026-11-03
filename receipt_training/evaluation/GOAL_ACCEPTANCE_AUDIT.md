@@ -11,7 +11,18 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [source-supported price recovery](COPIED_PRICE_RECOVERY.md) permits
+The latest [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
+false primary-reader purchases from the original fifty, retaining all matched
+products and other scored counts. Hybrid results stay unchanged. All 122
+focused tests, typecheck and frontend build pass. The full interim run has
+1,080 passes and thirteen Windows process-shutdown/cancellation failures; it
+is not a full-suite pass. A synthetic probe reproduces the five-second
+`taskkill.exe` timeout. Fix that cleanup path before claiming full verification.
+The copied-price phone test remains unexecuted in its updated v3 plan, and
+the medium-reader plan is now v14 with unchanged resource/model parameters.
+No model calls, uploads, quota probes or billing changes occurred.
+
+The preceding [source-supported price recovery](COPIED_PRICE_RECOVERY.md) permits
 one additional checked proposal despite a small name disagreement, requiring
 matching printed quantity and numeric token. Supplied-currency line prices
 improve 133/143 to 134/143 on the same fifty retained readings; no other scored

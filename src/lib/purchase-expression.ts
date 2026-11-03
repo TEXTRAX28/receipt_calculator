@@ -56,6 +56,8 @@ export const isPurchaseExpressionLine = (line: string) =>
 
 const summary = {
   test(line: string) {
+    // Counts may also be printed above purchases; they do not end a section.
+    if (isItemCountLine(line)) return false;
     const marker = line.match(
       /^[*\s]*(?:sub[- ]?total|subttl|grand\s*total|total|amount due|balance due|cash|card|paid|tender(?:ed)?|change(?:d)?|(?:tax|vat)(?:\s+amount)?|service|svc|delivery|shipping|tip|gratuity|deposit|savings)\b[.:]?\s*(.*)$/i,
     );
@@ -70,6 +72,12 @@ const summary = {
   },
 };
 export const isPurchaseSummaryLine = (line: string) => summary.test(line);
+// A complete count label can share a row with a subtotal. Its digits are
+// neither a purchased quantity nor a price; a product name must not match.
+export const isItemCountLine = (line: string) =>
+  /^(?:items(?:\s+sold)?|item\s+count|(?:number\s+of|total(?:\s+number\s+of)?)\s+items(?:\s+sold)?)(?:\s*[:#=−-]\s*|\s+)\d{1,9}(?:\s+(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?|NT\$|[£$€])\s*)?[-−]?\d[\d,.]*-?)?\s*$/i.test(
+    line,
+  );
 const financialLabel =
   /^(?:(?:member|item)\s+)?(?:discount|coupon|savings?|rebate)(?:\s+(?:total|amount|applied))?$|^reduced\s+price$|^IRC\b|^DISC(?:OUNT)?\s+ITEM\b/i;
 const partial = new RegExp(
@@ -78,6 +86,7 @@ const partial = new RegExp(
 );
 const title = (line: string) =>
   (line.match(/\p{L}/gu) || []).length >= 1 &&
+  !isItemCountLine(line) &&
   !summary.test(line) &&
   !financialLabel.test(line) &&
   !/\d[.,]\d{2,3}|%|^\s*(?:receipt|invoice|currency|merchant|phone|tel|date|time|table|server|order|qty|quantity|unit price|description|product|item)\b/i.test(

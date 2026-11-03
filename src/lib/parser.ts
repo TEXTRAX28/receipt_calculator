@@ -8,7 +8,7 @@ import {
 } from "./model";
 import { printedAmount } from "./printed-amount";
 import { matchCostcoRow } from "./costco-row";
-import { separatePurchaseRows } from "./purchase-expression";
+import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
 import { readOcrInvoice } from "./ocr-invoice";
@@ -353,6 +353,21 @@ export function parseReceiptWithSources(
   for (const [lineIndex, line] of lines.entries()) {
     if (line === PHOTO_SEPARATOR) {
       itemSectionEnded = false;
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
+    if (isItemCountLine(line)) {
+      if (!fieldSources.items)
+        receipt.reviewChecks.push({
+          scope: "receipt",
+          field: "items",
+          reason: "classification",
+          other:
+            "A printed item-count summary was omitted from purchases. Check the count and product list against the receipt.",
+          confirmedValue: "",
+        });
+      (fieldSources.items ??= []).push(lineIndex);
       pendingDescription = "";
       pendingSource = undefined;
       continue;
