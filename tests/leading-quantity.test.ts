@@ -12,8 +12,10 @@ import {
 describe("leading purchased counts with mandatory source review", () => {
   it.each([
     ["2 x Tea", "2"],
+    ["2 X Tea", "2"],
     ["2× Tea", "2"],
     ["1.5 x Tea", "1.5"],
+    ["1.5 X Tea", "1.5"],
     ["1,5x Tea", "1.5"],
   ])(
     "keeps the printed row total for %s without calculating a unit price",
@@ -46,9 +48,13 @@ describe("leading purchased counts with mandatory source review", () => {
   it.each([
     "6x340g Spam",
     "6 x 340g Spam",
+    "6 X 340g Spam",
     "Chicken Skewer 15",
     "Ferrero Rocher T48",
     "2xVitamin D",
+    "2XVitamin D",
+    "475174 Chicken Skewer 15",
+    "1 SPGTHY BOLOGNASE",
   ])("preserves the pack/title wording in %s", (description) => {
     const { receipt } = parseReceiptWithSources(
       `Market GBP\n${description} 9.49\nTOTAL GBP 9.49`,
@@ -79,22 +85,25 @@ describe("leading purchased counts with mandatory source review", () => {
     expect(receipt.reviewChecks[0].other).toMatch(/pack description/);
     expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
   });
-  it("preserves the existing ambiguous-negative-row classification", () => {
-    const { receipt } = parseReceiptWithSources(
-      "Market GBP\n2 x Tea -6.00\nTOTAL GBP -6.00",
-    );
-    expect(receipt.items).toHaveLength(0);
-    expect(receipt.adjustments[0]).toMatchObject({
-      kind: "discount",
-      amount: "6.00",
-    });
-    expect(receipt.reviewChecks).toContainEqual(
-      expect.objectContaining({
-        field: "adjustments",
-        reason: "classification",
-      }),
-    );
-  });
+  it.each(["x", "X"])(
+    "preserves ambiguous-negative-row classification with %s",
+    (marker) => {
+      const { receipt } = parseReceiptWithSources(
+        `Market GBP\n2 ${marker} Tea -6.00\nTOTAL GBP -6.00`,
+      );
+      expect(receipt.items).toHaveLength(0);
+      expect(receipt.adjustments[0]).toMatchObject({
+        kind: "discount",
+        amount: "6.00",
+      });
+      expect(receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          field: "adjustments",
+          reason: "classification",
+        }),
+      );
+    },
+  );
   it("does not turn a coupon into a purchase or a negative count into a positive quantity", () => {
     const { receipt } = parseReceiptWithSources(
       "Market GBP\n2 x Coupon 1.00\n-2 x Tea 6.00\nTOTAL GBP 5.00",
@@ -123,6 +132,28 @@ describe("leading purchased counts with mandatory source review", () => {
     });
     expect(receipt.printedTotal).toBe("44000");
   });
+  it("recovers an uppercase count from saved restaurant OCR while preserving its price and source", () => {
+    const { receipt, sources } = parseReceiptWithSources(
+      "1 X Bbk Bengil Nasi 125,000\nTOTAL 125,000",
+      { currency: "IDR" },
+    );
+    const item = receipt.items[0];
+    expect(item).toMatchObject({
+      description: "Bbk Bengil Nasi",
+      quantity: "1",
+      unitPrice: "",
+      lineTotal: "125000",
+    });
+    expect(sources[item.id]).toEqual([0]);
+    expect(receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        itemId: item.id,
+        field: "quantity",
+        reason: "source",
+        confirmedValue: "",
+      }),
+    );
+  });
   it("keeps identical leading-count purchases separate", () => {
     const { receipt } = parseReceiptWithSources(
       "Market GBP\n2 x Tea 6.00\n2 x Tea 6.00\nTOTAL GBP 12.00",
@@ -135,53 +166,61 @@ describe("leading purchased counts with mandatory source review", () => {
       ),
     ).toBe(true);
   });
-  it("keeps the pack-versus-purchase source check even when both readers agree", () => {
-    const recognition = comparedRecognition(
-      [{ photo: 1, part: 1 }],
-      ["MARKET GBP", "2 x Tea 6.00", "Prices include tax", "TOTAL GBP 6.00"],
-    ).recognition as Recognition;
-    const draft = comparedDraft();
-    Object.assign(draft, {
-      merchant: "MARKET",
-      currency: "GBP",
-      subtotal: "",
-      printedTotal: "6.00",
-      printedTax: "",
-      pricesIncludeTax: true,
-      printedItemCount: null,
-      taxCodes: [],
-      adjustments: [],
-      items: [
-        {
-          description: "Tea",
-          quantity: "2",
-          unitPrice: "",
-          lineTotal: "6.00",
-          discount: "0",
-          taxCode: "",
-          note: "",
-          sourcePhotos: [1],
-        },
-      ],
-    });
-    const result = verifyIndependentReadings(draft, recognition);
-    expect(result.receipt.items[0].quantity).toBe("2");
-    expect(result.receipt.reviewChecks).toContainEqual(
-      expect.objectContaining({
-        scope: "item",
-        itemId: result.receipt.items[0].id,
-        field: "quantity",
-        reason: "source",
-        confirmedValue: "",
-      }),
-    );
-    const sourceCheck = result.receipt.reviewChecks.find(
-      (check) => check.scope === "item" && check.field === "quantity",
-    )!;
-    expect(reviewMessage(sourceCheck)).toContain("pack description");
-    expect(reviewMessage(sourceCheck)).not.toContain("single text reading");
-    expect(calculateReceipt(result.receipt).issues).toContainEqual(
-      expect.objectContaining({ path: "items.0.quantity" }),
-    );
-  });
+  it.each(["x", "X"])(
+    "keeps source review when both readers agree on a leading %s count",
+    (marker) => {
+      const recognition = comparedRecognition(
+        [{ photo: 1, part: 1 }],
+        [
+          "MARKET GBP",
+          `2 ${marker} Tea 6.00`,
+          "Prices include tax",
+          "TOTAL GBP 6.00",
+        ],
+      ).recognition as Recognition;
+      const draft = comparedDraft();
+      Object.assign(draft, {
+        merchant: "MARKET",
+        currency: "GBP",
+        subtotal: "",
+        printedTotal: "6.00",
+        printedTax: "",
+        pricesIncludeTax: true,
+        printedItemCount: null,
+        taxCodes: [],
+        adjustments: [],
+        items: [
+          {
+            description: "Tea",
+            quantity: "2",
+            unitPrice: "",
+            lineTotal: "6.00",
+            discount: "0",
+            taxCode: "",
+            note: "",
+            sourcePhotos: [1],
+          },
+        ],
+      });
+      const result = verifyIndependentReadings(draft, recognition);
+      expect(result.receipt.items[0].quantity).toBe("2");
+      expect(result.receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          scope: "item",
+          itemId: result.receipt.items[0].id,
+          field: "quantity",
+          reason: "source",
+          confirmedValue: "",
+        }),
+      );
+      const sourceCheck = result.receipt.reviewChecks.find(
+        (check) => check.scope === "item" && check.field === "quantity",
+      )!;
+      expect(reviewMessage(sourceCheck)).toContain("pack description");
+      expect(reviewMessage(sourceCheck)).not.toContain("single text reading");
+      expect(calculateReceipt(result.receipt).issues).toContainEqual(
+        expect.objectContaining({ path: "items.0.quantity" }),
+      );
+    },
+  );
 });

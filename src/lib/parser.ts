@@ -645,7 +645,7 @@ export function parseReceiptWithSources(
       // Numeric measurements and existing trailing purchase expressions win.
       const leadingQuantity =
         !quantity && !/[-−]/.test(generic[2])
-          ? description.match(/^(\d+(?:[.,]\d+)?)\s*[x×]\s+(\p{L}.*)$/u)
+          ? description.match(/^(\d+(?:[.,]\d+)?)\s*[x×]\s+(\p{L}.*)$/iu)
           : null;
       const percentDeduction =
         /^(?:amount|amt)\b/i.test(description) &&

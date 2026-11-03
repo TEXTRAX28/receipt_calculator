@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [saved-output delivery analysis](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
+The latest [uppercase purchase-count fix](UPPERCASE_PURCHASE_COUNTS.md) makes
+`1 X Product` follow the existing reviewed proposal rule for `1 x Product`.
+Original-fifty primary quantities improve 30/120 to 32/120 in automatic mode
+and 32/120 to 34/120 with supplied currency. Saved medium CORD quantities improve
+4/33 to 12/33. All other scored counts and monetary fields stay unchanged;
+hybrid results remain unchanged and the incomplete medium UK delivery remains
+a failure. All 1,104 unit tests, typecheck and isolated build pass. No new
+inference, browser execution or cloud upload occurs; source review remains
+mandatory. This is the current unit-suite evidence.
+
+The preceding [saved-output delivery analysis](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
 finds medium improves exact CORD names 15/33 to 27/33 and supplied-currency
 prices 27/32 to 28/32, while losing one subtotal. Keeping the failed UK delivery
 in the four-transaction denominator yields 45/50 delivered prices for tiny
@@ -29,7 +39,8 @@ and the unfinished run are retained. The previously pending synthetic phone
 source-review journey now passes at 320/390px, preserving source links and
 explicit confirmation while other checks still block. No application/test
 source, reader defaults, references, resource guards or cloud permissions
-changed. The preceding 1,095-unit pass remains the current unit-suite evidence.
+changed. The 1,095-unit pass was current at that checkpoint; the subsequent
+parser correction above passes 1,104.
 
 The subsequent [WebGPU compatibility preparation](BROWSER_WEBGPU_READINESS.md)
 uses the cached SDK/models and a synthetic-only input. Generated JavaScript

@@ -2,7 +2,15 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [offline delivery-aware comparison](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
+The latest [uppercase purchase-count correction](UPPERCASE_PURCHASE_COUNTS.md)
+recovers two additional original-fifty primary quantities in each currency mode
+and eight more on the saved medium CORD readings (4/33 to 12/33). Prices, totals,
+other scored fields and hybrid accuracy remain unchanged. Required source
+review survives reader agreement. All 1,104 unit tests, typecheck and isolated
+build pass. The failed medium UK delivery stays a failure; no new inference,
+browser execution or cloud upload occurs. The full goal remains active.
+
+The preceding [offline delivery-aware comparison](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
 scores the retained trial without new inference. On three completed CORD
 receipts, medium improves exact names 15/33 to 27/33 and supplied-currency prices
 27/32 to 28/32, but loses one subtotal. With the incomplete UK transaction kept
