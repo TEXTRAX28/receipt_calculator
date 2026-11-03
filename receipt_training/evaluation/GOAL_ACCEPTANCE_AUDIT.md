@@ -11,7 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) restores
+The latest [local document-orientation pilot](DOCUMENT_ORIENTATION_PILOT.md)
+tests a new 6.8 MB pretrained model on twenty quarter-turn views of five familiar
+photos. It gets 15/20 right, including one wrong prediction above the frozen
+0.9 cutoff. Automatic rotation and app integration are rejected. All 26 local
+classification calls complete; there are no new OCR calls, cloud uploads or
+changes to application source, providers, reference labels or resource guards.
+This small failed pilot does not change receipt field scores or establish
+phone performance. The full goal remains active.
+
+The preceding [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) restores
 both corrected UK variants from 27 purchases/GBP279.87 to 18/GBP176.78 using
 known positions within one photo. All original-fifty and CORD preparation
 scores are unchanged. One straightened UK name regresses from `30M` to `3OM`;

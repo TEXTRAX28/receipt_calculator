@@ -2,7 +2,14 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) uses known
+The latest [local orientation-model pilot](DOCUMENT_ORIENTATION_PILOT.md) completes
+26 CPU classifications using a pinned 6.8 MB pretrained Paddle model. Only
+15/20 genuine-photo rotation views are correct, with one error above the frozen
+0.9 cutoff. Automatic rotation and app integration are rejected. These are five
+familiar photos from four transactions, not held-out receipt accuracy. No OCR
+call, private upload, app change or larger-model guard reduction occurred.
+
+The preceding [prepared-section overlap repair](PREPARED_WINDOW_JOIN.md) uses known
 same-photo section positions to remove nine false UK purchases, restoring
 18 purchases and GBP176.78 in both corrected variants. Original-fifty and CORD
 preparation scores are unchanged. One straightened product name regresses;
