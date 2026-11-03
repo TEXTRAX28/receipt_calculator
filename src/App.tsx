@@ -752,6 +752,7 @@ export default function App() {
         const parsed = receiptFromAzureWords(
           output.recognition,
           readingContext,
+          output.quantityHints,
         );
         const evidence = collectReceiptEvidence(
           parsed.receipt,

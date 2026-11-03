@@ -1,5 +1,10 @@
 # Optional Azure receipt word reader
 
+Historical integration checkpoint. The later
+[quantity-recovery change](AZURE_QUANTITY_RECOVERY.md) adds narrowly checked
+native quantity roles; the word-only behavior and measurements below describe
+this earlier version.
+
 Azure's measured word-layout path is now an optional application reader. It uses
 the same provider interface, capture preparation, parser, source review and exact
 split calculator as the other readers. It does not change the default reader.

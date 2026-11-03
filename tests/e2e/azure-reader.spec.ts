@@ -10,6 +10,7 @@ import { createReceiptApi } from "../../server/receipt-api.mjs";
 import { validatePreparedJpeg } from "../../server/receipt-zip.mjs";
 import { AZURE_NOTICE } from "../../src/lib/azure-schema.mjs";
 import { qaArtifactPath } from "./qa-artifacts";
+import { azureQuantityFixture } from "../fixtures/azure-quantities";
 
 // Actual app -> local HTTP API -> injected synthetic provider transport -> adapter.
 // No request reaches Azure. This verifies integration, not recognition accuracy.
@@ -43,7 +44,7 @@ async function picture(page: Page) {
 }
 async function backend(
   page: Page,
-  options: { limit?: number; failure?: boolean } = {},
+  options: { limit?: number; failure?: boolean; quantities?: boolean } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), "gather-azure-browser-"));
   const endpoint = "https://synthetic-browser.cognitiveservices.azure.com",
@@ -75,6 +76,13 @@ async function backend(
         });
       }
       if (init.method === "DELETE") return new Response(null, { status: 204 });
+      if (options.quantities)
+        return new Response(
+          JSON.stringify(
+            azureQuantityFixture(1, dimensions.width, dimensions.height).record,
+          ),
+          { headers: { "content-type": "application/json" } },
+        );
       const words = rows.flatMap((line, i) => {
         let x = 40;
         return line.split(" ").map((text) => {
@@ -343,6 +351,133 @@ test("Azure credentials without a section allowance stay unavailable", async ({
       page.getByRole("button", { name: "Azure receipt OCR", exact: true }),
     ).toHaveCount(0);
     expect(fixture.calls).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test("Azure source-owned quantity reaches review through real local HTTP and requires checking before splitting", async ({
+  page,
+}, info) => {
+  const fixture = await backend(page, { quantities: true });
+  try {
+    await page.goto("/");
+    const words = azureQuantityFixture().record.analyzeResult.pages[0].words;
+    const png = await page.evaluate((words) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 700;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, 700, 700);
+      ctx.fillStyle = "black";
+      ctx.font = "25px monospace";
+      for (const word of words)
+        ctx.fillText(word.content, word.polygon[0], word.polygon[1] + 25);
+      return canvas.toDataURL("image/png").split(",")[1];
+    }, words);
+    await page.getByLabel("Upload receipt images").setInputFiles({
+      name: "synthetic-azure-quantity.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png, "base64"),
+    });
+    await page
+      .getByRole("button", { name: "Azure receipt OCR", exact: true })
+      .click();
+    await page
+      .getByRole("checkbox", { name: consentName, exact: true })
+      .check();
+    await page
+      .getByRole("button", { name: "Read receipt with Azure", exact: true })
+      .click();
+    await expect(
+      page.getByLabel("Item 1 purchased quantity", { exact: true }),
+    ).toHaveValue("2");
+    await expect(
+      page.getByLabel("Item 1 unit price (optional)", { exact: true }),
+    ).toHaveValue("");
+    await expect(
+      page.getByLabel("Item 1 line price", { exact: true }),
+    ).toHaveValue("5.00");
+    await expect(page.getByLabel("Currency", { exact: true })).toHaveValue(
+      "GBP",
+    );
+    const confirm = page.getByRole("button", {
+      name: "Confirm receipt & add people",
+      exact: true,
+    });
+    for (const field of [
+      "purchase list",
+      "receipt adjustments",
+      "whether item prices include tax",
+    ])
+      await page
+        .getByRole("checkbox", {
+          name: `I checked ${field} against the original`,
+          exact: true,
+        })
+        .check();
+    await expect(confirm).toBeDisabled();
+    await page
+      .getByRole("button", { name: "View source for item 1", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: "Receipt source for purchase 1",
+      exact: true,
+    });
+    await expect(dialog.getByTestId("source-region")).toHaveCount(1);
+    await expect(
+      dialog.getByText("Printed quantity identified by Azure: 2", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await dialog.screenshot({
+      path: await qaArtifactPath(
+        info,
+        `azure-quantity-source-${info.project.name}.png`,
+      ),
+    });
+    await dialog
+      .getByRole("checkbox", {
+        name: "I checked purchased quantity against the original",
+        exact: true,
+      })
+      .check();
+    await dialog
+      .getByRole("button", { name: "Back to receipt", exact: true })
+      .click();
+    await expect(confirm).toBeEnabled();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await confirm.click();
+    for (const name of ["Alice", "Bob"]) {
+      await page.getByRole("textbox", { name: "Person’s name" }).fill(name);
+      await page
+        .getByRole("button", { name: "Add person", exact: true })
+        .click();
+    }
+    await page.getByRole("button", { name: "Let’s share it" }).click();
+    await page
+      .getByRole("button", { name: "Whole receipt", exact: true })
+      .click();
+    for (const check of await page
+      .getByTestId("whole-assignment")
+      .getByRole("checkbox")
+      .all())
+      await check.check();
+    await page
+      .getByRole("button", { name: "Finalize split", exact: true })
+      .click();
+    await expect(page.getByTestId("person-total-0")).toHaveText("£2.50");
+    await expect(page.getByTestId("person-total-1")).toHaveText("£2.50");
+    expect(fixture.packets).toHaveLength(1);
+    expect(fixture.calls.map((call) => call.split(" ")[0])).toEqual([
+      "POST",
+      "GET",
+      "DELETE",
+    ]);
   } finally {
     await fixture.close();
   }

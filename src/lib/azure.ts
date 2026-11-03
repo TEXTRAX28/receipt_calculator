@@ -13,10 +13,12 @@ import {
   azureResultSchema,
 } from "./azure-schema.mjs";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
+import { recoverAzureQuantities } from "./azure-quantities";
 
 export function receiptFromAzureWords(
   recognition: Recognition,
   context?: ReadingContext,
+  quantityHints: unknown = [],
 ) {
   const assembled = assembleRecognition(recognition);
   extractionOutputSchema.parse({ text: assembled.text });
@@ -58,6 +60,13 @@ export function receiptFromAzureWords(
           confirmedValue: "",
         });
   }
+  recoverAzureQuantities(
+    parsed.receipt,
+    parsed.sources,
+    assembled.sourceLines,
+    recognition,
+    quantityHints,
+  );
   for (const field of ["items", "adjustments", "pricesIncludeTax"] as const)
     if (
       !parsed.receipt.reviewChecks.some(

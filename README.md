@@ -104,6 +104,12 @@ The comparison aligns only unambiguous purchase rows, retains genuine repeated p
 
 If the extra reading fails, the successful first draft remains available with an explicit incomplete-comparison check, plus every original classification and recovered-price check. Cancellation keeps the photos and does not accept a partial draft. No cloud provider is called automatically. Local vision now uses a measured compact output format when a request contains multiple original photos, with a bounded longer deadline. One photo, including its multiple detail panels, keeps the previous format. The latest actual two-photo Costco scan recovered all eighteen purchase amounts and four coupons, calculated **GBP 176.78**, then completed an exact three-person split after eight source checks without financial edits. It took **205.86 seconds** to reach review on this laptop. A separate four-photo synthetic receipt completed two model batches and an exact checked split. Earlier timeouts remain recorded; these development examples do not establish reliable latency, physical-phone performance or general receipt accuracy. See the [multi-photo measurements and limits](receipt_training/evaluation/COMPACT_MULTIPHOTO_READER.md).
 
+## Optional Azure receipt reader
+
+The **Azure receipt OCR** reader requires a configured server-side endpoint/key, a finite section allowance and consent for each scan. Credentials alone do not enable uploads. The [setup guide](receipt_training/evaluation/AZURE_SCREENING_SETUP.md) covers the resource configuration; the [integration report](receipt_training/evaluation/AZURE_APP_READER.md) records its development limits.
+
+The draft uses Azure's original words and source rectangles. A missing quantity can also be proposed when Azure's quantity field matches the exact printed words and all related words belong to one purchase. Conflicting or weak evidence leaves it blank; an existing quantity is preserved. Every proposed quantity requires checking against the original before sharing. Native monetary and currency fields are not imported. The [quantity-recovery measurements](receipt_training/evaluation/AZURE_QUANTITY_RECOVERY.md) describe the six-sample result and its limits.
+
 ## Optional Gemini setup
 
 1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey). Access to the Gemini chat app is separate from API access.

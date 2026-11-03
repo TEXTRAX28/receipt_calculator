@@ -4,7 +4,11 @@ import {
   requestPanelsSchema,
   validateRecognition,
 } from "../src/lib/recognition-schema.mjs";
-import { AZURE_ENGINE, projectAzurePage } from "../src/lib/azure-layout.mjs";
+import {
+  AZURE_ENGINE,
+  projectAzurePage,
+  projectAzureQuantities,
+} from "../src/lib/azure-layout.mjs";
 import { createDocumentAllowance } from "./document-allowance.mjs";
 import { validatePreparedJpeg } from "./receipt-zip.mjs";
 
@@ -157,7 +161,8 @@ export function createAzureReader({
         "The Azure allowance cannot cover all receipt sections. Choose fewer sections or another reader.",
         "not-created",
       );
-    const output = [];
+    const output = [],
+      quantityHints = [];
     let anyUnknown = false;
     for (const [index, panel] of panels.entries()) {
       signal.throwIfAborted();
@@ -178,7 +183,8 @@ export function createAzureReader({
       let operation = null,
         cleanup = "not-created",
         problem = null,
-        projected = null;
+        projected = null,
+        hints = [];
       try {
         signal.throwIfAborted();
         cleanup = "unknown";
@@ -222,13 +228,14 @@ export function createAzureReader({
               ...panel,
               ...dimensions[index],
             });
+            hints = projectAzureQuantities(record, projected);
             break;
           }
           if (!["running", "notStarted"].includes(record?.status))
             throw new Error("Azure analysis failed");
         }
         if (!projected) throw new Error("Azure status limit reached");
-        const safe = JSON.stringify(projected);
+        const safe = JSON.stringify({ projected, hints });
         if (safe.includes(key) || safe.includes(origin))
           throw new Error("Private value echo");
         signal.throwIfAborted();
@@ -282,13 +289,14 @@ export function createAzureReader({
         throw problem;
       }
       output.push(projected);
+      quantityHints.push(...hints);
     }
     const recognition = validateRecognition(
       { engine: AZURE_ENGINE, panels: output },
       panels,
     );
     if (
-      JSON.stringify(recognition).length > 2000000 ||
+      JSON.stringify({ recognition, quantityHints }).length > 2000000 ||
       output.reduce(
         (n, p) => n + p.words.reduce((s, w) => s + w.text.length + 1, 0),
         0,
@@ -301,6 +309,7 @@ export function createAzureReader({
       );
     return {
       recognition,
+      quantityHints,
       cleanup: anyUnknown ? "unknown" : "provider-reported-success",
       remaining: (await getStatus()).remaining,
     };

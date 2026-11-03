@@ -1,8 +1,18 @@
 # Advanced OCR investigation — work in progress
 
-Current consolidated status, 2 November 2026:
+Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [Gemini draft retention](GEMINI_DRAFT_INTAKE.md): all six saved responses
+Latest [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md): five missing
+quantities are proposed from native roles tied to exact original purchase words.
+The same six saved responses improve 9/15 to 14/15 known quantities, with every
+proposal pending source review. All monetary, description and original-fifty
+scores are unchanged. All 1,037 unit tests and build/typecheck pass, including
+synthetic provider responses through the real local HTTP route. The new browser
+journey remains unexecuted after a RAM-guard refusal. No model calls, uploads,
+provider defaults or allowances changed; larger trials remain resource limited.
+The full goal remains active.
+
+The preceding [Gemini draft retention](GEMINI_DRAFT_INTAKE.md): all six saved responses
 now produce editable drafts; two keep literal comma-formatted amounts blocked
 for correction. Five additional names and four quantities are retained, with
 unchanged monetary and original-fifty scores. All 1,010 unit tests, build/typecheck

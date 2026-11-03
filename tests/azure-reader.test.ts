@@ -13,6 +13,7 @@ import { createReceiptApi } from "../server/receipt-api.mjs";
 import { projectAzurePage, AZURE_ENGINE } from "../src/lib/azure-layout.mjs";
 import { AZURE_NOTICE, azureResultSchema } from "../src/lib/azure-schema.mjs";
 import { receiptFromAzureWords } from "../src/lib/azure";
+import { azureQuantityFixture } from "./fixtures/azure-quantities";
 
 const folders: string[] = [],
   servers: Server[] = [];
@@ -438,8 +439,8 @@ describe("Azure bounded transport and allowance", () => {
 });
 
 describe("Azure local HTTP boundary", () => {
-  async function server() {
-    const x = await setup();
+  async function server(options: Parameters<typeof setup>[0] = {}) {
+    const x = await setup(options);
     const handler = createReceiptApi({ azureReader: x.reader });
     const s = createServer(
       (req, res) =>
@@ -498,4 +499,63 @@ describe("Azure local HTTP boundary", () => {
     expect((await r.json()).recognition.engine).toBe(AZURE_ENGINE);
     expect(x.calls).toHaveLength(3);
   });
+
+  it.each([false, true])(
+    "transports only source-owned quantity hints and preserves the word draft (malformed native field: %s)",
+    async (malformed) => {
+      const fixture = azureQuantityFixture(1, 100, 100).record;
+      if (malformed)
+        fixture.analyzeResult.documents[0].fields.Items.valueArray[0].valueObject.Quantity.valueNumber = 9;
+      const x = await server({ poll: () => json(fixture) });
+      const response = await fetch(x.base + "/api/receipts/azure", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-gather-request": "receipt-scan",
+        },
+        body: JSON.stringify({
+          consent: true,
+          privacyNotice: AZURE_NOTICE,
+          panels: panels(),
+        }),
+      });
+      expect(response.status).toBe(200);
+      const output = azureResultSchema.parse(await response.json());
+      expect(output.quantityHints).toHaveLength(malformed ? 0 : 1);
+      expect(output.recognition.panels[0]).toEqual(
+        projectAzurePage(fixture, context),
+      );
+      const { receipt } = receiptFromAzureWords(
+        output.recognition,
+        undefined,
+        output.quantityHints,
+      );
+      expect(receipt.items[0]).toMatchObject({
+        quantity: malformed ? "" : "2",
+        unitPrice: "",
+        lineTotal: "5.00",
+      });
+      expect(receipt.currency).toBe("GBP");
+      expect(receipt.printedTotal).toBe("5.00");
+      if (!malformed)
+        expect(receipt.reviewChecks).toContainEqual(
+          expect.objectContaining({
+            field: "quantity",
+            reason: "recovered",
+            confirmedValue: "",
+          }),
+        );
+      for (const secretOrNativeValue of [key, endpoint, "999999", "AUD"])
+        expect(JSON.stringify(output)).not.toContain(secretOrNativeValue);
+      expect(output).toMatchObject({
+        cleanup: "provider-reported-success",
+        remaining: 1,
+      });
+      expect(x.calls.map((call) => call.options.method)).toEqual([
+        "POST",
+        "GET",
+        "DELETE",
+      ]);
+    },
+  );
 });

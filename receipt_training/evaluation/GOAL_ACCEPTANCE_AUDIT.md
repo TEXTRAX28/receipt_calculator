@@ -1,6 +1,6 @@
 # Receipt-scanner technical checkpoint and acceptance audit
 
-Updated 2 November 2026. This is the current consolidated checkpoint for the
+Updated 3 November 2026. This is the current consolidated checkpoint for the
 twelve-phase objective. [ADVANCED_OCR_REPORT.md](ADVANCED_OCR_REPORT.md) preserves
 the longer investigation history. Historical paragraphs describe their own
 checkpoints; they must not be read as the latest configuration or test count.
@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Gemini draft retention](GEMINI_DRAFT_INTAKE.md) keeps six of six saved
+The latest [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md) ties native
+quantity roles to original words owned by one purchase. Five missing quantities
+are retained, improving the same six saved responses from 9/15 to 14/15; every
+proposal requires source review. Monetary fields, descriptions and original-fifty
+scores are unchanged. All 1,037 unit tests and build/typecheck pass, including
+actual local HTTP tests with synthetic provider responses. The new browser
+journey remains unexecuted after a RAM-guard refusal. No new model calls, private
+uploads, provider changes or allowance increases occurred. Larger trials still
+lack resources, and this interpretation improvement does not complete the goal.
+
+The preceding [Gemini draft retention](GEMINI_DRAFT_INTAKE.md) keeps six of six saved
 responses editable instead of four, preserving literal comma-formatted prices
 without interpreting them. Five additional names and four quantities survive;
 all monetary scores and original-fifty results are unchanged. Invalid amounts
@@ -488,11 +498,12 @@ Before public release, the remaining work is concrete:
    complete account-specific provider and jurisdiction/privacy review before
    deploying. The local preview is not a substitute for these controls.
 
-The current app adds the guarded reduced selling-price correction on parent
-`9f8db67`, with 987 passing unit tests and its browser scenario pending the
-unchanged resource guard. Earlier app checkpoint `a4a5b88` adds the guarded
-slanted financial-column proposal; that browser scenario is also pending.
-The intervening Gemini comparison changed only research scripts and reports.
+The current app adds source-owned Azure quantity proposals on parent `8240338`,
+with 1,037 passing unit tests and its new browser scenario pending the unchanged
+resource guard. Preceding checkpoint `8240338` retains Gemini's literal grouped
+amounts and passes 27 synthetic browser cases, including the formerly pending
+reduced selling-price and slanted financial-column scenarios. The earlier
+Gemini comparison changed only research scripts and reports.
 Earlier checkpoint `cbe9c91` shares native-PDF invoice columns with
 source-owned on-device OCR and preserves mandatory checks/printed inconsistencies.
 `756dc44` adds the separately tested, still-unexecuted 8B trial controls.

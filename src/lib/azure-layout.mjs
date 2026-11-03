@@ -1,4 +1,5 @@
 import { recognitionSchema } from "./recognition-schema.mjs";
+import { azureQuantityHintsSchema } from "./azure-schema.mjs";
 
 export const AZURE_ENGINE =
   "azure-document-intelligence-2024-11-30-receipt-words";
@@ -171,4 +172,159 @@ export function projectAzurePage(record, { photo, part, width, height }) {
     engine: AZURE_ENGINE,
     panels: [{ photo, part, width, height, words, lines }],
   }).panels[0];
+}
+
+/** Optional role hints anchored to exact OCR words. Provider amounts/currency are never projected. */
+export function projectAzureQuantities(record, panel) {
+  const analysis = record?.analyzeResult;
+  const content = analysis?.content;
+  const original = analysis?.pages?.[0]?.words;
+  const documents = analysis?.documents;
+  if (
+    typeof content !== "string" ||
+    content.length > 60000 ||
+    !Array.isArray(original) ||
+    original.length !== panel.words.length ||
+    !Array.isArray(documents) ||
+    documents.length !== 1
+  )
+    return [];
+  const items = documents[0]?.fields?.Items?.valueArray;
+  if (!Array.isArray(items) || items.length > 300) return [];
+  const spanValid = (span) =>
+    span &&
+    Number.isInteger(span.offset) &&
+    Number.isInteger(span.length) &&
+    span.offset >= 0 &&
+    span.length > 0 &&
+    span.offset + span.length <= content.length;
+  const entries = [];
+  for (const [index, word] of original.entries()) {
+    const span = word?.span;
+    if (
+      !spanValid(span) ||
+      word.content !== panel.words[index].text ||
+      content.slice(span.offset, span.offset + span.length) !== word.content
+    )
+      return [];
+    entries.push({ index, start: span.offset, end: span.offset + span.length });
+  }
+  entries.sort((a, b) => a.start - b.start);
+  if (
+    entries.some(
+      (entry, index) => index > 0 && entries[index - 1].end > entry.start,
+    )
+  )
+    return [];
+  const compact = (value) => value.replace(/\s/gu, "");
+  const fieldWords = (field, maximum) => {
+    if (
+      !field ||
+      typeof field.content !== "string" ||
+      field.content.length > 2000 ||
+      !Array.isArray(field.spans) ||
+      field.spans.length !== 1 ||
+      !spanValid(field.spans[0]) ||
+      !Array.isArray(field.boundingRegions) ||
+      field.boundingRegions.length !== 1
+    )
+      return null;
+    const span = field.spans[0],
+      region = field.boundingRegions[0],
+      polygon = region?.polygon;
+    if (
+      content.slice(span.offset, span.offset + span.length) !== field.content ||
+      region?.pageNumber !== 1 ||
+      !Array.isArray(polygon) ||
+      polygon.length !== 8 ||
+      !polygon.every(Number.isFinite) ||
+      polygon.some((n, i) => n < 0 || n > (i % 2 ? panel.height : panel.width))
+    )
+      return null;
+    const xs = polygon.filter((_, i) => i % 2 === 0),
+      ys = polygon.filter((_, i) => i % 2);
+    const box = [
+      Math.min(...xs) / panel.width,
+      Math.min(...ys) / panel.height,
+      Math.max(...xs) / panel.width,
+      Math.max(...ys) / panel.height,
+    ];
+    if (box[0] >= box[2] || box[1] >= box[3]) return null;
+    let lo = 0,
+      hi = entries.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (entries[mid].start < span.offset) lo = mid + 1;
+      else hi = mid;
+    }
+    const selected = [];
+    for (
+      let i = lo;
+      i < entries.length && entries[i].start < span.offset + span.length;
+      i++
+    ) {
+      const entry = entries[i],
+        word = panel.words[entry.index];
+      const x = (word.box[0] + word.box[2]) / 2,
+        y = (word.box[1] + word.box[3]) / 2;
+      if (
+        entry.end > span.offset + span.length ||
+        selected.length >= maximum ||
+        word.confidence < 0.75 ||
+        x < box[0] ||
+        x > box[2] ||
+        y < box[1] ||
+        y > box[3]
+      )
+        return null;
+      selected.push(entry.index);
+    }
+    if (
+      !selected.length ||
+      selected.map((i) => compact(panel.words[i].text)).join("") !==
+        compact(field.content)
+    )
+      return null;
+    return selected;
+  };
+  const hints = [];
+  for (const item of items) {
+    const fields = item?.valueObject,
+      quantity = fields?.Quantity;
+    if (
+      quantity?.type !== "number" ||
+      !Number.isFinite(quantity.confidence) ||
+      quantity.confidence < 0.98 ||
+      quantity.confidence > 1
+    )
+      continue;
+    const quantityWords = fieldWords(quantity, 1);
+    const descriptionWords = fieldWords(fields.Description, 80);
+    const priceWords = fieldWords(fields.TotalPrice, 8);
+    if (!quantityWords || !descriptionWords || !priceWords) continue;
+    const index = quantityWords[0],
+      word = panel.words[index];
+    const literal = compact(word.text).match(
+      /^([0-9]{1,6}(?:\.[0-9]{1,6})?)(?:[xX×])?$/,
+    );
+    if (
+      !literal ||
+      Number(literal[1]) <= 0 ||
+      Number(literal[1]) !== quantity.valueNumber ||
+      word.confidence < 0.98 ||
+      descriptionWords.includes(index) ||
+      priceWords.includes(index) ||
+      descriptionWords.some((i) => priceWords.includes(i))
+    )
+      continue;
+    hints.push({
+      photo: panel.photo,
+      part: panel.part,
+      quantity: literal[1],
+      quantityWord: index,
+      descriptionWords,
+      priceWords,
+    });
+  }
+  return azureQuantityHintsSchema.parse(hints);
 }
