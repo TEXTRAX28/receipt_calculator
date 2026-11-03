@@ -11,6 +11,15 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+An [optional OpenAI two-crop comparison](OPENAI_COSTCO_PREPARATION.md) is now
+prepared offline while existing provider quotas remain exhausted. Seven local
+protocol checks and both JPEG decode/metadata inspections pass. There is no
+live sender or credential loader; no API request, credit activation, quota probe
+or billing change occurs. The US$0.38 standard / US$0.51 extra-input-allowance
+figures are local estimates, not spending caps. Model compatibility, account
+access and receipt accuracy remain untested; setup preference and fresh upload
+approval are unresolved. Application defaults and financial scores are unchanged.
+
 The latest [same-vision docTR/Paddle comparison](DOCTR_HYBRID_COMPARISON.md)
 reuses 45 exact matching docTR panels and rereads six whose older JPEGs differ
 by one pixel in height. All fifty transactions are compared on identical current

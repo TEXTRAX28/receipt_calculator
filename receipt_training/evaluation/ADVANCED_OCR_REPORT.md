@@ -2,6 +2,13 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+An [optional OpenAI comparison](OPENAI_COSTCO_PREPARATION.md) prepares the two
+existing Costco crops without a live sender, credentials or API calls. Seven
+offline protocol checks and local JPEG decode/metadata inspection pass; the
+US$0.38 / US$0.51 local cost estimates are not billing caps. Account setup,
+fresh upload approval, remote compatibility and measured accuracy remain open.
+No provider, application default, financial score or resource guard changes.
+
 The latest [docTR/Paddle hybrid comparison](DOCTR_HYBRID_COMPARISON.md) pairs
 all fifty transactions on exact current image bytes with the same saved vision
 drafts and frozen verifier/references. Six local docTR rereads repair historical
