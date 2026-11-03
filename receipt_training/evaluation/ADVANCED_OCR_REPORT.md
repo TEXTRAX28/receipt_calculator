@@ -2,7 +2,19 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [zero-price purchase correction](ZERO_PRICE_PURCHASES.md) adds a
+The latest [field uncertainty study](FIELD_UNCERTAINTY_AUDIT.md) measures the
+actual source/validation checks on 200 frozen draft views and 2,324 known-field
+observations. With supplied currency, 51/56 incorrect populated hybrid fields
+are individually marked. Two missed discounts on the Bristol Costco receipt
+and three merchant names lack field marks, while their drafts retain mandatory
+purchase-list review and validation blockers. All seven incorrect populated
+line prices are marked, including six valid but wrong amounts. One error occurs
+beside a source score at least 0.98, so confidence is not calibrated acceptance.
+Published counts reproduce, 22 diagnostic controls pass, and split aggregates
+remain separate. No application/model/threshold change or new inference occurs;
+the 1,209-unit checkpoint and pending phone verification remain unchanged.
+
+The preceding [zero-price purchase correction](ZERO_PRICE_PURCHASES.md) adds a
 source-supported free purchase omitted from the saved vision item list, with
 quantity/unit price unknown and mandatory role review. On the same original
 fifty, supplied-currency matches improve 143/145 to 144/145, exact names 132/145

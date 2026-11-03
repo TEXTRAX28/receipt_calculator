@@ -12,7 +12,18 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [zero-price purchase proposal](ZERO_PRICE_PURCHASES.md) recovers one
+The latest [field uncertainty audit](FIELD_UNCERTAINTY_AUDIT.md) executes 200 saved
+draft views and 2,324 known-field observations with unchanged source and truth.
+With supplied currency, specific checks mark 51/56 incorrect populated hybrid
+fields, including all seven incorrect line prices; two missed discounts and
+three merchant names lack individual marks. Their drafts still require purchase-
+list review and remain blocked. A price can be wrong beside a source score of
+at least 0.98; no probability calibration or weaker review gate is justified.
+All published counts reproduce, 22 diagnostic controls pass, and development /
+evaluation results stay separate. No application change, inference, upload or
+new browser run occurs. The preceding 1,209-unit source checkpoint is unchanged.
+
+The preceding [zero-price purchase proposal](ZERO_PRICE_PURCHASES.md) recovers one
 development source row the independent vision draft had treated as a zero-valued
 fee. With supplied currency, original-fifty matches improve 143/145 to 144/145,
 names 132/145 to 133/145 and prices 134/143 to 135/143, without a scored
