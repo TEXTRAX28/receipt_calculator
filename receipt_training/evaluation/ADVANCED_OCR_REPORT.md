@@ -2,6 +2,14 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The [mixed-fee financial checkpoint](INCLUDED_FEE_TAX.md) verifies the manual-entry
+invoice calculation improving from 29.89 to 29.06 without changing printed amounts.
+All 80 focused cases (40 new), typecheck and build pass. Full-unit validation is
+incomplete after a deadline and isolated process-bridge timeouts/RAM-floor stop.
+The 400-view saved-fifty replay is executed, but scoring/comparison and browser
+checks remain incomplete. There is no new OCR accuracy or corpus no-regression
+claim. OpenAI is reserved as the user's last resort, with no API receipt request.
+The following full-suite passing checks describe the preceding source.
 The latest [final-total fragment repair](FINAL_TOTAL_FRAGMENTS.md) retains both
 Bristol cashew purchases, separates printed 74.57 from the mixed SKU row and
 excludes the vision draft's false footer product. Hybrid unmatched scored

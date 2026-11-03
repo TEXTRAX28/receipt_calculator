@@ -23,6 +23,8 @@ export interface ReceiptResult {
   receiptDiscount: bigint;
   tax: bigint;
   otherCharges: bigint;
+  /** Derived tax already within gross fees; informational, never another charge. */
+  includedFeeTax?: bigint;
   total: bigint;
   printed: bigint | null;
   discrepancy: bigint | null;
@@ -261,6 +263,47 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
   const allocationWeights = items.map(
     (i, index) => afterDiscount[index] + i.tax,
   );
+  let includedFeeTax = 0n;
+  const hasIncludedFeeTax = receipt.adjustments.some(
+    (adjustment) => adjustment.includedTaxRate !== undefined,
+  );
+  for (const adjustment of receipt.adjustments) {
+    if (adjustment.includedTaxRate === undefined) continue;
+    const path = `adjustments.${adjustment.id}.includedTaxRate`;
+    if (adjustment.kind !== "fee") {
+      issue(
+        path,
+        "Only a fee can have an included tax rate. Clear it or choose Fee.",
+      );
+      continue;
+    }
+    let rate: bigint;
+    try {
+      rate = weight(adjustment.includedTaxRate);
+      if (rate > 100n * SCALE)
+        throw new Error("Included tax rates must be between 0 and 100%.");
+    } catch (error) {
+      issue(path, `Included tax rate: ${(error as Error).message}`);
+      continue;
+    }
+    try {
+      // The source keeps its gross fee. Extract only its embedded component.
+      const gross = money(adjustment.amount, receipt.currency, hasRefunds);
+      includedFeeTax += roundDiv(gross * rate, 100n * SCALE + rate);
+    } catch {
+      // The ordinary adjustment validation below reports invalid source amounts.
+    }
+  }
+  const printedTaxRows = receipt.adjustments.filter((a) => a.kind === "tax");
+  const deductIncludedFeeTax =
+    !receipt.pricesIncludeTax &&
+    receipt.taxMode === "printed" &&
+    includedFeeTax !== 0n;
+  if (deductIncludedFeeTax && printedTaxRows.length !== 1)
+    issue(
+      "adjustments",
+      "Use one printed tax total that includes the tax already in these fees. Multiple tax rows need a separate, explicit allocation.",
+    );
   for (const adjustment of receipt.adjustments.filter(
     (a) => a.kind !== "discount",
   )) {
@@ -269,7 +312,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
         `adjustments.${adjustment.id}`,
         "Give every adjustment a clear label (including the reason for rounding).",
       );
-    const amount = read(
+    let amount = read(
       adjustment.amount,
       `adjustments.${adjustment.id}`,
       adjustment.kind === "rounding" || hasRefunds,
@@ -279,6 +322,21 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       (receipt.pricesIncludeTax || receipt.taxMode === "codes")
     )
       continue;
+    if (
+      adjustment.kind === "tax" &&
+      deductIncludedFeeTax &&
+      printedTaxRows.length === 1
+    ) {
+      amount -= includedFeeTax;
+      if (
+        (amount < 0n && !afterDiscount.some((cost) => cost < 0n)) ||
+        (amount > 0n && !afterDiscount.some((cost) => cost > 0n))
+      )
+        issue(
+          `adjustments.${adjustment.id}`,
+          "Included fee tax is inconsistent with the printed tax and the direction of the goods. Check the fee rate and full printed tax total.",
+        );
+    }
     if (adjustment.kind === "tax") printedTax += amount;
     else otherCharges += amount;
     if (adjustment.allocation === "equal-people")
@@ -322,10 +380,12 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       : printedTax;
   if (receipt.printedTax) {
     const statedTax = read(receipt.printedTax, "printedTax", true);
-    if (!receipt.pricesIncludeTax && statedTax !== tax)
+    if (!receipt.pricesIncludeTax && statedTax !== tax + includedFeeTax)
       issue(
         "printedTax",
-        "Calculated added tax differs from the printed tax check. Correct the tax rates or use a printed tax adjustment instead.",
+        hasIncludedFeeTax
+          ? "Added tax plus tax already in fees differs from the printed tax check. Check the full printed tax total and the explicit fee rates."
+          : "Calculated added tax differs from the printed tax check. Correct the tax rates or use a printed tax adjustment instead.",
       );
   }
   const total = subtotal - receiptDiscount + tax + otherCharges;
@@ -355,6 +415,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     receiptDiscount,
     tax,
     otherCharges,
+    ...(hasIncludedFeeTax ? { includedFeeTax } : {}),
     total,
     printed,
     discrepancy,

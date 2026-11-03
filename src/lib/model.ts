@@ -49,6 +49,8 @@ export const adjustmentSchema = z.object({
   kind: z.enum(["discount", "tax", "fee", "tip", "deposit", "rounding"]),
   amount: numericDraft,
   allocation: z.enum(["proportional", "equal-people"]),
+  // Present only when a fee's printed amount explicitly includes tax at this rate.
+  includedTaxRate: numericDraft.optional(),
 });
 export type Adjustment = z.infer<typeof adjustmentSchema>;
 export const itemReviewFields = [

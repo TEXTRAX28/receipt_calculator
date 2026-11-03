@@ -1294,6 +1294,10 @@ summary::marker {
   color: var(--green);
   grid-column: 1/-1;
 }
+.fee-tax-options {
+  grid-column: 1/-1;
+  min-width: 0;
+}
 .raw-text summary {
   display: flex;
   align-items: center;

@@ -12,6 +12,17 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The [mixed-fee financial checkpoint](INCLUDED_FEE_TAX.md) corrects the native
+Western Towing manual-entry calculation from 29.89 to 29.06 while preserving its
+printed goods, gross carriage and full VAT. All 80 focused cases (40 new), typecheck
+and isolated build pass. Full regression remains incomplete: the full run reaches
+its deadline, and an isolated unchanged process-bridge run records test/hook
+timeouts before a RAM-floor stop. Other unit/browser checks are held or unrun.
+The original-fifty replay produces 400 views, but scoring/paired comparison is
+held at startup. No new recognition improvement or corpus no-regression claim
+is made. The 1,256-test result below belongs to the preceding source. OpenAI is
+reserved as the user's last resort; no receipt API request is made.
+
 The latest [final-total fragment interpretation](FINAL_TOTAL_FRAGMENTS.md)
 separates Bristol's last cashew purchase from its printed total and excludes
 the vision draft's false footer product. Both drafts retain the nine actual

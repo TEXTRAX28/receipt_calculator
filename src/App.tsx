@@ -2282,6 +2282,10 @@ export default function App() {
                                             ...x,
                                             kind: e.target
                                               .value as typeof a.kind,
+                                            includedTaxRate:
+                                              e.target.value === "fee"
+                                                ? x.includedTaxRate
+                                                : undefined,
                                           }
                                         : x,
                                   ),
@@ -2339,6 +2343,70 @@ export default function App() {
                               </option>
                             </select>
                           </Field>
+                          {a.kind === "fee" && (
+                            <div className="fee-tax-options">
+                              <label className="check-row">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Adjustment ${index + 1}: fee already includes tax`}
+                                  checked={a.includedTaxRate !== undefined}
+                                  onChange={(e) =>
+                                    editReceipt({
+                                      adjustments:
+                                        state.receipt.adjustments.map((x) =>
+                                          x.id === a.id
+                                            ? {
+                                                ...x,
+                                                includedTaxRate: e.target
+                                                  .checked
+                                                  ? ""
+                                                  : undefined,
+                                              }
+                                            : x,
+                                        ),
+                                    })
+                                  }
+                                />
+                                This fee already includes tax
+                              </label>
+                              {a.includedTaxRate !== undefined && (
+                                <>
+                                  <Field
+                                    label={`Adjustment ${index + 1} included tax rate (%)`}
+                                    hint="Use the fee’s printed rate and keep its full amount. A printed tax adjustment must be the full tax total, including this fee."
+                                    error={
+                                      receiptResult.issues.find(
+                                        (issue) =>
+                                          issue.path ===
+                                          `adjustments.${a.id}.includedTaxRate`,
+                                      )?.message
+                                    }
+                                  >
+                                    <input
+                                      inputMode="decimal"
+                                      maxLength={40}
+                                      value={a.includedTaxRate}
+                                      onChange={(e) =>
+                                        editReceipt({
+                                          adjustments:
+                                            state.receipt.adjustments.map(
+                                              (x) =>
+                                                x.id === a.id
+                                                  ? {
+                                                      ...x,
+                                                      includedTaxRate:
+                                                        e.target.value,
+                                                    }
+                                                  : x,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                  </Field>
+                                </>
+                              )}
+                            </div>
+                          )}
                           <button
                             className="icon-button danger"
                             aria-label={`Remove adjustment ${index + 1}`}
@@ -3253,6 +3321,12 @@ function SummaryRows({
         <div>
           <dt>Fees, tips & adjustments</dt>
           <dd>{f(result.otherCharges)}</dd>
+        </div>
+      )}
+      {result.includedFeeTax !== undefined && (
+        <div>
+          <dt>Tax already in fees (included above)</dt>
+          <dd>{f(result.includedFeeTax)}</dd>
         </div>
       )}
       <div>

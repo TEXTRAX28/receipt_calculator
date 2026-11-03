@@ -35,7 +35,7 @@ function currentValue(receipt: Receipt, check: ReviewCheck) {
       receipt.adjustments
         .map(
           (entry) =>
-            `${entry.label}: ${entry.amount} (${adjustmentKinds[entry.kind]}; ${entry.kind === "discount" || entry.allocation === "proportional" ? "by item cost" : "equally per person"})`,
+            `${entry.label}: ${entry.amount} (${adjustmentKinds[entry.kind]}; ${entry.kind === "discount" || entry.allocation === "proportional" ? "by item cost" : "equally per person"}${entry.includedTaxRate !== undefined ? `; includes tax at ${entry.includedTaxRate || "unknown"}%` : ""})`,
         )
         .join("; ") || "No receipt adjustments"
     );

@@ -1,10 +1,17 @@
 # Optional OpenAI comparison: offline preparation only
 
-3 November 2026. Existing Free provider quotas are exhausted. **No new receipt
-request, credential access, quota probe, credit activation or billing change
-was made.** This is an optional next comparison, not an enabled application
-provider or a measured recognition improvement. Setup preference and upload
-approval remain unresolved. The twelve-phase goal remains incomplete.
+3 November 2026. **OpenAI is a last resort by the user's explicit preference.**
+The user reports claiming included subscription API credits. Preserve those
+credits while using feasible local readers and saved-data comparisons. Do not
+top up, enable auto recharge, or promote OpenAI to a default fallback. A credit
+grant does not establish model access, receipt accuracy, or upload approval.
+
+The earlier preparation below remains historical. No OpenAI receipt request,
+credential access, quota probe, agent-initiated credit activation or billing
+change has occurred. It is not an enabled application provider or a measured
+recognition improvement. A new bounded sender, offline checks and the specific
+private-upload approval are still required before any last-resort comparison.
+The twelve-phase goal remains incomplete.
 
 **Historical preparation from `a7f8cd7`.** Subsequent refund-parser/review changes
 supersede its frozen application source. Its seven passing checks describe that
@@ -86,8 +93,9 @@ No key is needed for offline preparation. If this option is chosen later:
    seven days, subject to ownership and matching-email requirements. Plus,
    Go and Free do not receive this benefit. An active grant needs no API payment
    method. Credits expire; if purchased credits remain after free credits run
-   out, API requests continue spending them. Eligibility and balance have not
-   been checked for this account. Follow the official
+   out, API requests continue spending them. The later read-only account check
+   observed an eligible credit offer; the user subsequently reported claiming
+   credits. No API request was used to test access or balance. Follow the official
    [credit guide](https://developers.openai.com/api/docs/guides/chatgpt-api-credits)
    only if the user chooses this setup path.
 3. After a bounded sender is implemented and verified offline, use a project
