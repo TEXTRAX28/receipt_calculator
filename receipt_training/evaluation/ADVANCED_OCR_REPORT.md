@@ -2,7 +2,15 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [browser tiny/medium trial](BROWSER_PADDLE_MEDIUM_RESULT.md) runs both
+The latest [offline delivery-aware comparison](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
+scores the retained trial without new inference. On three completed CORD
+receipts, medium improves exact names 15/33 to 27/33 and supplied-currency prices
+27/32 to 28/32, but loses one subtotal. With the incomplete UK transaction kept
+as a delivery failure, tiny returns 45/50 known prices versus medium's 28/50 in
+context mode. Both remain 0/4 trusted reconciliation. Frozen references/parser
+and app defaults remain unchanged. GPU execution is still unverified.
+
+The preceding [browser tiny/medium trial](BROWSER_PADDLE_MEDIUM_RESULT.md) runs both
 cached models on the same fixed images. Tiny returns all eight in 23.672 seconds;
 medium returns seven before the unchanged 300-second deadline, leaving the
 Costco VAT/footer missing. The selected skewer code improves from `7` to `Z`,

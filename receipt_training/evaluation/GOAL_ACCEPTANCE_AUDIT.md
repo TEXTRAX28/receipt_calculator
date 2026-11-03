@@ -11,7 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [local browser comparison](BROWSER_PADDLE_MEDIUM_RESULT.md) completes
+The latest [saved-output delivery analysis](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
+finds medium improves exact CORD names 15/33 to 27/33 and supplied-currency
+prices 27/32 to 28/32, while losing one subtotal. Keeping the failed UK delivery
+in the four-transaction denominator yields 45/50 delivered prices for tiny
+versus 28/50 for medium in context mode. Both remain 0/4 trusted reconciliation.
+The original frozen parser/scorer and references are reused; no inference,
+financial edit, app change or upload occurs. These conditional gains support
+the pending GPU investigation, not promotion of the unfinished WASM reader.
+
+The preceding [local browser comparison](BROWSER_PADDLE_MEDIUM_RESULT.md) completes
 all eight tiny image reads in 23.672 seconds, while medium returns seven before
 the unchanged 300-second deadline. Its selected skewer code improves from `7`
 to `Z`, but the missing VAT/footer prevents the planned paired financial score;
