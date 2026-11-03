@@ -2,12 +2,20 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
+The latest [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
+thirteen process-test failures below by allowing the existing termination
+command ten seconds in each cleanup path; the observed command took about
+6.6 seconds. All 35 process tests and all 1,095 unit tests pass, with no remaining
+fixture workers. Receipt interpretation and frontend build inputs are unchanged
+apart from the two backend timeouts. Phone plan v4 remains unexecuted under
+the existing RAM guard; no model call, upload or quota probe occurs.
+
+The preceding [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
 false primary-reader purchases on the original fifty without changing matched
 products or other scored fields. Hybrid scores remain unchanged. All 122
 focused tests, typecheck and build pass, but the full interim unit run has
 1,080 passes and thirteen Windows process-cleanup failures. A separate fixture
-reproduces the five-second `taskkill.exe` timeout; this remains unresolved.
+reproduces the five-second `taskkill.exe` timeout, resolved by the follow-up above.
 Phone verification is prepared but unexecuted under the existing RAM guard.
 No new inference, provider upload, quota probe or billing activation occurred.
 

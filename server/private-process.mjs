@@ -65,7 +65,7 @@ export async function runPrivateProcess(
           execFile(
             "taskkill.exe",
             ["/PID", String(child.pid), "/T", "/F"],
-            { windowsHide: true, timeout: 5000 },
+            { windowsHide: true, timeout: 10000 },
             () => done(),
           ),
         );

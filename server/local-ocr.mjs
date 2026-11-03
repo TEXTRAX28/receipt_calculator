@@ -165,7 +165,7 @@ export function createLocalModelReader({
         execFile(
           "taskkill.exe",
           ["/PID", String(processToStop.pid), "/T", "/F"],
-          { windowsHide: true, timeout: 5000 },
+          { windowsHide: true, timeout: 10000 },
           () => resolveKill(),
         ),
       );

@@ -11,13 +11,23 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
+The latest [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
+thirteen process-test failures below. The termination command took about 6.6
+seconds on this host; its allowance is now ten seconds in both existing cleanup
+paths. All 35 focused process tests and all 1,095 unit tests pass, with no
+fixture workers left over. Typecheck, syntax, formatting and graph checks pass.
+The receipt libraries and frontend build inputs are unchanged apart from the
+two backend timeout values. The phone journey remains unexecuted in plan v4;
+medium plan v14 and all browser/model guards remain current and unchanged.
+No model calls, uploads, quota probes or billing changes occurred.
+
+The preceding [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
 false primary-reader purchases from the original fifty, retaining all matched
 products and other scored counts. Hybrid results stay unchanged. All 122
 focused tests, typecheck and frontend build pass. The full interim run has
 1,080 passes and thirteen Windows process-shutdown/cancellation failures; it
 is not a full-suite pass. A synthetic probe reproduces the five-second
-`taskkill.exe` timeout. Fix that cleanup path before claiming full verification.
+`taskkill.exe` timeout. The cleanup follow-up above resolves those test failures.
 The copied-price phone test remains unexecuted in its updated v3 plan, and
 the medium-reader plan is now v14 with unchanged resource/model parameters.
 No model calls, uploads, quota probes or billing changes occurred.
