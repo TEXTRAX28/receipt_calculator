@@ -150,6 +150,16 @@ const configSchema = z.object({
   configured: z.boolean(),
   provider: z.literal("Gemini"),
   model: z.string().max(100),
+  remaining: z.number().int().min(0).max(100).optional(),
+  availability: z
+    .enum([
+      "missing-key",
+      "missing-allowance",
+      "ready",
+      "exhausted",
+      "storage-unavailable",
+    ])
+    .optional(),
 });
 export async function geminiConfiguration(signal: AbortSignal) {
   const response = await fetch("./api/receipts/config", {

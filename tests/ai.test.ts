@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 import {
   createReceiptApi,
   extractWithGemini as serverExtract,
@@ -37,8 +40,14 @@ const response = (receipt = aiCostcoDraft()) =>
     { headers: { "content-type": "application/json" } },
   );
 const servers: Server[] = [];
+const directories: string[] = [];
 async function localApi(options: Parameters<typeof createReceiptApi>[0] = {}) {
-  const handler = createReceiptApi(options);
+  const directory = await mkdtemp(join(tmpdir(), "gather-gemini-api-"));
+  directories.push(directory);
+  const handler = createReceiptApi({
+    geminiAllowance: { directory, grant: "synthetic-test-grant", limit: 10 },
+    ...options,
+  });
   const server = createServer((req, res) => {
     void handler(req, res, () => {
       res.writeHead(404);
@@ -76,6 +85,14 @@ afterEach(async () => {
         }),
     ),
   );
+  for (const directory of directories.splice(0)) {
+    if (
+      !resolve(directory).startsWith(resolve(tmpdir()) + sep) ||
+      !directory.includes("gather-gemini-api-")
+    )
+      throw new Error("Unsafe test directory");
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 describe("Gemini receipts are evidence for the exact engine", () => {
@@ -400,6 +417,8 @@ describe("server-held credentials and bounded provider calls", () => {
       configured: false,
       provider: "Gemini",
       model: "gemini-3.8-flash",
+      remaining: 0,
+      availability: "missing-key",
     });
     const unavailable = await post();
     expect(unavailable.status).toBe(503);

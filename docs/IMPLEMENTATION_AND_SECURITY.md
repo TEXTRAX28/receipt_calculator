@@ -1,5 +1,18 @@
 # Implementation and security report
 
+3 November 2026 supplement: Gemini now requires a finite persistent request
+allowance as well as a server-held key. The existing atomic slot ledger is
+shared across handler instances and persists through restart/key/model changes.
+It reserves after consent and JPEG validation, before provider I/O; failed or
+uncertain attempts stay consumed. No daily reset/retry or browser-controlled
+grant is available. Defaults disable Gemini uploads until an operator sets a
+grant and request limit. The UI reports local allowance state and keeps photos
+after quota errors. This is a local operator cap, not public authentication or
+an account-wide billing guarantee. Separate checkouts must share the configured
+directory/grant to share the cap. No live settings or API requests were changed
+for this implementation. See [the allowance report](../receipt_training/evaluation/GEMINI_REQUEST_ALLOWANCE.md)
+for measured validation and remaining limits; older counts below are historical.
+
 Updated: 29 October 2026. Original implementation branch: `feature/receipt-scanner-splitter`.
 
 ## Delivered behavior

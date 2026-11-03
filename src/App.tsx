@@ -340,6 +340,8 @@ export default function App() {
   const [aiConfig, setAiConfig] = useState<{
     configured: boolean;
     model: string;
+    remaining?: number;
+    availability?: string;
   } | null>(null);
   const [checkingAi, setCheckingAi] = useState(false);
   const controller = useRef<AbortController | null>(null);
@@ -903,6 +905,12 @@ export default function App() {
           : "OCR could not start or finish. Try another image or use manual entry.",
       );
     } finally {
+      if (reader === "gemini") {
+        setAiConsented(false);
+        await geminiConfiguration(AbortSignal.timeout(5000))
+          .then(setAiConfig)
+          .catch(() => setAiConfig(null));
+      }
       if (reader === "veryfi" || reader === "azure") {
         setAiConsented(false);
         await localReaderConfiguration(AbortSignal.timeout(5000))
@@ -1618,8 +1626,12 @@ export default function App() {
                         {checkingAi
                           ? "Checking Gemini setup…"
                           : aiConfig?.configured
-                            ? `Gemini key configured · ${aiConfig.model}`
-                            : "Gemini needs a server API key before scanning."}
+                            ? `Gemini ready · ${aiConfig.model}${aiConfig.remaining === undefined ? "" : ` · ${aiConfig.remaining} scan${aiConfig.remaining === 1 ? "" : "s"} left in this server's allowance`}`
+                            : aiConfig?.availability === "exhausted"
+                              ? "This server's Gemini scan allowance has been used. Choose an on-device reader to continue."
+                              : aiConfig?.availability === "storage-unavailable"
+                                ? "Gemini's scan allowance could not be checked. Your photos are still available; choose an on-device reader."
+                                : "Gemini needs a server API key and a scan allowance before scanning."}
                       </p>
                       {!checkingAi && !aiConfig?.configured && (
                         <details className="ai-setup">
@@ -1638,9 +1650,18 @@ export default function App() {
                               automatically.
                             </li>
                             <li>
-                              Copy <code>.env.example</code> to{" "}
-                              <code>.env.local</code> and put the key after{" "}
-                              <code>GEMINI_API_KEY=</code>.
+                              Create <code>.env.local</code> from{" "}
+                              <code>.env.example</code> if it does not exist.
+                              Otherwise edit the existing file. Put the key
+                              after <code>GEMINI_API_KEY=</code>.
+                            </li>
+                            <li>
+                              After checking unused quota in your API project,
+                              set <code>GEMINI_ALLOWANCE_ID</code> to a new name
+                              of 8–80 letters, numbers, underscores or hyphens
+                              and <code>GEMINI_REQUEST_LIMIT</code> to the
+                              number of scans you allow (1–100). Failed attempts
+                              also count. Keep the same name across restarts.
                             </li>
                             <li>
                               Restart Gather, reload this page and choose Gemini

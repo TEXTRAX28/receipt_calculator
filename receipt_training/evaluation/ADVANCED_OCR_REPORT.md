@@ -2,13 +2,29 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-Latest [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md): five missing
+Latest [persistent Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md):
+explicit local request caps survive restart/key/model changes and retain failed
+attempts. All 1,053 unit tests, build/typecheck and 27 focused browser cases pass.
+The same browser run closes the pending Azure quantity/source-check/split
+journey across Chrome desktop/phone and host WebKit phone. No real provider
+requests, live setting changes or billing activation occurred. A local cap does
+not establish public authentication or account-wide cost control.
+
+The [same-crop UK offline comparison](UK_MULTIPART_OFFLINE_COMPARISON.md) keeps
+all financial fields from the original transaction separate from the earlier
+six small crops. With supplied GBP, Veryfi and Paddle calculate £176.78 with
+four coupons; the combined Paddle/Qwen draft retains two false purchases and
+calculates £181.25. Gemini remains unmeasured on these two images because the
+user reports exhausted Free quota. No new model call or provider promotion.
+
+The preceding [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md): five missing
 quantities are proposed from native roles tied to exact original purchase words.
 The same six saved responses improve 9/15 to 14/15 known quantities, with every
 proposal pending source review. All monetary, description and original-fifty
 scores are unchanged. All 1,037 unit tests and build/typecheck pass, including
 synthetic provider responses through the real local HTTP route. The new browser
-journey remains unexecuted after a RAM-guard refusal. No model calls, uploads,
+journey was initially refused by the RAM guard and now passes in the allowance
+checkpoint above. No model calls, uploads,
 provider defaults or allowances changed; larger trials remain resource limited.
 The full goal remains active.
 

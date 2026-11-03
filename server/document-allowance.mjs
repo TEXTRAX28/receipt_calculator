@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { mkdir, open, readdir } from "node:fs/promises";
-import { isAbsolute, join } from "node:path";
+import { mkdir, open, readdir, stat } from "node:fs/promises";
+import { dirname, isAbsolute, join } from "node:path";
 
 /** Explicit, persistent allowance. No clock/reset/retry reclaims a reservation.
  * Atomic exclusive slots also bound several processes sharing this directory.
@@ -27,7 +27,21 @@ export function createDocumentAllowance({ directory, account, grant, limit }) {
         (_, index) => `${index + 1}.json`,
       ).filter((name) => !names.has(name)).length;
     } catch (error) {
-      if (error.code === "ENOENT") return limit;
+      if (error.code === "ENOENT") {
+        // Windows can report ENOENT below a file, not just a missing folder.
+        // Inspect the closest existing ancestor without creating state on GET.
+        let ancestor = folder;
+        while (true) {
+          try {
+            if ((await stat(ancestor)).isDirectory()) return limit;
+            break;
+          } catch (cause) {
+            if (cause.code !== "ENOENT" || dirname(ancestor) === ancestor)
+              break;
+            ancestor = dirname(ancestor);
+          }
+        }
+      }
       throw new Error("Receipt allowance storage is unavailable");
     }
   }

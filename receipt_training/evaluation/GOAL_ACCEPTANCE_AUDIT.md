@@ -11,13 +11,30 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md) ties native
+Latest [Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md): a key alone no
+longer enables uploads. An explicit persistent operator cap survives server
+restart/key/model changes and consumes failed or uncertain attempts. All 1,053
+unit tests, build/typecheck and 27 focused Chrome/WebKit browser cases pass.
+The browser run also closes the previously pending Azure quantity journey:
+source checking is required before the exact £2.50/£2.50 split. A Windows
+storage-status defect is corrected; live settings and provider calls are
+untouched. This is a local cap, not a public account-wide spending guarantee.
+
+The [same two-crop UK replay](UK_MULTIPART_OFFLINE_COMPARISON.md) found that
+Veryfi and Paddle (with GBP supplied) preserve all 18 prices and four coupons,
+calculating £176.78; the Paddle/Qwen combination proposes 20 purchases and
+£181.25. Gemini's new two-image trial remains unapproved and unrun after the
+user reported exhausted quota. This familiar diagnostic does not select a
+universal provider winner. No original-fifty values or scopes changed.
+
+The preceding [Azure quantity recovery](AZURE_QUANTITY_RECOVERY.md) ties native
 quantity roles to original words owned by one purchase. Five missing quantities
 are retained, improving the same six saved responses from 9/15 to 14/15; every
 proposal requires source review. Monetary fields, descriptions and original-fifty
 scores are unchanged. All 1,037 unit tests and build/typecheck pass, including
 actual local HTTP tests with synthetic provider responses. The new browser
-journey remains unexecuted after a RAM-guard refusal. No new model calls, private
+journey was initially unexecuted after a RAM-guard refusal and now passes in the
+allowance checkpoint above. No new model calls, private
 uploads, provider changes or allowance increases occurred. Larger trials still
 lack resources, and this interpretation improvement does not complete the goal.
 
@@ -436,7 +453,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P4.6: abstain on unreadable values; field uncertainty, original regions, editable corrections, recalculation and blocked unverified money | Implemented pending checks/source rectangles where actually available, editable fields and invalidated confirmations. No invented boxes or confidence probabilities. | OCR threshold is not calibrated receipt-level confidence; broader uncertainty-quality evidence remains required. |
 | P4 architecture: configurable modular providers; separate preprocessing/extraction/parser/validator/splitting | Verified modular integration and optional provider configuration. | Public server deployment remains separate work. |
 | P5: Costco packaging vs purchased quantity, codes/VAT, coupons, summaries, retailer rules while remaining general-purpose | UK financial vector and checked split pass; source-supported codes/coupons and general CORD/Tesco comparisons exist. | Generic Costco/general-retail reliability remains partial. Do not infer six purchased packs from a product's pack-size name or assume all retailers' A/Z meanings. |
-| P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; optional Azure/Veryfi finite allowances and scan consent. The six new Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. | Public terms/region/retention review and account-specific training commitments remain incomplete. Gemini consent/rate bounds are not a durable public spending budget. |
+| P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; Azure/Veryfi/Gemini persistent finite local allowances and scan consent. The six Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. The proposed two-image trial is unapproved/unrun after exhausted quota. | Public terms/region/retention review and account-specific training commitments remain incomplete. A shared-directory local request allowance is not an authenticated public or account-wide spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
 | P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and browser journeys, including signed refund-credit ownership and rounding. | Genuine refund-format accuracy is unmeasured; this does not invalidate the tested exact allocation rules. |
 | P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Live local camera preview with approximate edges and quality advice, explicit capture/review/retake, overlapping sections, native picker fallback; responsive editing/rereads/assignments and checked summaries. | Physical-device camera and Safari, genuine live guidance accuracy and calibrated clipping/pose diagnostics remain open. Browser camera streams are simulated; actual JPEG/OCR/splitting is tested. |

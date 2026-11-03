@@ -65,7 +65,9 @@ test("Gemini setup is honest when no key is configured and sends no photos", asy
   });
   await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
   await expect(
-    page.getByText("Gemini needs a server API key before scanning."),
+    page.getByText(
+      "Gemini needs a server API key and a scan allowance before scanning.",
+    ),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Read receipt with Gemini" }),

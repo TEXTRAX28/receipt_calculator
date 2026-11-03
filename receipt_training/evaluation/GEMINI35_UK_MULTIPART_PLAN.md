@@ -5,6 +5,15 @@ reported “All is already at limit” when asked about this additional Free-quo
 request. No live request was made. The scope is unconsumed, but available quota
 and fresh explicit approval are still required; it will not retry automatically.
 
+The later persistent Gemini allowance change supersedes this frozen runtime
+snapshot. **Do not execute the v2 plan against the current app.** Its preflight
+rejects changed source. A future trial needs a new preserved preparation and
+explicit approval after quota is available. That preparation must also retain
+the corrected crop description below: a partly visible pound symbol remains
+in the clipped savings line. The old plan's statement that all currency context
+was removed was too broad. Its eight transport passes describe the original
+frozen protocol, not a validation of later source changes.
+
 Gemini 3.5 returned all six earlier small-crop responses, but did not reliably
 attach coupons or interpret every amount. The original UK transaction still
 lacks a successful Gemini reading. Testing its complete financial sections

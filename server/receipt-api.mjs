@@ -24,6 +24,8 @@ import {
 } from "../src/lib/vision-plan.mjs";
 import { MAX_READING_PANELS } from "../src/lib/scan-limits.mjs";
 import { validatePreparedJpeg } from "./receipt-zip.mjs";
+import { createDocumentAllowance } from "./document-allowance.mjs";
+import { randomUUID } from "node:crypto";
 
 const requestSchema = z.strictObject({
   consent: z.literal(true),
@@ -161,11 +163,12 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>}} [options]
+ * @param {{apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
   model = DEFAULT_GEMINI_MODEL,
+  geminiAllowance,
   fetcher = globalThis.fetch,
   timeoutMs = 120000,
   visionTimeoutMs = timeoutMs,
@@ -175,6 +178,31 @@ export function createReceiptApi({
   veryfiReader,
   azureReader,
 } = {}) {
+  // One local operator grant covers every Gemini key/model in this directory.
+  // Rotating a key or restarting the server must not replenish the allowance.
+  const allowance = createDocumentAllowance({
+    directory: geminiAllowance?.directory || "",
+    account: "gemini",
+    grant: geminiAllowance?.grant || "",
+    limit: geminiAllowance?.limit ?? 0,
+  });
+  async function geminiStatus() {
+    const base = { configured: false, provider: "Gemini", model, remaining: 0 };
+    if (!apiKey) return { ...base, availability: "missing-key" };
+    if (!allowance.configured)
+      return { ...base, availability: "missing-allowance" };
+    try {
+      const remaining = await allowance.remaining();
+      return {
+        ...base,
+        configured: remaining > 0,
+        remaining,
+        availability: remaining > 0 ? "ready" : "exhausted",
+      };
+    } catch {
+      return { ...base, availability: "storage-unavailable" };
+    }
+  }
   let active = false;
   let attempts = [];
   return async (req, res, next) => {
@@ -220,7 +248,7 @@ export function createReceiptApi({
         error: "The receipt request must come from Gather on this computer.",
       });
     if (pathname === "/api/receipts/config" && req.method === "GET")
-      return send(200, { configured: !!apiKey, provider: "Gemini", model });
+      return send(200, await geminiStatus());
     if (pathname === "/api/receipts/providers" && req.method === "GET")
       return send(200, {
         localModel: {
@@ -274,6 +302,11 @@ export function createReceiptApi({
         error:
           "Gemini is not connected yet. Add GEMINI_API_KEY to .env.local on this computer and restart Gather. You can still use the on-device reader.",
       });
+    if (!isLocal && !isVeryfi && !isAzure && !allowance.configured)
+      return send(503, {
+        error:
+          "Gemini needs a finite request allowance on this server before scanning. You can still use the on-device reader.",
+      });
     if (
       req.headers["x-gather-request"] !== "receipt-scan" ||
       !/^application\/json(?:;|$)/.test(req.headers["content-type"] || "")
@@ -296,6 +329,7 @@ export function createReceiptApi({
       if (!req.complete) req.destroy();
     }, timeoutMs);
     let ownsActive = false;
+    let reservation;
     try {
       const chunks = [];
       let size = 0;
@@ -466,10 +500,34 @@ export function createReceiptApi({
         apiKey,
         model,
         signal: abort.signal,
-        fetcher,
+        fetcher: async (url, options) => {
+          abort.signal.throwIfAborted();
+          // The adapter has validated every JPEG. Reserve before any provider I/O;
+          // an unknown outcome, cancellation or error still consumes this slot.
+          try {
+            reservation = await allowance.reserve(randomUUID());
+          } catch (error) {
+            if (error.message === "Receipt allowance is exhausted")
+              throw new ScanError(
+                429,
+                "This server's Gemini request allowance has been used. Your photos are still available; choose the on-device reader. No request was sent to Google.",
+              );
+            throw new ScanError(
+              503,
+              "Gemini allowance storage is unavailable. No request was sent to Google. Your photos are still available.",
+            );
+          }
+          abort.signal.throwIfAborted();
+          return fetcher(url, options);
+        },
       });
+      // The slot stays spent if completion bookkeeping fails; never resend.
+      await reservation?.finish("completed", "unknown").catch(() => {});
       send(200, { receipt: draft });
     } catch (error) {
+      await reservation
+        ?.finish(abort.signal.aborted ? "cancelled" : "failed", "unknown")
+        .catch(() => {});
       if (error instanceof VeryfiError || error instanceof AzureError)
         send(error.status, { error: error.message, cleanup: error.cleanup });
       else if (abort.signal.aborted)

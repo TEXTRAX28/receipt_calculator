@@ -27,6 +27,13 @@ export default defineConfig(({ mode }) => {
       handler: createReceiptApi({
         apiKey: env.GEMINI_API_KEY || "",
         model: env.GEMINI_MODEL || undefined,
+        geminiAllowance: {
+          directory: resolve(
+            env.GEMINI_ALLOWANCE_DIRECTORY || ".receipt-reader-state/gemini",
+          ),
+          grant: env.GEMINI_ALLOWANCE_ID || "",
+          limit: Number(env.GEMINI_REQUEST_LIMIT || 0),
+        },
         localReader,
         localVision,
         visionTimeoutMs: LOCAL_VISION_TIMEOUT_MS,
