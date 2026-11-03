@@ -18,12 +18,23 @@ const cohortIndex = process.argv.indexOf("--cohort-plan");
 const cohortTag = cohortIndex < 0 ? null : process.argv[cohortIndex + 1];
 assert(cohortTag === null || /^[\w-]+$/.test(cohortTag));
 const studyIndex = process.argv.indexOf("--medium-study");
-const studyTag = studyIndex < 0 ? null : process.argv[studyIndex + 1];
+const mediumTag = studyIndex < 0 ? null : process.argv[studyIndex + 1];
 assert(
-  studyTag === null ||
-    /^browser-paddle-medium-paired-plan-v[1-9]\d*$/.test(studyTag),
+  mediumTag === null ||
+    /^browser-paddle-medium-paired-plan-v[1-9]\d*$/.test(mediumTag),
 );
-assert([captureTag, cohortTag, studyTag].filter(Boolean).length <= 1);
+const preparationIndex = process.argv.indexOf("--preparation-study");
+const preparationTag =
+  preparationIndex < 0 ? null : process.argv[preparationIndex + 1];
+assert(
+  preparationTag === null ||
+    /^browser-paddle-preparation-plan-v[1-9]\d*$/.test(preparationTag),
+);
+assert(
+  [captureTag, cohortTag, mediumTag, preparationTag].filter(Boolean).length <=
+    1,
+);
+const studyTag = mediumTag || preparationTag;
 const production = process.argv.includes("--production");
 assert(
   !production || !(captureTag || cohortTag || studyTag),
@@ -127,10 +138,11 @@ if (studyTag) {
     plan.models.map((m) => m.name),
     [`PP-OCRv6_${arm.size}_det`, `PP-OCRv6_${arm.size}_rec`],
   );
-  assert.equal(study.cases.length, 7);
+  if (preparationTag) assert.equal(arm.size, "tiny");
+  assert.equal(study.cases.length, preparationTag ? 10 : 7);
   assert.equal(
     study.cases.reduce((n, c) => n + c.frames.length, 0),
-    8,
+    preparationTag ? 17 : 8,
   );
   for (const entry of study.cases) {
     assert(/^[\w-]+$/.test(entry.receipt_id));
@@ -554,7 +566,10 @@ try {
         detLimitType: "max",
       },
       scope:
-        "Fixed familiar receipt cohort, unchanged prepared original JPEG hashes checked against paired reader inputs. Warm local browser worker after synthetic compatibility check. No labels or currency hints supplied to recognizer. Not a phone/Safari test, provider promotion or complete upload-to-split journey.",
+        (preparationTag
+          ? "Four familiar development transactions, ten original/crop/straighten variants and seventeen exact previously prepared JPEGs; two abstaining control variants reuse their original reading during replay. "
+          : "Fixed familiar receipt cohort, unchanged prepared original JPEG hashes checked against paired reader inputs. ") +
+        "Warm local browser worker after synthetic compatibility check. No labels or currency hints supplied to recognizer. Not a phone/Safari test, provider promotion or complete upload-to-split journey.",
       external_receipt_uploads: 0,
       external_model_downloads_during_probe: 0,
       completed_at: new Date().toISOString(),

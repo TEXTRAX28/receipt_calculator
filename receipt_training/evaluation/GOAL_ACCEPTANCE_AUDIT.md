@@ -11,6 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The latest [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
+adds seventeen actual local receipt-section readings on four familiar transactions.
+With supplied currency, cropping raises restaurant line prices from 27/32 to
+28/32 and final totals from 1/3 to 2/3, but both corrected UK variants propose
+27 purchases instead of 18 and calculate GBP 279.87 instead of 176.78. It rejects
+automatic correction with current overlap assembly. Frozen inputs, initial
+harness failures, resource observations and all losing variants are retained.
+No app code, reference, provider default, private upload or billing changed.
+Source-supported overlap repair is the next concrete interpretation task.
+
 Latest [Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md): a key alone no
 longer enables uploads. An explicit persistent operator cap survives server
 restart/key/model changes and consumes failed or uncertain attempts. All 1,053

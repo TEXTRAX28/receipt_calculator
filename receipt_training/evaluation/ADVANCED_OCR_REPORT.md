@@ -2,6 +2,14 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The latest [enhanced-reader preparation comparison](BROWSER_PREPARATION_COMPARISON.md)
+completes seventeen local receipt-section readings. Supplied-currency restaurant
+prices improve 27/32 to 28/32 with crop, while corrected UK variants add nine
+false purchases and calculate GBP 279.87 instead of 176.78. Automatic correction
+is rejected with current overlap assembly. App source, references and defaults
+are unchanged; no upload or model download occurred. The preserved failure
+cases identify source-supported section joining as the next interpretation task.
+
 Latest [persistent Gemini request allowance](GEMINI_REQUEST_ALLOWANCE.md):
 explicit local request caps survive restart/key/model changes and retain failed
 attempts. All 1,053 unit tests, build/typecheck and 27 focused browser cases pass.

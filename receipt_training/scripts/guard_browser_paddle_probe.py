@@ -22,13 +22,19 @@ def main():
     app_ui = extra == ["--app-uk"]
     medium_study = (len(extra) == 2 and extra[0] == "--medium-study"
                     and bool(re.fullmatch(r"browser-paddle-medium-paired-plan-v[1-9]\d*", extra[1])))
+    preparation_study = (len(extra) == 2 and extra[0] == "--preparation-study"
+                         and bool(re.fullmatch(r"browser-paddle-preparation-plan-v[1-9]\d*", extra[1])))
     assert (extra in ([], ["--production"], ["--app-uk"], ["--capture-study", "genuine-capture-read-v1"])
-            or medium_study
+            or medium_study or preparation_study
             or (len(extra) == 2 and extra[0] == "--cohort-plan" and re.fullmatch(r"[\w-]+", extra[1])))
-    if medium_study:
+    if medium_study or preparation_study:
         study_path = ROOT / "qa-artifacts" / extra[1] / "study-plan.json"
         study = json.loads(study_path.read_text(encoding="utf-8"))
         assert study["study_id"] == extra[1].replace("-plan-", "-")
+        if preparation_study:
+            assert plan == "browser-paddle-tiny-plan-v1"
+            assert study["limits"]["startup_ram_bytes"] == 2684354560
+            assert study["limits"]["maximum_receipt_image_calls_per_model"] == 17
         for name, expected in study["input_sha256"].items():
             path = (ROOT / name).resolve()
             path.relative_to(ROOT)
@@ -58,8 +64,9 @@ def main():
               "startup_required_ram": 2811478016 + RUNTIME_RAM_FLOOR if medium_study else 2684354560, "runtime_ram_floor": RUNTIME_RAM_FLOOR,
               "startup_guard_basis": "Prior sampled medium browser tree peak plus 1 GiB reserve, identical for both study arms" if medium_study else "Existing 2.5 GiB browser trial guard",
               "scope": "Experimental single-browser resource guard, not a vendor requirement or guarantee of peak memory fit. Local synthetic input plus optional fixed receipt cohort. Observer is a sibling, process tree contains development tools and browser, not model-only memory or a phone measurement.",
-              "source_sha256": sources, "capture_study": app_ui or medium_study or "--capture-study" in extra or "--cohort-plan" in extra,
+              "source_sha256": sources, "capture_study": app_ui or medium_study or preparation_study or "--capture-study" in extra or "--cohort-plan" in extra,
               "medium_study": medium_study,
+              "preparation_study": preparation_study,
               "production_bundle": "--production" in extra, "production_app_ui": app_ui,
               "spawned": False, "model_downloads": 0, "private_receipt_uploads": 0}
     if initial < result["startup_required_ram"]:
