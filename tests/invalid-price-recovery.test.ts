@@ -60,6 +60,105 @@ function draft(price = "4.000") {
 }
 const reading = () => evidence(["Market", "Tea 4,000", "TOTAL IDR 4,000"]);
 
+describe("copied invalid prices with a uniquely matched name difference", () => {
+  function fixture() {
+    const raw = draft("17.500");
+    raw.items[0].description = "1 Roast Chieken";
+    raw.items[0].unitPrice = "17.500";
+    const source = evidence([
+      "Market",
+      "1 Roast Chicken 17,500",
+      "TOTAL IDR 17,500",
+    ]);
+    return { raw, source };
+  }
+
+  it("retains an original-source proposal despite a small name disagreement", () => {
+    const { raw, source } = fixture();
+    const before = structuredClone({ raw, source });
+    const result = verifyIndependentReadings(raw, source);
+    expect(result.receipt.items[0]).toMatchObject({
+      description: "1 Roast Chieken",
+      quantity: "1",
+      unitPrice: "17.500",
+      lineTotal: "17500",
+    });
+    expect(result.unitRecoveries).toEqual([]);
+    expect(result.priceRecoveries).toHaveLength(1);
+    expect(result.priceRecoveries[0].sourceIndices).toEqual([1]);
+    expect(result.receipt.reviewChecks).toContainEqual(
+      expect.objectContaining({
+        field: "lineTotal",
+        reason: "recovered",
+        other: "17.500",
+        confirmedValue: "",
+      }),
+    );
+    expect(
+      result.receipt.reviewChecks.every((check) => !check.confirmedValue),
+    ).toBe(true);
+    expect(calculateReceipt(result.receipt).issues.length).toBeGreaterThan(0);
+    expect({ raw, source }).toEqual(before);
+  });
+
+  it("does not use a matching or conflicting receipt total to choose the proposal", () => {
+    for (const total of ["17500", "1", "999999"]) {
+      const { raw, source } = fixture();
+      raw.printedTotal = total;
+      const result = verifyIndependentReadings(raw, source);
+      expect(result.receipt.items[0].lineTotal).toBe("17500");
+    }
+  });
+
+  it.each([
+    "different-digits",
+    "valid-price",
+    "absent-price",
+    "quantity-conflict",
+    "quantity-unprinted",
+    "weak-money",
+    "duplicate",
+    "wrong-photo",
+    "three-decimal-currency",
+    "unit-only-column",
+    "opposite-sign",
+  ])("abstains with %s", (variant) => {
+    const { raw, source } = fixture();
+    if (variant === "different-digits") raw.items[0].lineTotal = "18.500";
+    if (variant === "valid-price") raw.items[0].lineTotal = "17.50";
+    if (variant === "absent-price") raw.items[0].lineTotal = "";
+    if (variant === "quantity-conflict") raw.items[0].quantity = "2";
+    if (variant === "quantity-unprinted") {
+      source.panels[0].lines[1].text = "Roast Chicken 17,500";
+      source.panels[0].words[1].text = "Roast Chicken 17,500";
+    }
+    if (variant === "weak-money") source.panels[0].words[1].confidence = 0.97;
+    if (variant === "duplicate") {
+      const repeated = evidence([
+        "Market",
+        "1 Roast Chicken 17,500",
+        "1 Roast Chicken 17,500",
+        "TOTAL IDR 35,000",
+      ]);
+      source.panels = repeated.panels;
+    }
+    if (variant === "wrong-photo") raw.items[0].sourcePhotos = [2];
+    if (variant === "three-decimal-currency") {
+      raw.currency = "KWD";
+      source.panels[0].lines[2].text = "TOTAL KWD 17.500";
+      source.panels[0].words[2].text = "TOTAL KWD 17.500";
+    }
+    if (variant === "unit-only-column") {
+      source.panels[0].lines[0].text = "Qty UNIT PRICE";
+      source.panels[0].words[0].text = "Qty UNIT PRICE";
+    }
+    if (variant === "opposite-sign") raw.items[0].lineTotal = "-17.500";
+    const result = verifyIndependentReadings(raw, source);
+    expect(result.receipt.items[0].lineTotal).toBe(raw.items[0].lineTotal);
+    expect(result.priceRecoveries).toEqual([]);
+  });
+});
+
 describe("literal source proposals for invalid vision prices", () => {
   function batchFixture(conflict = false) {
     const source = evidence(["Currency IDR", "Tea 4,000"]);

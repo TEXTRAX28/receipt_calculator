@@ -11,7 +11,15 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [local document-orientation pilot](DOCUMENT_ORIENTATION_PILOT.md)
+The latest [source-supported price recovery](COPIED_PRICE_RECOVERY.md) permits
+one additional checked proposal despite a small name disagreement, requiring
+matching printed quantity and numeric token. Supplied-currency line prices
+improve 133/143 to 134/143 on the same fifty retained readings; no other scored
+field changes or regressions occur. All 1,077 unit tests, typecheck and frontend
+build pass. The new browser journey remains unexecuted after a RAM-guard refusal.
+No new model call, upload, provider switch or guard reduction occurred.
+
+The preceding [local document-orientation pilot](DOCUMENT_ORIENTATION_PILOT.md)
 tests a new 6.8 MB pretrained model on twenty quarter-turn views of five familiar
 photos. It gets 15/20 right, including one wrong prediction above the frozen
 0.9 cutoff. Automatic rotation and app integration are rejected. All 26 local
@@ -347,7 +355,7 @@ branch. It is user context, not successful model currency recognition.
 | Predicted rows | 83 | 146 | 146 |
 | Exact normalized names /145 | 24 | 132 | 132 |
 | Quantities /120 | 3 | 119 | 119 |
-| Line totals /143 | 5 | 116 | 133 |
+| Line totals /143 | 5 | 116 | 134 |
 | Unit prices /31 | 3 | 22 | 26 |
 | Item discounts /7 | 0 | 5 | 5 |
 | Receipt discounts /4 | 0 | 2 | 3 |
@@ -355,7 +363,7 @@ branch. It is user context, not successful model currency recognition.
 | Printed tax amounts /22 | 0 | 13 | 16 |
 | Printed final totals /49 | 0 | 34 | 41 |
 | Service/other known fees /8 | 0 | 4 | 7 |
-| Known price basis /9 | 0 | 0 | 5 |
+| Known price basis /9 | 0 | 0 | 6 |
 | Known grouping /14 | 3 | 11 | 11 |
 | Known merchant /6 | 1 | 1 | 1 |
 | Trusted reconciliation /49 | 0 | 0 | 0 |
@@ -363,14 +371,15 @@ branch. It is user context, not successful model currency recognition.
 
 Scoped product recall rises from 26.90% to 98.62%, and scoped precision from
 46.99% to 97.95%. Automatic line-price equality rises from 3.50% to 81.12%;
-explicit-currency equality is 93.01%. The latest conditional values are bound by
-[the financial-summary comparison](FINANCIAL_SUMMARY_FRAGMENTS.md), following
-[the source-word comparison](SOURCE_WORD_ALIGNMENT.md). These precision denominators reflect
+explicit-currency equality is 93.71%. The latest conditional values are bound by
+[the copied-price comparison](COPIED_PRICE_RECOVERY.md), following
+[financial-column recovery](FINANCIAL_WORD_COLUMNS.md) and the earlier
+[financial-summary comparison](FINANCIAL_SUMMARY_FRAGMENTS.md). These precision denominators reflect
 partial annotation scope: unmatched predictions are not automatically confirmed
 false purchases. Zero arithmetic discrepancy is not trusted reconciliation if
 currency, fields, charges or source review remain unresolved.
 
-The conditional result still misses two referenced rows and ten known line
+The conditional result still misses two referenced rows and nine known line
 prices, one quantity and eight copied final totals. Seven of eight service
 amounts match. All fifty drafts require review. Recoveries and tax-basis
 proposals are retained as unconfirmed source checks, rather than silently

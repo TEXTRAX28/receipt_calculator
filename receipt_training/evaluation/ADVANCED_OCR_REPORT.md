@@ -2,7 +2,15 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [local orientation-model pilot](DOCUMENT_ORIENTATION_PILOT.md) completes
+The latest [source-supported price recovery](COPIED_PRICE_RECOVERY.md) improves
+conditional original-fifty line prices 133/143 to 134/143. A unique source match,
+printed quantity and matching numeric token support one invalid-price proposal
+despite a name disagreement; mandatory source review remains. Other field
+counts are unchanged with no scored regressions. All 1,077 unit tests,
+typecheck and frontend build pass. The new browser check is unexecuted after
+the RAM guard refused startup. No new model calls or private uploads occurred.
+
+The preceding [local orientation-model pilot](DOCUMENT_ORIENTATION_PILOT.md) completes
 26 CPU classifications using a pinned 6.8 MB pretrained Paddle model. Only
 15/20 genuine-photo rotation views are correct, with one error above the frozen
 0.9 cutoff. Automatic rotation and app integration are rejected. These are five

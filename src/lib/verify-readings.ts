@@ -445,7 +445,11 @@ export function verifyIndependentReadings(
           leading &&
           sameAmount(owner.quantity, leading[1], receipt.currency, true) &&
           nameKey(owner.description) === nameKey(leading[2]));
-      if (!sameName) continue;
+      const sourceQuantity = source.item.quantity || leading?.[1];
+      const samePrintedQuantity =
+        !!sourceQuantity &&
+        sameAmount(owner.quantity, sourceQuantity, receipt.currency, true);
+      if (!sameName && !samePrintedQuantity) continue;
       const reduced =
         nameKey(owner.description) === nameKey(source.item.description)
           ? recoverReducedPriceRole(
@@ -488,6 +492,7 @@ export function verifyIndependentReadings(
           ? { text: columnLine.text, ...source.column[field] }
           : undefined;
       if (
+        sameName &&
         source.fieldGood("unitPrice") &&
         sameField(owner, source.item, "quantity", receipt.currency)
       ) {
@@ -556,6 +561,17 @@ export function verifyIndependentReadings(
       if (
         !evidence ||
         !raw.items[nativeIndex].sourcePhotos.includes(evidence.region.photo)
+      )
+        continue;
+      // The existing forced name/order match can tolerate a spelling difference.
+      // In that case require the same printed quantity and the same invalid
+      // grouped token, not just a different amount that happens to balance.
+      // Unit-price and reduced-price role recovery keep their exact-name rules.
+      if (
+        !sameName &&
+        (!/^-?\d{1,3}(?:[.,]\d{3})+$/.test(evidence.previous) ||
+          evidence.previous.replace(/,/g, ".") !==
+            evidence.literal.replace(/,/g, "."))
       )
         continue;
       owner.lineTotal = evidence.value;
