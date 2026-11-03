@@ -22,6 +22,12 @@ explicit confirmation while other checks still block. No application/test
 source, reader defaults, references, resource guards or cloud permissions
 changed. The preceding 1,095-unit pass remains the current unit-suite evidence.
 
+The subsequent [WebGPU compatibility preparation](BROWSER_WEBGPU_READINESS.md)
+uses the cached SDK/models and a synthetic-only input. Generated JavaScript
+syntax passes, but the 4 GiB startup guard refuses at 1,903,120,384 available
+bytes. No GPU inference or receipt trial starts; acceleration and model-result
+checks remain unverified. This does not change the measured WASM outcome above.
+
 The preceding [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
 thirteen process-test failures below. The termination command took about 6.6
 seconds on this host; its allowance is now ten seconds in both existing cleanup
