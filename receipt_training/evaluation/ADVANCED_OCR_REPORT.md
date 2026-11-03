@@ -2,13 +2,23 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
+The latest [browser tiny/medium trial](BROWSER_PADDLE_MEDIUM_RESULT.md) runs both
+cached models on the same fixed images. Tiny returns all eight in 23.672 seconds;
+medium returns seven before the unchanged 300-second deadline, leaving the
+Costco VAT/footer missing. The selected skewer code improves from `7` to `Z`,
+but medium is not promoted and the complete paired financial replay is not run.
+All partial evidence remains retained. The pending synthetic source-review phone
+test now passes at 320/390px with explicit price confirmation and other checks
+still blocking. Application/test source, financial references, defaults and
+cloud permissions remain unchanged; no upload, download or quota probe occurs.
+
+The preceding [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
 thirteen process-test failures below by allowing the existing termination
 command ten seconds in each cleanup path; the observed command took about
 6.6 seconds. All 35 process tests and all 1,095 unit tests pass, with no remaining
 fixture workers. Receipt interpretation and frontend build inputs are unchanged
-apart from the two backend timeouts. Phone plan v4 remains unexecuted under
-the existing RAM guard; no model call, upload or quota probe occurs.
+apart from the two backend timeouts. Phone plan v4 was unexecuted at that
+checkpoint and now passes above; that fix made no model call, upload or quota probe.
 
 The preceding [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
 false primary-reader purchases on the original fifty without changing matched

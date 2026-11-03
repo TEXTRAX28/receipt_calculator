@@ -11,14 +11,25 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
+The latest [local browser comparison](BROWSER_PADDLE_MEDIUM_RESULT.md) completes
+all eight tiny image reads in 23.672 seconds, while medium returns seven before
+the unchanged 300-second deadline. Its selected skewer code improves from `7`
+to `Z`, but the missing VAT/footer prevents the planned paired financial score;
+the medium browser model is not promoted. All fifteen returned image readings
+and the unfinished run are retained. The previously pending synthetic phone
+source-review journey now passes at 320/390px, preserving source links and
+explicit confirmation while other checks still block. No application/test
+source, reader defaults, references, resource guards or cloud permissions
+changed. The preceding 1,095-unit pass remains the current unit-suite evidence.
+
+The preceding [Windows worker cleanup fix](WINDOWS_WORKER_CLEANUP.md) resolves the
 thirteen process-test failures below. The termination command took about 6.6
 seconds on this host; its allowance is now ten seconds in both existing cleanup
 paths. All 35 focused process tests and all 1,095 unit tests pass, with no
 fixture workers left over. Typecheck, syntax, formatting and graph checks pass.
 The receipt libraries and frontend build inputs are unchanged apart from the
-two backend timeout values. The phone journey remains unexecuted in plan v4;
-medium plan v14 and all browser/model guards remain current and unchanged.
+two backend timeout values. At that checkpoint phone plan v4 and medium plan v14
+were unexecuted; their subsequent outcomes are recorded above.
 No model calls, uploads, quota probes or billing changes occurred.
 
 The preceding [item-count classification fix](ITEM_COUNT_SUMMARIES.md) removes two
@@ -424,6 +435,7 @@ peak working sets and limitations remain in their linked evidence packets.
 | Technology actually investigated | Measurement and decision |
 |---|---|
 | Tesseract.js | Preserved on-device option and reproducible baseline. Weak recognition on the supplied photographs. |
+| Browser PP-OCRv6 tiny / medium, WASM | Tiny completes all eight fixed sections in 23.672 seconds; medium returns seven before the 300-second guard. One selected tax letter improves, but whole-receipt completion fails. Medium is not promoted; paired financial scoring remains unexecuted. [Bounded trial](BROWSER_PADDLE_MEDIUM_RESULT.md). |
 | PaddleOCR PP-OCRv6, ONNX | Full original-cohort comparison; more labelled products than docTR with the same original parser. Selected practical computer OCR. Geometry and OCR scores are retained separately from parsing. |
 | docTR DB-ResNet50 / PARSeq | Full same-input comparison. Valid configurable alternative; did not beat Paddle on that comparison. |
 | Qwen3-VL 4B / pinned llama.cpp Vulkan | Full-cohort independent image extraction, row-first decoding, bounded batches and actual local API/browser flows. Selected optional local verifier/recovery alongside Paddle. It receives source images, not primary OCR text or references. It remains fallible and requires review. |
