@@ -18,7 +18,11 @@ const write = (name, value) =>
     flag: "wx",
   });
 const buildTag = process.argv[4] || "refund-document-validation-v1";
-assert(/^refund-document-validation-v[1-9]\d*$/.test(buildTag));
+assert(
+  /^(?:refund-document-validation|receipt-date-parser)-v[1-9]\d*$/.test(
+    buildTag,
+  ),
+);
 const buildFolder = "qa-artifacts/" + buildTag;
 const controller = JSON.parse(
   await readFile(resolve(root, buildFolder, "build-controller.json")),
@@ -131,6 +135,10 @@ try {
   assert.equal(item.unitPrice, "");
   assert.equal(state.receipt.printedTax, "-43.12");
   assert.equal(state.receipt.printedTotal, "-543.11");
+  assert.equal(state.receipt.date, "2026-07-21");
+  await expect(
+    page.getByLabel("Receipt date (optional)", { exact: true }),
+  ).toHaveValue("2026-07-21");
   assert(
     state.receipt.reviewChecks.some(
       (check) =>

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     tag = sys.argv[1]
     assert re.fullmatch(r"[\w-]+", tag)
-    assert sys.argv[2:] in ([], ["--phone"]) or (len(sys.argv) == 4 and sys.argv[2] == "--phone" and re.fullmatch(r"refund-document-validation-v[1-9]\d*", sys.argv[3]))
+    assert sys.argv[2:] in ([], ["--phone"]) or (len(sys.argv) == 4 and sys.argv[2] == "--phone" and re.fullmatch(r"(?:refund-document-validation|receipt-date-parser)-v[1-9]\d*", sys.argv[3]))
     script = "verify_refund_phone.mjs" if sys.argv[2:] else "benchmark_refund_receipts.mjs"
     control = ROOT / "qa-artifacts" / (tag + "-control")
     control.mkdir()

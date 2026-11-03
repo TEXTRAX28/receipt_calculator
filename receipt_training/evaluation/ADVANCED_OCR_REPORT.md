@@ -2,7 +2,16 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [published Costco refund study](PUBLISHED_COSTCO_REFUND.md) recovers
+The latest [OCR date-source integration](OCR_DATE_EVIDENCE.md) corrects both
+published dates in both device readers using the existing calendar helper.
+Ambiguous/invalid literals remain unresolved; date sources are retained rather
+than a locale inferred from currency. All 1,129 unit tests, typecheck/build and
+actual 320/390px production phone checks pass. Original-fifty dates, financial
+vectors, non-date checks and scored counts stay unchanged, including 2/5 known
+dates per reader/mode. No new model or private upload occurs; refund currency,
+quantity and tax setup remain pending. This does not complete the wider goal.
+
+The preceding [published Costco refund study](PUBLISHED_COSTCO_REFUND.md) recovers
 a signed product that both device readers had classified as a discount. Explicit
 refund-document evidence preserves the negative price with a pending source
 check. Its target improves 0/1 to 1/1 in both readers; positive control values

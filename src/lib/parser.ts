@@ -7,6 +7,7 @@ import {
   type ReceiptReviewField,
 } from "./model";
 import { printedAmount } from "./printed-amount";
+import { normalizeReceiptDate } from "./receipt-date";
 import { matchCostcoRow } from "./costco-row";
 import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
@@ -181,12 +182,16 @@ export function parseReceiptWithSources(
   };
   const isoDate = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
   const localDate = text.match(/\b(\d{1,2})[/.](\d{1,2})[/.](20\d{2})\b/);
-  if (isoDate) receipt.date = isoDate[0];
-  else if (localDate) {
-    receipt.date = `${localDate[3]}-${localDate[2].padStart(2, "0")}-${localDate[1].padStart(2, "0")}`;
-    receipt.warnings.push(
-      "Date interpreted as day/month/year. Confirm it against the receipt.",
+  const dateLiteral = isoDate?.[0] || localDate?.[0];
+  if (dateLiteral) {
+    receipt.date = normalizeReceiptDate(dateLiteral);
+    fieldSources.date = lines.flatMap((line, index) =>
+      line.includes(dateLiteral) ? [index] : [],
     );
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(receipt.date))
+      receipt.warnings.push(
+        "The printed date's order or calendar validity is unclear. Enter it from the original or clear this optional field.",
+      );
   }
   let taxAmount = "";
   const extraCharges: {

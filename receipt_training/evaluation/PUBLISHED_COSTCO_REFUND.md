@@ -6,6 +6,11 @@ parser proposed a receipt-wide discount and no product. An explicit refund
 heading now supports a **pending signed-product proposal**. This improves one
 published format; it does not establish a verified bill or general refund accuracy.
 
+The subsequent [date-source integration](OCR_DATE_EVIDENCE.md) corrects the two
+numeric dates without changing financial values. Date-gap statements below
+describe this earlier refund-classification checkpoint; currency, quantity and
+tax setup remain unresolved in the later date checkpoint too.
+
 ## Source and reference boundary
 
 Thrifle publishes the pair as the author's own Costco transaction. The downloaded

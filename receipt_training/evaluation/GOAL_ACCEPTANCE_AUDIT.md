@@ -11,6 +11,16 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The latest [OCR date integration](OCR_DATE_EVIDENCE.md) reuses the existing
+calendar helper instead of forcing every numeric date into day/month order.
+Both local readers now retain the two published dates correctly, with actual
+date-source indices; ambiguous/invalid literals stay unresolved. All 1,129
+unit tests, typecheck/build and actual 320/390px production phone checks pass.
+Every original-fifty financial vector, non-date check and scored count stays
+unchanged; its five known date targets remain 2/5 for each reader/mode. No new
+model, private upload or provider switch occurs. Currency, quantity and tax
+setup still block the published refund. This supersedes the 1,119-unit evidence.
+
 The latest [published Costco refund comparison](PUBLISHED_COSTCO_REFUND.md)
 finds both device readers copied a negative product but the parser made it a
 receipt discount. Explicit document-level refund evidence now retains a pending
