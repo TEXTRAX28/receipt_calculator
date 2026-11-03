@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [uppercase purchase-count fix](UPPERCASE_PURCHASE_COUNTS.md) makes
+The latest [broader orientation comparison](ONNXTR_ORIENTATION_COMPARISON.md)
+tests a new small model locally: its first five-photo pilot gets 20/20 views
+right, but the paired original-fifty trial gives 191/204 versus Paddle's
+188/204, with five versus two errors above the frozen 0.9 cutoff. On the other
+47 transactions, excluding pilot overlap, the new model does worse (179/192
+versus 181/192). Both single classifiers are rejected for automatic rotation;
+an exploratory agreement result is not a promotion gate. All 446 new orientation
+calls complete, with zero OCR calls or private uploads. Application source,
+financial scores and the preceding 1,104-unit/build evidence remain unchanged.
+
+The preceding [uppercase purchase-count fix](UPPERCASE_PURCHASE_COUNTS.md) makes
 `1 X Product` follow the existing reviewed proposal rule for `1 x Product`.
 Original-fifty primary quantities improve 30/120 to 32/120 in automatic mode
 and 32/120 to 34/120 with supplied currency. Saved medium CORD quantities improve

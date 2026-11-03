@@ -2,7 +2,17 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [uppercase purchase-count correction](UPPERCASE_PURCHASE_COUNTS.md)
+The latest [orientation-model comparison](ONNXTR_ORIENTATION_COMPARISON.md) runs
+a second lightweight classifier, with exact preprocessing checks and all
+original-fifty frames retained. Its small pilot improves 15/20 to 20/20, but
+the broader test gives 191/204 versus Paddle's 188/204 and five versus two
+mistakes above the frozen 0.9 cutoff. The new model loses on the other
+47 transactions (179/192 versus 181/192). Automatic rotation is rejected for
+both; post-result agreement is exploratory only. All 446 local classifications
+complete with no OCR calls or private uploads. Application source, financial
+references/scores, defaults and the prior 1,104-unit/build evidence stay unchanged.
+
+The preceding [uppercase purchase-count correction](UPPERCASE_PURCHASE_COUNTS.md)
 recovers two additional original-fifty primary quantities in each currency mode
 and eight more on the saved medium CORD readings (4/33 to 12/33). Prices, totals,
 other scored fields and hybrid accuracy remain unchanged. Required source
