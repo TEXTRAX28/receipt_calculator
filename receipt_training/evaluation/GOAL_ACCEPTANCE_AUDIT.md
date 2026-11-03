@@ -12,7 +12,24 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [field uncertainty audit](FIELD_UNCERTAINTY_AUDIT.md) executes 200 saved
+The latest [Costco word-column interpretation](COSTCO_COUPON_COLUMNS.md) recovers
+the Bristol backpack/egg coupons across joined and split OCR rows. Same-fifty
+hybrid discounts improve 5/7 to 7/7 and grouping 11/14 to 13/14 in both currency
+modes, removing two false coupon purchases. Primary supplied-currency quantities
+improve 34/120 to 36/120 and prices 120/143 to 121/143. All other 49 transaction
+facts/totals and every evaluation aggregate stay unchanged, with no scored
+regressions. All 1,231 unit tests, 174 focused cases, typecheck and build pass.
+The sixteen-case browser rerun is held before process creation by the unchanged
+RAM guard. Bristol still has a separate footer-as-product error and unavailable
+tax context; its whole transaction is not correct. No inference or upload occurs.
+
+The targeted retention check finds two additional missing historical generated
+graph declarations in the zero-price packet. Together with the thirteen already
+reported gaps, fifteen declarations are now known missing. This is recorded
+without rewriting the earlier packet or replacing its expected hashes. Current
+coupon source, tests, replay and graph evidence are retained separately.
+
+The preceding [field uncertainty audit](FIELD_UNCERTAINTY_AUDIT.md) executes 200 saved
 draft views and 2,324 known-field observations with unchanged source and truth.
 With supplied currency, specific checks mark 51/56 incorrect populated hybrid
 fields, including all seven incorrect line prices; two missed discounts and
@@ -518,27 +535,28 @@ branch. It is user context, not successful model currency recognition.
 | Field / available reference | Protected Tesseract baseline, automatic | Current hybrid, automatic | Current hybrid, explicit currency |
 |---|---:|---:|---:|
 | Matched priced rows /145 | 39 | 143 | 144 |
-| Predicted rows | 83 | 146 | 147 |
+| Predicted rows | 83 | 144 | 145 |
 | Exact normalized names /145 | 24 | 132 | 133 |
 | Quantities /120 | 3 | 119 | 119 |
 | Line totals /143 | 5 | 116 | 135 |
 | Unit prices /31 | 3 | 22 | 26 |
-| Item discounts /7 | 0 | 5 | 5 |
+| Item discounts /7 | 0 | 7 | 7 |
 | Receipt discounts /4 | 0 | 2 | 3 |
 | Printed subtotals /34 | 0 | 25 | 27 |
 | Printed tax amounts /22 | 0 | 13 | 16 |
 | Printed final totals /49 | 0 | 34 | 41 |
 | Service/other known fees /8 | 0 | 4 | 7 |
 | Known price basis /9 | 0 | 0 | 6 |
-| Known grouping /14 | 3 | 11 | 11 |
+| Known grouping /14 | 3 | 13 | 13 |
 | Known merchant /6 | 1 | 1 | 1 |
 | Trusted reconciliation /49 | 0 | 0 | 0 |
 | Strict whole-receipt accuracy | Unscorable | Unscorable | Unscorable |
 
 Automatic scoped product recall rises from 26.90% to 98.62%, and scoped
-precision from 46.99% to 97.95%. Supplied-currency recall is 99.31% and precision
-97.96%. Automatic line-price equality rises from 3.50% to 81.12%; explicit-
+precision from 46.99% to 99.31%. Supplied-currency recall and precision are both
+99.31%. Automatic line-price equality rises from 3.50% to 81.12%; explicit-
 currency equality is 94.41%. The latest conditional values are bound by
+[Costco word-column recovery](COSTCO_COUPON_COLUMNS.md) and
 [zero-price purchase recovery](ZERO_PRICE_PURCHASES.md), following
 [the copied-price comparison](COPIED_PRICE_RECOVERY.md),
 [financial-column recovery](FINANCIAL_WORD_COLUMNS.md) and the earlier

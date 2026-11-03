@@ -9,6 +9,7 @@ import {
 import { printedAmount } from "./printed-amount";
 import { normalizeReceiptDate } from "./receipt-date";
 import { matchCostcoRow } from "./costco-row";
+import { readCostcoWordRows, type ObservedCostcoRow } from "./costco-word-rows";
 import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
@@ -63,6 +64,7 @@ export function parseReceiptWithSources(
   sources: Record<string, number[]>;
   columnSources: Record<string, ColumnSource>;
   fieldSources: Partial<Record<ReceiptReviewField, number[]>>;
+  observedCostcoRows?: Partial<Record<number, ObservedCostcoRow>>;
 } {
   const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
@@ -342,6 +344,7 @@ export function parseReceiptWithSources(
   let pendingDescription = "";
   let pendingSource: number | undefined;
   let itemSectionEnded = false;
+  const observed = readCostcoWordRows(output, lines, isCostco);
   const separate = separatePurchaseRows(lines, PHOTO_SEPARATOR, isFinalTotal);
   const columns = columnPurchaseRows(
     lines,
@@ -363,6 +366,12 @@ export function parseReceiptWithSources(
       confirmedValue: "",
     });
   for (const [lineIndex, line] of lines.entries()) {
+    const observedRow = observed.rows[lineIndex];
+    if (observed.titles.has(lineIndex)) {
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     if (line === PHOTO_SEPARATOR) {
       itemSectionEnded = false;
       pendingDescription = "";
@@ -386,8 +395,8 @@ export function parseReceiptWithSources(
     }
     if (isFinalTotal(line)) itemSectionEnded = true;
     if (itemSectionEnded) continue;
-    if (columns.titles.has(lineIndex)) continue;
-    const column = columns.rows.get(lineIndex);
+    if (!observedRow && columns.titles.has(lineIndex)) continue;
+    const column = !observedRow && columns.rows.get(lineIndex);
     if (column) {
       const item = newItem();
       item.description = column.description.slice(0, 180);
@@ -426,20 +435,21 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    if (separateTitles.has(lineIndex)) {
+    if (!observedRow && separateTitles.has(lineIndex)) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
     if (
-      unmatchedSeparateRows.has(lineIndex) ||
-      columns.unmatched.includes(lineIndex)
+      !observedRow &&
+      (unmatchedSeparateRows.has(lineIndex) ||
+        columns.unmatched.includes(lineIndex))
     ) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
-    const separated = separate.rows.get(lineIndex);
+    const separated = !observedRow && separate.rows.get(lineIndex);
     if (separated) {
       const item = newItem();
       item.description = lines[separated.titleIndex].slice(0, 180);
@@ -549,9 +559,9 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    const costco = matchCostcoRow(line);
+    const costco = observedRow || matchCostcoRow(line);
     if (costco) {
-      const description = pendingDescription || "";
+      const description = observedRow?.description || pendingDescription || "";
       const negative = costco.deduction;
       const value = normalize(costco.lineTotal);
       if (negative) {
@@ -584,9 +594,21 @@ export function parseReceiptWithSources(
             previous.discount = value;
             sources[previous.id] = [
               ...(sources[previous.id] || []),
-              ...(pendingSource === undefined ? [] : [pendingSource]),
-              lineIndex,
+              ...(observedRow?.sourceIndices || [
+                ...(pendingSource === undefined ? [] : [pendingSource]),
+                lineIndex,
+              ]),
             ];
+            if (observedRow)
+              receipt.reviewChecks.push({
+                scope: "item",
+                itemId: previous.id,
+                field: "discount",
+                reason: "source",
+                other:
+                  "Confirm the coupon ownership and negative-code role across the original source fragments.",
+                confirmedValue: "",
+              });
             previous.note =
               "Separate discount matched to this preceding purchase. Confirm the match.";
             if (costco.taxCode && previous.taxCode !== costco.taxCode)
@@ -621,10 +643,29 @@ export function parseReceiptWithSources(
           item.note =
             "Purchased quantity looked like I or l rather than a number. Confirm it against the original.";
         receipt.items.push(item);
-        sources[item.id] = [
+        sources[item.id] = observedRow?.sourceIndices || [
           ...(pendingSource === undefined ? [] : [pendingSource]),
           lineIndex,
         ];
+        if (observedRow) {
+          item.note =
+            "Quantity and price roles interpreted from adjacent source fragments. Check every role against the original.";
+          for (const field of [
+            "quantity",
+            "unitPrice",
+            "lineTotal",
+            "taxCode",
+          ] as const)
+            receipt.reviewChecks.push({
+              scope: "item",
+              itemId: item.id,
+              field,
+              reason: "source",
+              other:
+                "Check the roles of the actual words across these source fragments.",
+              confirmedValue: "",
+            });
+        }
       }
       pendingDescription = "";
       pendingSource = undefined;
@@ -843,5 +884,8 @@ export function parseReceiptWithSources(
     sources,
     columnSources,
     fieldSources,
+    ...(Object.keys(observed.rows).length
+      ? { observedCostcoRows: observed.rows }
+      : {}),
   };
 }

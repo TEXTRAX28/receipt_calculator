@@ -2,7 +2,26 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [field uncertainty study](FIELD_UNCERTAINTY_AUDIT.md) measures the
+The latest [Costco coupon-column repair](COSTCO_COUPON_COLUMNS.md) uses actual
+word positions to interpret joined and fragmented rows, retaining source regions
+and mandatory role checks. On the same fifty saved readings, hybrid known
+discounts improve 5/7 to 7/7 and grouping 11/14 to 13/14, removing two false
+coupon purchases in both currency modes. Primary supplied-currency quantities
+improve 34/120 to 36/120 and prices 120/143 to 121/143. Only Bristol changes;
+the other 49 transaction facts/totals and evaluation aggregates are unchanged.
+All 1,231 unit tests, 174 focused cases, typecheck and isolated build pass.
+The sixteen-case browser rerun is unexecuted after a RAM-guard refusal. Bristol
+still misclassifies its footer and lacks tax evidence, so no whole-transaction
+success is claimed. No new inference, upload or provider-default change occurs;
+existing confidence thresholds remain in place. The wider goal stays active.
+
+The retention check also identifies two missing older generated-graph records
+in the zero-price packet, in addition to thirteen previously reported historical
+declarations. Current coupon source, tests and replay evidence are intact; the
+new graph is not substituted for the missing historical versions. Exact missing
+hashes and the checked recovery locations are retained with this checkpoint.
+
+The preceding [field uncertainty study](FIELD_UNCERTAINTY_AUDIT.md) measures the
 actual source/validation checks on 200 frozen draft views and 2,324 known-field
 observations. With supplied currency, 51/56 incorrect populated hybrid fields
 are individually marked. Two missed discounts on the Bristol Costco receipt

@@ -176,7 +176,10 @@ export function verifyIndependentReadings(
   const receipt = receiptFromAi(raw, "Local vision", context);
   const originalItems = receipt.items;
   const assembled = assembleRecognition(recognition);
-  const parsed = parseReceiptWithSources(assembled.text, context);
+  const parsed = parseReceiptWithSources(
+    { ...assembled, recognition },
+    context,
+  );
   const zeroPriceRows = readZeroPriceRows(
     parsed,
     assembled.sourceLines,
@@ -205,6 +208,20 @@ export function verifyIndependentReadings(
     );
   const ocr = parsed.receipt,
     lines = assembled.sourceLines;
+  const costcoRowAt = (index: number) => {
+    const observed = parsed.observedCostcoRows?.[index];
+    if (observed) return observed;
+    const line = lines[index],
+      row = line && matchCostcoRow(line.text);
+    return row
+      ? {
+          ...row,
+          description: undefined,
+          titleIndex: index - 1,
+          sourceIndices: [index - 1, index],
+        }
+      : null;
+  };
   // A crop can start at a purchase while retaining independent retailer context.
   // Keep an unrecognized heading from being overridden by product-name markers.
   const firstSourceLine = lines.findIndex((line) => line !== null);
@@ -246,12 +263,15 @@ export function verifyIndependentReadings(
     const regions = indices.flatMap((index) =>
       lines[index] ? [lines[index]!] : [],
     );
-    const positive = regions.filter((region) => {
-      const row = matchCostcoRow(region.text);
-      return row && !row.deduction;
+    const positive = indices.flatMap((index) => {
+      const row = costcoRowAt(index);
+      return row && !row.deduction && lines[index] ? [lines[index]!] : [];
     });
     const fieldGood = (field: (typeof itemReviewFields)[number]) => {
-      if (positive.length !== 1)
+      if (
+        positive.length !== 1 ||
+        indices.some((index) => parsed.observedCostcoRows?.[index])
+      )
         return (
           regions.length > 0 &&
           regions.every((region) => reliable(region, recognition))
@@ -260,7 +280,9 @@ export function verifyIndependentReadings(
         field === "description"
           ? regions.slice(0, regions.indexOf(positive[0]))
           : field === "discount"
-            ? regions.filter((region) => matchCostcoRow(region.text)?.deduction)
+            ? regions.filter(
+                (region) => costcoRowAt(lines.indexOf(region))?.deduction,
+              )
             : positive;
       return (
         relevant.length > 0 &&
@@ -320,7 +342,7 @@ export function verifyIndependentReadings(
     regions: (() => {
       const regions = sourceRows[sourceIndex].regions;
       const positive = regions.findIndex(
-        (region) => matchCostcoRow(region.text)?.deduction === false,
+        (region) => costcoRowAt(lines.indexOf(region))?.deduction === false,
       );
       // The coupon is a distinct printed row, even when its amount belongs to this purchase.
       return positive >= 0 ? regions.slice(0, positive + 1) : regions;
@@ -331,8 +353,8 @@ export function verifyIndependentReadings(
     const candidates: EvidenceLine[][] = [];
     for (let index = 1; index < lines.length; index++) {
       const line = lines[index],
-        title = lines[index - 1];
-      const row = line && matchCostcoRow(line.text);
+        row = costcoRowAt(index),
+        title = row ? lines[row.titleIndex] : null;
       if (
         !line ||
         !title ||
@@ -340,7 +362,7 @@ export function verifyIndependentReadings(
         title.photo !== line.photo ||
         title.part !== line.part ||
         !item.sourcePhotos.includes(line.photo) ||
-        nameKey(title.text) !== nameKey(item.description) ||
+        nameKey(row.description || title.text) !== nameKey(item.description) ||
         !reliable(line, recognition) ||
         !reliable(title, recognition)
       )
@@ -372,7 +394,11 @@ export function verifyIndependentReadings(
           item.taxCode === row.taxCode &&
           sameAmount(item.discount || "0", "0", receipt.currency)
         )
-          candidates.push([title, line]);
+          candidates.push(
+            [...new Set(row.sourceIndices)].flatMap((i) =>
+              lines[i] ? [lines[i]!] : [],
+            ),
+          );
       } catch {
         /* An ambiguous printed deduction supplies no row identity. */
       }
@@ -640,23 +666,23 @@ export function verifyIndependentReadings(
       const owner = receipt.items[nativeIndex],
         source = sourceRows[sourceIndex];
       const positive = source.indices.flatMap((index) => {
-        const row = lines[index] && matchCostcoRow(lines[index]!.text);
+        const row = costcoRowAt(index);
         return row && !row.deduction
           ? [{ index, row, region: lines[index]! }]
           : [];
       });
       const deductions = source.indices.flatMap((index) => {
-        const row = lines[index] && matchCostcoRow(lines[index]!.text);
+        const row = costcoRowAt(index);
         return row?.deduction ? [{ index, row, region: lines[index]! }] : [];
       });
       if (!source.good || positive.length !== 1 || deductions.length !== 1)
         continue;
       const purchase = positive[0],
         coupon = deductions[0],
-        title = lines[coupon.index - 1];
+        title = lines[coupon.row.titleIndex];
       if (
         !title ||
-        coupon.index !== purchase.index + 2 ||
+        coupon.row.titleIndex !== purchase.index + 1 ||
         coupon.region.photo !== purchase.region.photo ||
         title.photo !== coupon.region.photo ||
         !coupon.row.taxCode ||
@@ -689,7 +715,8 @@ export function verifyIndependentReadings(
         if (paired.has(index) || removed.has(index)) continue;
         const candidate = receipt.items[index];
         if (
-          nameKey(candidate.description) !== nameKey(title.text) ||
+          nameKey(candidate.description) !==
+            nameKey(coupon.row.description || title.text) ||
           !raw.items[index].sourcePhotos.includes(coupon.region.photo)
         )
           continue;
@@ -819,7 +846,7 @@ export function verifyIndependentReadings(
   }[] = [];
   if (costcoSource) {
     const negativeRows = lines.filter(
-      (line) => line && matchCostcoRow(line.text)?.deduction,
+      (line, index) => line && costcoRowAt(index)?.deduction,
     );
     let couponCount = 0,
       couponTotal = 0n;
@@ -827,7 +854,7 @@ export function verifyIndependentReadings(
       const owner = originalItems[nativeIndex],
         source = sourceRows[sourceIndex];
       const coupons = source.regions.filter(
-        (region) => matchCostcoRow(region.text)?.deduction,
+        (region) => costcoRowAt(lines.indexOf(region))?.deduction,
       );
       if (
         !source.good ||
@@ -843,15 +870,15 @@ export function verifyIndependentReadings(
         )
       )
         continue;
-      const coupon = matchCostcoRow(coupons[0].text)!;
+      const coupon = costcoRowAt(lines.indexOf(coupons[0]))!;
       const purchase = source.regions
-        .map((region) => ({ region, row: matchCostcoRow(region.text) }))
+        .map((region) => ({ region, row: costcoRowAt(lines.indexOf(region)) }))
         .find(({ row }) => row && !row.deduction);
       if (
         !purchase?.row ||
         purchase.row.taxCode !== coupon.taxCode ||
         purchase.region.photo !== coupons[0].photo ||
-        lines.indexOf(coupons[0]) !== lines.indexOf(purchase.region) + 2
+        coupon.titleIndex !== lines.indexOf(purchase.region) + 1
       )
         continue;
       try {
