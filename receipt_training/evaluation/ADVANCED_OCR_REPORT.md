@@ -2,7 +2,17 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [orientation-model comparison](ONNXTR_ORIENTATION_COMPARISON.md) runs
+The latest [docTR/Paddle hybrid comparison](DOCTR_HYBRID_COMPARISON.md) pairs
+all fifty transactions on exact current image bytes with the same saved vision
+drafts and frozen verifier/references. Six local docTR rereads repair historical
+input-size mismatches; 45 other panels reuse exact native observations. Across
+400 replay views, Paddle controls retain every previous count. A direct docTR
+substitution lowers conditional prices 134/143 to 128/143, fees 7/8 to 5/8 and
+price basis 6/9 to 2/9; two subtotals and Bristol coupon/grouping improve. The
+replacement is rejected. No new vision call, upload, app/default change or
+billing activation occurs. Full financial accuracy and the wider goal stay open.
+
+The preceding [orientation-model comparison](ONNXTR_ORIENTATION_COMPARISON.md) runs
 a second lightweight classifier, with exact preprocessing checks and all
 original-fifty frames retained. Its small pilot improves 15/20 to 20/20, but
 the broader test gives 191/204 versus Paddle's 188/204 and five versus two

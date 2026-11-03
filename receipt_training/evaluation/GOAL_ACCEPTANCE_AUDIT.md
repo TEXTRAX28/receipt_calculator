@@ -11,7 +11,17 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [broader orientation comparison](ONNXTR_ORIENTATION_COMPARISON.md)
+The latest [same-vision docTR/Paddle comparison](DOCTR_HYBRID_COMPARISON.md)
+reuses 45 exact matching docTR panels and rereads six whose older JPEGs differ
+by one pixel in height. All fifty transactions are compared on identical current
+inputs, the same saved vision drafts and unchanged frozen references/verifier.
+Paddle controls reproduce all prior counts. docTR lowers supplied-currency
+hybrid prices 134/143 to 128/143, fees 7/8 to 5/8 and tax basis 6/9 to 2/9,
+despite two subtotal gains and a Bristol coupon/grouping improvement. Its direct
+replacement is rejected. All six new CPU OCR calls and 400 replay views complete;
+no new VLM call, upload, app/default change or billing activation occurs.
+
+The preceding [broader orientation comparison](ONNXTR_ORIENTATION_COMPARISON.md)
 tests a new small model locally: its first five-photo pilot gets 20/20 views
 right, but the paired original-fifty trial gives 191/204 versus Paddle's
 188/204, with five versus two errors above the frozen 0.9 cutoff. On the other
