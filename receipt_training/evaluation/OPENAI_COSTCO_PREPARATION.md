@@ -6,6 +6,13 @@ was made.** This is an optional next comparison, not an enabled application
 provider or a measured recognition improvement. Setup preference and upload
 approval remain unresolved. The twelve-phase goal remains incomplete.
 
+**Historical preparation from `a7f8cd7`.** Subsequent refund-parser/review changes
+supersede its frozen application source. Its seven passing checks describe that
+earlier checkpoint; the command below intentionally refuses changed source.
+Do not treat it as current-app readiness or execute the old packet. If the user
+chooses this option, create a new unused preparation after a bounded sender is
+implemented and checked. No upload approval has been granted.
+
 ## Candidate and fixed comparison
 
 The proposed provider is OpenAI's Responses API, model `gpt-6-astra`, with medium

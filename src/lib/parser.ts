@@ -87,6 +87,13 @@ export function parseReceiptWithSources(
   }
   const isCostco =
     /costco|\bKS ROTISS|\bIRC BELVEDERE|\bCHICKEN SKEWER 15/i.test(text);
+  const refundHeadingSources = lines.flatMap((line, index) =>
+    /^(?:APPROVED\s*[-:]\s*REFUND|REFUND\s+RECEIPT|RETURN\s+RECEIPT|CREDIT\s+NOTE)\s*$/i.test(
+      line,
+    )
+      ? [index]
+      : [],
+  );
   receipt.merchant = isCostco
     ? "Costco"
     : (
@@ -655,10 +662,17 @@ export function parseReceiptWithSources(
         (isCostco && /^(?:\d{1,12}\s+)?IRC\b/i.test(description)) ||
         percentDeduction;
       const printedNegative = /[-−]/.test(generic[2]);
+      const documentCredit =
+        printedNegative &&
+        !deduction &&
+        !quantity &&
+        !/\b(?:return(?:ed)?|refund(?:ed)?)\b/i.test(description) &&
+        refundHeadingSources.length > 0;
       const ambiguous =
         printedNegative &&
         !deduction &&
         !quantity &&
+        !documentCredit &&
         !/\b(?:return(?:ed)?|refund(?:ed)?)\b/i.test(description);
       if (deduction || ambiguous) {
         const adjustment = {
@@ -738,9 +752,21 @@ export function parseReceiptWithSources(
                 "The printed credit amount was not readable. Check its sign and the unit-price calculation.",
               confirmedValue: "",
             });
+          if (documentCredit)
+            receipt.reviewChecks.push({
+              scope: "item",
+              itemId: item.id,
+              field: "lineTotal",
+              reason: "classification",
+              other:
+                "The document is marked as a refund or credit note. Confirm this signed product credit and who receives it; a named coupon remains a separate deduction.",
+              confirmedValue: "",
+            });
         }
         receipt.items.push(item);
-        sources[item.id] = [lineIndex];
+        sources[item.id] = documentCredit
+          ? [lineIndex, ...refundHeadingSources.slice(0, 3)]
+          : [lineIndex];
       }
       pendingDescription = "";
       pendingSource = undefined;

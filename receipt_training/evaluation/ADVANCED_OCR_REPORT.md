@@ -2,12 +2,24 @@
 
 Current consolidated status, 3 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-An [optional OpenAI comparison](OPENAI_COSTCO_PREPARATION.md) prepares the two
+The latest [published Costco refund study](PUBLISHED_COSTCO_REFUND.md) recovers
+a signed product that both device readers had classified as a discount. Explicit
+refund-document evidence preserves the negative price with a pending source
+check. Its target improves 0/1 to 1/1 in both readers; positive control values
+and all original-fifty financial vectors/counts remain unchanged. Actual built
+phone upload/read/review/source checks pass at 320/390px without edits or approval,
+and a narrow item-error layout is corrected. All 1,119 unit tests, typecheck and
+isolated build pass. The published pair is one related development family with
+partial truth, not a complete-receipt success; currency, quantity, US date and
+tax setup remain pending. No private upload, provider switch or billing change.
+
+The preceding [optional OpenAI comparison](OPENAI_COSTCO_PREPARATION.md) prepares the two
 existing Costco crops without a live sender, credentials or API calls. Seven
 offline protocol checks and local JPEG decode/metadata inspection pass; the
 US$0.38 / US$0.51 local cost estimates are not billing caps. Account setup,
 fresh upload approval, remote compatibility and measured accuracy remain open.
-No provider, application default, financial score or resource guard changes.
+No provider, application default, financial score or resource guard changes at
+that checkpoint. Its frozen source is superseded by the refund fix above.
 
 The latest [docTR/Paddle hybrid comparison](DOCTR_HYBRID_COMPARISON.md) pairs
 all fifty transactions on exact current image bytes with the same saved vision

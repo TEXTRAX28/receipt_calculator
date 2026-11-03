@@ -2978,6 +2978,14 @@ input[aria-invalid="true"] {
   .item-editor-top .field input {
     width: 100%;
   }
+  .item-editor-top:has(> .field > .field-error) > .field {
+    grid-column: 1 / -1;
+  }
+  .item-editor-top:has(> .field > .field-error) > .item-cost {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding-bottom: 0;
+  }
   .upload-actions {
     flex-direction: column;
   }

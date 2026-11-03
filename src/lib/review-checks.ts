@@ -109,7 +109,9 @@ export function reviewMessage(check: ReviewCheck): string {
         : ""
     }${check.other ? ` ${check.other}` : ""}`;
   if (check.reason === "classification")
-    return "The negative row could be a discount or a refund. Check its type and ownership against the original before confirming the receipt adjustments.";
+    return check.scope === "item"
+      ? "The document marks a refund or credit. Check the signed product row and refund heading, then confirm who receives the credit."
+      : "The negative row could be a discount or a refund. Check its type and ownership against the original before confirming the receipt adjustments.";
   if (check.reason === "document")
     return "PDF text may omit purchases stored as images or differ from the visible page. Compare every purchase and amount with the page previews.";
   const label = reviewFieldLabels[check.field];

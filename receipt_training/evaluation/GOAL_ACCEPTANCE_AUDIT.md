@@ -11,6 +11,18 @@ financial acceptance and public-release readiness have not been demonstrated.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The latest [published Costco refund comparison](PUBLISHED_COSTCO_REFUND.md)
+finds both device readers copied a negative product but the parser made it a
+receipt discount. Explicit document-level refund evidence now retains a pending
+signed product, improving that target 0/1 to 1/1 in both readers. The positive
+control and every original-fifty scored count/field vector stay unchanged.
+Both source regions, blocked confirmation and 320/390px fit pass in the actual
+production phone interface; the long item warning now uses the full row width.
+All 1,119 unit tests, typecheck and isolated build pass. This is one publisher-
+reported transaction family with partial references, not a blind or complete-
+receipt success. Quantity, dollar currency, US date and tax setup remain pending;
+basic OCR also loses decimal points. No private upload or provider switch occurs.
+
 An [optional OpenAI two-crop comparison](OPENAI_COSTCO_PREPARATION.md) is now
 prepared offline while existing provider quotas remain exhausted. Seven local
 protocol checks and both JPEG decode/metadata inspections pass. There is no
@@ -18,7 +30,8 @@ live sender or credential loader; no API request, credit activation, quota probe
 or billing change occurs. The US$0.38 standard / US$0.51 extra-input-allowance
 figures are local estimates, not spending caps. Model compatibility, account
 access and receipt accuracy remain untested; setup preference and fresh upload
-approval are unresolved. Application defaults and financial scores are unchanged.
+approval are unresolved. That preparation's frozen source is superseded by the
+refund correction above; a future trial needs a new preserved preparation.
 
 The latest [same-vision docTR/Paddle comparison](DOCTR_HYBRID_COMPARISON.md)
 reuses 45 exact matching docTR panels and rereads six whose older JPEGs differ
@@ -48,7 +61,7 @@ and 32/120 to 34/120 with supplied currency. Saved medium CORD quantities improv
 hybrid results remain unchanged and the incomplete medium UK delivery remains
 a failure. All 1,104 unit tests, typecheck and isolated build pass. No new
 inference, browser execution or cloud upload occurs; source review remains
-mandatory. This is the current unit-suite evidence.
+mandatory. The refund checkpoint above supersedes this unit-suite evidence.
 
 The preceding [saved-output delivery analysis](BROWSER_PADDLE_DELIVERY_ANALYSIS.md)
 finds medium improves exact CORD names 15/33 to 27/33 and supplied-currency
@@ -426,9 +439,12 @@ unchanged; later column and source-word packets supplement it. Raw receipts, mod
 local artifacts remain ignored by Git. Exact old source bytes are used when a
 previous checkpoint explicitly archived them.
 
-The global evidence audit still has **thirteen disclosed legacy missing artifact
-declarations**, across three older checkpoints. New tests cannot restore those
-historical bytes, screenshots or timings. No zero-gap claim is made.
+The last completed global evidence audit disclosed **thirteen legacy missing
+artifact declarations**, across three older checkpoints. The refund checkpoint's
+full historical re-audit exceeds its deadline; its targeted changed-file audit
+verifies all 187 relevant prior declarations with exact-byte archive fallback.
+New tests cannot restore the thirteen historical bytes, screenshots or timings.
+No fresh full-manifest or zero-gap claim is made.
 
 ## 3. Measured before and after
 
@@ -583,7 +599,7 @@ means implemented or investigated but a material acceptance condition remains.
 | P5: Costco packaging vs purchased quantity, codes/VAT, coupons, summaries, retailer rules while remaining general-purpose | UK financial vector and checked split pass; source-supported codes/coupons and general CORD/Tesco comparisons exist. | Generic Costco/general-retail reliability remains partial. Do not infer six purchased packs from a product's pack-size name or assume all retailers' A/Z meanings. |
 | P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; Azure/Veryfi/Gemini persistent finite local allowances and scan consent. The six Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. The proposed two-image trial is unapproved/unrun after exhausted quota. | Public terms/region/retention review and account-specific training commitments remain incomplete. A shared-directory local request allowance is not an authenticated public or account-wide spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
-| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and browser journeys, including signed refund-credit ownership and rounding. | Genuine refund-format accuracy is unmeasured; this does not invalidate the tested exact allocation rules. |
+| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and browser journeys, including signed refund-credit ownership and rounding. A published refund example now preserves its signed product in both device readers and the production phone UI. | Full financial recognition/finalized splitting of the published refund remains unverified; no quantity or tax rate is invented. Broader genuine-format and independent human validation remain open. |
 | P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Live local camera preview with approximate edges and quality advice, explicit capture/review/retake, overlapping sections, native picker fallback; responsive editing/rereads/assignments and checked summaries. | Physical-device camera and Safari, genuine live guidance accuracy and calibrated clipping/pose diagnostics remain open. Browser camera streams are simulated; actual JPEG/OCR/splitting is tested. |
 | P10: secure uploads/types/size, hostile data/prompt injection, validation/rate/auth/keys/logs/retention/retries/quotas/privacy | Local boundary reviewed/tested; new Gemini envelope/dimension guard; provider output remains untrusted, no model tools; finite cloud allowances where implemented. | Public authentication/TLS, multi-user quotas/spend limits, durable jobs/crash cleanup/OS isolation and jurisdiction-specific privacy acceptance are not delivered. Loopback checks are not public authentication. |
 | P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Fresh current software checks pass; original-fifty native readings and latest offline field replay preserved; actual local-model and synthetic/provider browser paths distinguished. | Latest full native latency cohort, genuine new input types, independent full financial truth and real handset evidence are incomplete. Thirteen historical artifact declarations cannot be reproduced from missing bytes. |
