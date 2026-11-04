@@ -119,12 +119,47 @@ test("joined and fragmented coupons retain their original source regions and req
       .click();
   }
   expect((await readSaved()).receipt).toEqual(before.receipt);
+  // This fixture needs per-item discount review, not a purchase-list check.
+  // Confirming one recovered coupon must leave the other coupon unconfirmed.
   await page
+    .getByRole("button", { name: "View source for item 1", exact: true })
+    .click();
+  const firstSource = page.getByRole("dialog", {
+    name: "Receipt source for purchase 1",
+    exact: true,
+  });
+  await firstSource
     .getByRole("checkbox", {
-      name: "I checked purchase list against the original",
+      name: "I checked item discount against the original",
       exact: true,
     })
     .check();
+  await firstSource
+    .getByRole("button", { name: "Back to receipt", exact: true })
+    .click();
+  const afterFirst = await readSaved();
+  expect(afterFirst.receipt.items).toEqual(before.receipt.items);
+  const discountChecks = (itemId: string) =>
+    afterFirst.receipt.reviewChecks.filter(
+      (check: { scope: string; field: string; itemId?: string }) =>
+        check.scope === "item" &&
+        check.field === "discount" &&
+        check.itemId === itemId,
+    );
+  const firstChecks = discountChecks(before.receipt.items[0].id);
+  const secondChecks = discountChecks(before.receipt.items[1].id);
+  expect(firstChecks.length).toBeGreaterThan(0);
+  expect(secondChecks.length).toBeGreaterThan(0);
+  expect(
+    firstChecks.every(
+      (check: { confirmedValue: string }) => !!check.confirmedValue,
+    ),
+  ).toBe(true);
+  expect(
+    secondChecks.every(
+      (check: { confirmedValue: string }) => check.confirmedValue === "",
+    ),
+  ).toBe(true);
   await expect(
     page.getByRole("button", {
       name: "Confirm receipt & add people",

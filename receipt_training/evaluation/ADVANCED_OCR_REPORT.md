@@ -2,7 +2,19 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The [small local OCR comparison preparation](SMALL_LOCAL_OCR_READINESS.md)
+The [local LightOnOCR comparison and browser follow-up](LIGHTON_LOCAL_SCREEN.md)
+executes two fixed five-development-crop profiles and two synthetic controls.
+The corrected vendor-template profile still matches only 18/23 known line prices
+and 18/24 purchases with supplied currency, versus the current hybrid's 22/23
+and 24/24. Empty and rejected outputs remain in the denominators; no reader is
+promoted. Nineteen literal-format controls pass. All 22 pending browser protocol
+cases now pass after a test-only coupon-review correction, including phone-width
+manual fee/tax splitting. Current typecheck passes; application implementation
+and the earlier 1,300-unit source are unchanged. This is Chrome emulation, not
+hardware-phone or new browser OCR accuracy. Twelve new native calls stay local;
+OpenAI credits remain unused and the full goal stays active.
+
+The preceding [small local OCR comparison preparation](SMALL_LOCAL_OCR_READINESS.md)
 downloads and checksum-verifies LightOnOCR-3 1B after a retained transfer failure
 and preflight refusal. Its synthetic startup is then stopped by the unchanged
 runtime memory floor, with no transcription or private-receipt candidate scan.
@@ -13,9 +25,9 @@ The [retention audit follow-up](EVIDENCE_RETENTION_AUDIT.md) covers all 119 froz
 aggregate reports: 76,042 of 76,057 declarations resolve exactly; the same fifteen
 historical gaps remain, with no new losses. All sixteen evaluation-tool controls
 and normal discovery pass. Eight bounded batches establish full input coverage;
-the failed single-process attempts are retained. Application bytes still match
-the 1,300-test source, with no new browser, receipt-reader inference or provider
-receipt request.
+the failed single-process attempts are retained. At that retention checkpoint,
+application bytes match the 1,300-test source, with no new browser,
+receipt-reader inference or provider receipt request.
 
 The [worker shutdown and regression follow-up](WORKER_SHUTDOWN_SAFETY.md) passes
 all 1,300 unit tests, 39 focused reader cases, typecheck and build. It preserves
