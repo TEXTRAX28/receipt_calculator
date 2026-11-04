@@ -12,7 +12,22 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [fresh grouping evaluation](FRESH_GROUPING_EVALUATION.md) freezes
+The latest [Gemini percentage-rate recovery](GEMINI_PERCENT_RATE_RECOVERY.md)
+keeps bounded percentage literals editable with explicit source review, while
+strict local decoding and financial validation remain intact. The saved
+two-crop response passes current intake without changing model money or coupon
+ownership. A current 390px saved-response UI workflow completes after two manual
+rate edits, four discount edits and four coupon-row removals: £176.78 becomes
+£88.39 each. No new provider accuracy, external receipt upload, real key access or OpenAI use
+is claimed. All 1,390 unit cases across 78 files, the standard full strict
+typecheck, compilation, changed-file formatting and graph checks pass. Four
+unrelated passing unit shards are reused after a test-only expectation update;
+their runtime/helper/test sources are unchanged. The preview deadline and
+missing graceful HTTP-close transcript remain explicit failures. Its owned
+process is absent; the client completes offline and the viewport/user tab are
+preserved. Coupon accuracy and the broader goal remain unfinished.
+
+The preceding [fresh grouping evaluation](FRESH_GROUPING_EVALUATION.md) freezes
 source/model before reading twelve project-reserved CORD test sources. Eleven
 readings return; one oversized original remains a raw research-boundary failure
 in the full cohort rather than disappearing from the denominator. Partial

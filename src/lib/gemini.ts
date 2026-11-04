@@ -102,6 +102,26 @@ export function receiptFromAi(
     receipt.warnings.push(
       "Some reader amounts contain grouping separators. They are kept exactly as returned. Check their meaning and currency, then enter decimal amounts before sharing.",
     );
+  const percentRates = receipt.taxCodes.filter((entry) =>
+    entry.rate.endsWith("%"),
+  );
+  if (percentRates.length) {
+    receipt.reviewChecks.push({
+      scope: "receipt",
+      field: "taxCodes",
+      reason: "source",
+      other:
+        "Check the printed tax rates. Enter a decimal percentage, such as 20 for 20%, before applying tax.",
+      details: percentRates.map((entry) => ({
+        label: `Tax code ${entry.code}`,
+        value: entry.rate,
+      })),
+      confirmedValue: "",
+    });
+    receipt.warnings.push(
+      "Some reader tax rates include a percent sign. They are kept exactly as returned. Check the printed rates and enter decimal percentages before applying tax.",
+    );
+  }
   if (selected) {
     receipt.warnings.push(
       `Receipt currency supplied by you: ${selected.currency}. Returned model amounts have not been reinterpreted or converted.`,

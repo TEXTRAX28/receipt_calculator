@@ -89,7 +89,7 @@ export const aiReceiptSchema =
 
 // Gemini can copy printed grouping despite the canonical request contract.
 // Preserve these bounded literals as invalid financial inputs, never normalize
-// them here. Quantities, tax rates, keys, photo references and bounds stay strict.
+// them here. Quantities, keys, photo references and bounds stay strict.
 const groupedAmount = z
   .string()
   .max(40)
@@ -100,11 +100,21 @@ const groupedSignedAmount = z
   .regex(/^-?[0-9]{1,3}(?:,[0-9]{3}){1,3}(?:[.][0-9]{1,6})?$/);
 const draftAmount = amount.or(groupedAmount);
 const draftSignedAmount = signedAmount.or(groupedSignedAmount);
+// Preserve a bounded printed percentage for explicit review, not calculation.
+// The canonical schema and provider request still require plain decimal rates.
+const percentRate = z
+  .string()
+  .max(40)
+  .regex(/^[0-9]{1,3}(?:[.][0-9]{1,6})?%$/)
+  .refine((value) => Number(value.slice(0, -1)) <= 100);
 export const geminiReceiptDraftSchema = receiptStructure
   .extend({
     subtotal: draftSignedAmount,
     printedTotal: draftSignedAmount,
     printedTax: draftSignedAmount,
+    taxCodes: z
+      .array(z.strictObject({ code, rate: amount.or(percentRate) }))
+      .max(20),
     items: z
       .array(
         receiptStructure.shape.items.element.extend({

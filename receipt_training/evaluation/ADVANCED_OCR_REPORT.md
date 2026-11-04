@@ -1,6 +1,20 @@
 # Advanced OCR investigation — work in progress
 
-Latest evaluation checkpoint, 4 November 2026:
+Latest implementation checkpoint, 4 November 2026:
+[Gemini percentage-rate recovery](GEMINI_PERCENT_RATE_RECOVERY.md) preserves
+bounded literal rates such as `20.00%` in an editable, source-checked draft.
+The unchanged saved response now passes server/client intake; monetary strings
+and coupon errors remain unchanged. At 390px, manual correction of two rates,
+four discounts and four extra coupon rows gives £163.16 + £13.62 VAT = £176.78,
+then £88.39 each for two people. This is a local saved-response fixture and
+assisted workflow, not new provider accuracy. All 1,390 unit cases across 78
+files, standard full strict typecheck, isolated compilation, formatting and
+graph checks pass. The preview deadline and missing graceful HTTP close are
+retained; the loaded client completes after backend termination. No live
+provider call, real key load, default-provider change or OpenAI use occurs.
+The whole goal remains active.
+
+Preceding evaluation checkpoint, 4 November 2026:
 [frozen fresh grouping evaluation](FRESH_GROUPING_EVALUATION.md) captures eleven
 of twelve project-reserved CORD test images, retaining one raw-input size-limit
 failure in every whole-cohort denominator. Source-qualified partial references

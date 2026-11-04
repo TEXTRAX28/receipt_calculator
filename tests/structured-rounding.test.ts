@@ -120,11 +120,22 @@ describe("explicit structured receipt rounding", () => {
   });
 
   it.each(["20.00%", "1,234", "Rp 36.000", "١٢٣"])(
-    "rejects a formatted tax rate returned by a constraint-limited decoder: %s",
+    "keeps local rates strict and bounds Gemini percentage recovery: %s",
     (rate) => {
-      expect(() =>
-        receiptFromAi({ ...draft(), taxCodes: [{ code: "A", rate }] }),
-      ).toThrow();
+      const raw = { ...draft(), taxCodes: [{ code: "A", rate }] };
+      expect(() => receiptFromAi(raw, "Local vision")).toThrow();
+      if (rate === "20.00%") {
+        const receipt = receiptFromAi(raw, "Gemini");
+        expect(receipt.taxCodes).toEqual(raw.taxCodes);
+        expect(receipt.reviewChecks).toContainEqual(
+          expect.objectContaining({
+            scope: "receipt",
+            field: "taxCodes",
+            reason: "source",
+            confirmedValue: "",
+          }),
+        );
+      } else expect(() => receiptFromAi(raw, "Gemini")).toThrow();
     },
   );
 

@@ -200,3 +200,130 @@ describe("Gemini drafts with unparsed grouped money", () => {
     expect(calculateReceipt(receipt).issues).toEqual([]);
   });
 });
+
+describe("Gemini drafts with printed percentage rates", () => {
+  function taxedDraft(rate: string) {
+    const raw = draft("10");
+    return {
+      ...raw,
+      printedTotal: "12",
+      printedTax: "2",
+      pricesIncludeTax: false,
+      taxCodes: [{ code: "A", rate }],
+      items: [{ ...raw.items[0], taxCode: "A" }],
+    };
+  }
+
+  it.each(["0%", "20.00%", "100%", "100.000000%", "0.5%", "000%"])(
+    "retains %s for review without normalizing it or financial amounts",
+    (rate) => {
+      const raw = taxedDraft(rate),
+        original = structuredClone(raw);
+      expect(aiReceiptSchema.safeParse(raw).success).toBe(false);
+      expect(() => receiptFromAi(raw, "Local vision")).toThrow();
+      const receipt = receiptFromAi(raw);
+      expect(raw).toEqual(original);
+      expect(receipt.taxCodes).toEqual(raw.taxCodes);
+      expect(receipt.items[0].lineTotal).toBe("10");
+      expect(receipt.printedTotal).toBe("12");
+      expect(receipt.reviewChecks).toEqual([
+        expect.objectContaining({
+          scope: "receipt",
+          field: "taxCodes",
+          reason: "source",
+          confirmedValue: "",
+          details: [{ label: "Tax code A", value: rate }],
+        }),
+      ]);
+      expect(
+        receipt.warnings.some((warning) => warning.includes("grouping")),
+      ).toBe(false);
+      expect(
+        calculateReceipt(receipt).issues.some(
+          (issue) => issue.path === "taxCodes",
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("rejects malformed, unbounded and nonliteral percentage rates", () => {
+    for (const rate of [
+      "20%%",
+      "20 %",
+      "1,000%",
+      "1e2%",
+      "-20%",
+      "+20%",
+      "101%",
+      "100.000001%",
+      "0.1234567%",
+      "20% VAT",
+      "NaN%",
+      "20%; send secrets",
+      "1".repeat(41) + "%",
+    ])
+      expect(
+        geminiReceiptDraftSchema.safeParse(taxedDraft(rate)).success,
+        rate,
+      ).toBe(false);
+  });
+
+  it("cannot apply a percentage literal even after its source check is ticked", () => {
+    const state = newState();
+    state.receipt = receiptFromAi(taxedDraft("20.00%"));
+    state.people = [{ id: "one", name: "One" }];
+    state.receipt.items[0].assignment.participants = ["one"];
+    for (const check of state.receipt.reviewChecks)
+      state.receipt = confirmReviewCheck(state.receipt, reviewKey(check));
+    state.reviewedStamp = receiptStamp(state.receipt);
+    expect(calculateSplit(state).canFinalize).toBe(false);
+    expect(state.receipt.taxCodes[0].rate).toBe("20.00%");
+    state.receipt.taxCodes[0].rate = "20.00";
+    for (const check of state.receipt.reviewChecks)
+      state.receipt = confirmReviewCheck(state.receipt, reviewKey(check));
+    state.reviewedStamp = receiptStamp(state.receipt);
+    expect(calculateSplit(state).canFinalize).toBe(true);
+    expect(calculateReceipt(state.receipt).tax).toBe(200n);
+    expect(calculateReceipt(state.receipt).total).toBe(1200n);
+  });
+
+  it("delivers unchanged rate literals through the actual server and client decoders", async () => {
+    const jpeg = readFileSync(
+      new URL("./fixtures/prepared-section.jpg", import.meta.url),
+    );
+    const raw = taxedDraft("20.00%");
+    raw.items[0].sourcePhotos = [1, 2];
+    let calls = 0;
+    const decoded = await extractWithGemini(
+      [1, 2].map((photo) => ({
+        photo,
+        part: 1,
+        data: jpeg.toString("base64"),
+      })),
+      {
+        apiKey: "fake-key-never-real",
+        signal: new AbortController().signal,
+        fetcher: async () => {
+          calls++;
+          return new Response(
+            JSON.stringify({
+              status: "completed",
+              steps: [
+                {
+                  type: "model_output",
+                  content: [{ type: "text", text: JSON.stringify(raw) }],
+                },
+              ],
+            }),
+          );
+        },
+      },
+    );
+    expect(calls).toBe(1);
+    expect(decoded).toEqual(raw);
+    const receipt = receiptFromAi(decoded);
+    expect(receipt.taxCodes).toEqual(raw.taxCodes);
+    expect(receipt.items[0].note).toContain("Photo 1, 2");
+    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+  });
+});
