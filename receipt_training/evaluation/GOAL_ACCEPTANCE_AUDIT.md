@@ -12,7 +12,22 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Gemini percentage-rate recovery](GEMINI_PERCENT_RATE_RECOVERY.md)
+The latest [selected-primary comparison](SELECTED_PADDLE_FRESH_COMPARISON.md)
+reads eleven of the same twelve reserved sources with Paddle medium. It matches
+16/37 referenced components versus Rapid's 14/37, but proposes more extra rows;
+automatic prices stay 3/37 and quantities 0/37. Supplied-IDR printed totals are
+9/11 versus 7/11. All views require review, complete financial accuracy is
+unscorable, and the full hybrid is not evaluated on this cohort. A recovered-RAM
+continuation closes normally without changing guards or any existing model.
+The [last-resort OpenAI sender](OPENAI_COSTCO_ONCE_READY.md) passes 26 offline
+controls and binds one current two-crop request. The user-selected key alias
+is present in the existing ignored file, without secret output or copying.
+Receipt-upload/spend approval remains pending; no OpenAI request or new default
+is enabled. Existing application sources and their 1,390-case checks are carried
+forward unchanged. The broader accuracy, capture and public-release work stays
+unfinished.
+
+The preceding [Gemini percentage-rate recovery](GEMINI_PERCENT_RATE_RECOVERY.md)
 keeps bounded percentage literals editable with explicit source review, while
 strict local decoding and financial validation remain intact. The saved
 two-crop response passes current intake without changing model money or coupon

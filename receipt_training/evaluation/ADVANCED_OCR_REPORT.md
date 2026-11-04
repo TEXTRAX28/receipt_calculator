@@ -1,5 +1,19 @@
 # Advanced OCR investigation — work in progress
 
+Latest comparison and readiness checkpoint, 4 November 2026:
+[selected Paddle on the reserved twelve](SELECTED_PADDLE_FRESH_COMPARISON.md)
+returns eleven actual readings, preserving the same one raw-input failure.
+It matches 16/37 referenced components versus Rapid's 14/37, with lower scoped
+precision, unchanged automatic price equality and no recovered quantities.
+Supplied-IDR totals improve 7/11 → 9/11, but all drafts require review; this is
+primary-only, not a full hybrid result. Models, sources, references and scorer
+remain unchanged, and the native process closes within its existing guards.
+[One OpenAI last-resort test](OPENAI_COSTCO_ONCE_READY.md) now has a bounded
+sender, 26 passing offline controls and an immutable two-crop preparation.
+The user's existing key alias is present in an ignored file. No OpenAI request,
+spend, default-provider change or new private upload is approved or performed.
+The whole goal remains active.
+
 Latest implementation checkpoint, 4 November 2026:
 [Gemini percentage-rate recovery](GEMINI_PERCENT_RATE_RECOVERY.md) preserves
 bounded literal rates such as `20.00%` in an editable, source-checked draft.
