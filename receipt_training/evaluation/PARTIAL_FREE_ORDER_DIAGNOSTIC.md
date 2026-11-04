@@ -1,5 +1,12 @@
 # A skipped product traced to incomplete-row ordering
 
+**Subsequent implementation checkpoint:** the actual parser study, current
+1,402-case unit validation, strict typecheck, guarded compilation and unchanged
+original-fifty regression are now recorded in
+[PARTIAL_FREE_ORDER_IMPLEMENTATION.md](PARTIAL_FREE_ORDER_IMPLEMENTATION.md).
+The diagnostic and pending-next-action statements below describe the earlier
+research checkpoint.
+
 4 November 2026. Application HEAD remains
 `3ea9e01fcd26d6efb83edab2d9aedd22769e533d`. No application source or provider
 default changes. The full receipt-scanner goal remains unfinished.

@@ -107,8 +107,16 @@ export async function prepareOnce(name) {
       "receipt_training/evaluation/advanced-gemini-percent-rate-recovery-v1.json",
     ),
   );
-  for (const [path, expected] of Object.entries(prior.source_sha256))
-    assert.equal(digest(await readFile(resolve(ROOT, path))), expected, path);
+  // The historical packet supplies inventory, not a permanent source lock.
+  // Each new preparation binds current bytes; execution checks them again.
+  const source = {};
+  for (const path of Object.keys(prior.source_sha256)) {
+    const absolute = resolve(ROOT, path);
+    assert(
+      !relative(ROOT, absolute).startsWith("..") && !path.includes(".env"),
+    );
+    source[path] = digest(await readFile(absolute));
+  }
   const scripts = {};
   for (const path of [
     "receipt_training/scripts/openai_costco_once.mjs",
@@ -124,7 +132,7 @@ export async function prepareOnce(name) {
     endpoint: ENDPOINT,
     images: rows,
     body_sha256: digest(serialized),
-    source_sha256: { ...prior.source_sha256, ...scripts },
+    source_sha256: { ...source, ...scripts },
     limits: LIMITS,
     cost,
     credential_alias: "OPEN_AI_KEY",

@@ -81,7 +81,7 @@ export const isItemCountLine = (line: string) =>
 const financialLabel =
   /^(?:(?:member|item)\s+)?(?:discount|coupon|savings?|rebate)(?:\s+(?:total|amount|applied))?$|^reduced\s+price$|^IRC\b|^DISC(?:OUNT)?\s+ITEM\b/i;
 const partial = new RegExp(
-  `^\\s*(?:[x×@]\\s*${quantity}\\s+)?${prefix}${amount}\\s*$`,
+  `^\\s*(?:(?:[x×@]\\s*${quantity}\\s+)?${prefix}${amount}|${prefix}0(?:[.,]0{1,3})?\\s+[x×](?=[\\d.,]*[1-9])${quantity})\\s*$`,
   "i",
 );
 const title = (line: string) =>

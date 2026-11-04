@@ -1,10 +1,28 @@
-# One last-resort OpenAI comparison, ready for approval
+# One last-resort OpenAI comparison, completed
+
+**Current status, 4 November 2026:** the user approved the single test. The
+source-bound v3 job completed with HTTP 200, one POST, no retry and no billing
+changes. Its authorization is consumed. See the
+[measured result and remaining limits](OPENAI_COSTCO_ONCE_RESULT.md).
+
+The request recovered all eighteen referenced purchase rows and four coupon
+owners, with correct VAT arithmetic. It left currency blank. Current offline
+application replay calculates £176.78 after explicitly supplying GBP, with
+normal review still required. Estimated token cost is about $0.11; the actual
+account charge is unverified. OpenAI remains a research-only last resort.
+
+The historical preparation below describes v2 before the working parser
+changed. **Do not execute v2 or reuse this consumed approval.** The current v3
+plan hash and actual validation scope are recorded in the result report.
+
+## Historical preparation record
 
 4 November 2026. The user has explicitly chosen reuse of the existing
 `OPEN_AI_KEY` alias in the old comparison checkout's ignored `.env.local`.
 Presence is verified without printing its value. The file is read-only for
 this workflow; no secret is copied, committed or placed in the frontend.
-This resolves setup only. **No OpenAI request or spending is approved yet.**
+At that preparation checkpoint, setup was resolved and request/spend approval
+was still pending. That historical status is superseded above.
 
 The earlier [offline preparation](OPENAI_COSTCO_PREPARATION.md) remains historical.
 The new `receipt_training/scripts/openai_costco_once.mjs` implements a bounded,

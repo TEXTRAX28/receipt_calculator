@@ -508,6 +508,10 @@ test("positive preparation creates a verifiable packet and refuses overwrites", 
     assert.equal(frozen.real_keys_loaded, 0);
     assert.equal(frozen.approved, false);
     assert.equal(Object.keys(frozen.source_sha256).length, 228);
+    for (const [name, expected] of Object.entries(frozen.source_sha256)) {
+      const path = fileURLToPath(new URL(`../../${name}`, import.meta.url));
+      assert.equal(expected, digest(await readFile(path)), name);
+    }
     verifyBody(frozen, request);
     await assert.rejects(prepareOnce(name), { code: "EEXIST" });
     assert.deepEqual(await readFile(join(folder, "plan.json")), frozenBytes);

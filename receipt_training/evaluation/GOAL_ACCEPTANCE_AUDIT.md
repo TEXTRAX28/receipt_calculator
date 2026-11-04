@@ -12,16 +12,35 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The new [partial-row diagnostic](PARTIAL_FREE_ORDER_DIAGNOSTIC.md) identifies a
-specific skipped non-Costco product despite a correctly observed complete price
-expression. Its research-only candidate uses an incomplete zero-price row only
-as ordering evidence. Seventeen isolated helper controls pass; just one of
-twenty-four saved development-reader views gains an association. Missing fields
-stay missing. A broader pack-ambiguous candidate is rejected. This is neither a
-production change nor a full-parser financial score. Available RAM prevents the
-actual parser/regression promotion and the prepared original-photo native scan;
-no child or inference starts for either. Current application bytes and the
-pending, unexecuted OpenAI job remain unchanged. Broader gaps remain open.
+The approved [OpenAI last-resort test](OPENAI_COSTCO_ONCE_RESULT.md) now completes
+one two-crop request in 24.756 seconds, with no retry. All eighteen partial-reference
+purchase names, quantities, unit prices and line totals match; all four coupons
+have the right owner, and net163.16 + VAT13.62 = gross176.78. Currency remains
+empty despite a clipped pound symbol. Token usage gives an estimated $0.1072 at
+the checked standard rates; account charges remain unverified. The familiar
+source-reviewed transaction is not independent human truth or a representative
+provider selection. Current core offline replay preserves returned fields,
+blocks automatic currency, and calculates £176.78 with supplied GBP and review
+still outstanding. No app provider or automatic spending is enabled; the one
+approval is consumed. Raw evidence and the software checkpoint are sealed in
+`advanced-openai-costco-once-v1.json` and `advanced-openai-costco-checkpoint-v1.json`.
+
+The [partial-row implementation](PARTIAL_FREE_ORDER_IMPLEMENTATION.md) now has an
+actual full-parser development replay: 96 views and four separate native Costco
+controls. Its narrow incomplete-zero ordering witness improves one Rapid
+development reading in each currency context; supplied-IDR prices become 11/20
+and quantities 5/16, with totals unchanged. Missing fields stay missing. The
+working helper matches the executed candidate, and all 1,402 unit cases across 78
+files pass in six disjoint guarded batches. The new 400-view original-fifty replay
+preserves all 200 complete before/after receipt and calculation vectors. The
+complete strict typecheck and isolated compilation now pass with more startup
+headroom and the same one-GiB runtime reserve. Earlier typecheck holds, a build
+that crossed the reserve and a local replay output-parent failure stay recorded;
+the successful new build is separate and its twelve artifacts are verified.
+The immutable checkpoint is `advanced-partial-free-order-fix-v1.json`. This is a
+narrow interpretation improvement, not a fresh recognition or representative
+hybrid result. The prepared full original-photo native scan remains unexecuted.
+Broader accuracy, capture and public-release gaps remain open.
 
 The latest [real native phone flow](NATIVE_PHONE_COSTCO_FLOW.md) uses the current
 compiled application, normal upload controls and actual Paddle inference at

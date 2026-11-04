@@ -95,6 +95,80 @@ describe("product titles and financial labels around separate expressions", () =
 });
 
 describe("separate literal purchase expressions", () => {
+  it("uses an incomplete free row only to order a complete source-backed purchase", () => {
+    const text = [
+      "1001-Choco Bun",
+      "22.000 22.000",
+      "1032-Double Cheddar",
+      "26.000 x1 26.000",
+      "6002-Plastic Bag Medium",
+      "0 x1",
+      "Total Item:",
+      "Total.",
+      "48.000",
+      "Debet Card",
+      "48.000",
+    ].join("\n");
+    const { receipt, sources } = parseReceiptWithSources(text, {
+      currency: "IDR",
+    });
+    expect(receipt.items).toHaveLength(1);
+    const item = receipt.items[0];
+    expect(item).toMatchObject({
+      description: "1032-Double Cheddar",
+      quantity: "1",
+      unitPrice: "26000",
+      lineTotal: "26000",
+    });
+    expect(sources[item.id]).toEqual([2, 3]);
+    for (const field of ["description", "quantity"])
+      expect(receipt.reviewChecks).toContainEqual(
+        expect.objectContaining({
+          itemId: item.id,
+          field,
+          reason: "source",
+          confirmedValue: "",
+        }),
+      );
+    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+  });
+  it.each(["0 x1", "0.00 x2", "0,000 x0.5", "Rp0 x2"])(
+    "uses literal zero and a positive count in %s only as ordering evidence",
+    (witness) => {
+      const { receipt, sources } = parseReceiptWithSources(
+        `Milk\n2x1.00 2.00\nBread\n${witness}\nTOTAL GBP 2.00`,
+        { currency: "GBP" },
+      );
+      expect(receipt.items).toHaveLength(1);
+      expect(receipt.items[0]).toMatchObject({
+        description: "Milk",
+        quantity: "2",
+        unitPrice: "1.00",
+        lineTotal: "2.00",
+      });
+      expect(sources[receipt.items[0].id]).toEqual([0, 1]);
+    },
+  );
+  it.each(["6 x340", "0.50 x1", "0 x0", "0 xI", "0 x1 extra"])(
+    "does not choose a product from an unsupported partial row %s",
+    (witness) => {
+      const { receipt } = parseReceiptWithSources(
+        `Milk\n2x1.00 2.00\nBread\n${witness}\nTOTAL GBP 2.00`,
+        { currency: "GBP" },
+      );
+      expect(receipt.items).toEqual([]);
+    },
+  );
+  it.each([PHOTO_SEPARATOR, "TOTAL GBP 2.00"])(
+    "does not use a free-row witness beyond the boundary %s",
+    (boundary) => {
+      const { receipt } = parseReceiptWithSources(
+        `Milk\n2x1.00 2.00\nBread\n${boundary}\n0 x1\nTOTAL GBP 2.00`,
+        { currency: "GBP" },
+      );
+      expect(receipt.items).toEqual([]);
+    },
+  );
   it.each([
     ["2 @20.000 40.000", "2", "20.000", "40.000"],
     ["1× 36.000 36.000", "1", "36.000", "36.000"],
