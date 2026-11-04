@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { freemem } from "node:os";
 import { z } from "zod";
 import { aiReceiptSchema } from "../src/lib/extraction-schema.mjs";
 import { requestPanelsSchema } from "../src/lib/recognition-schema.mjs";
@@ -12,7 +13,10 @@ import {
   MAX_LOCAL_VISION_PANELS,
 } from "../src/lib/scan-limits.mjs";
 import { LocalOcrError, removeOwnedJob } from "./local-ocr.mjs";
-import { runPrivateProcess } from "./private-process.mjs";
+import {
+  requireAvailableMemory,
+  runPrivateProcess,
+} from "./private-process.mjs";
 import { RECEIPT_INSTRUCTIONS } from "./extraction-instructions.mjs";
 import {
   compactVisionJsonSchema,
@@ -26,6 +30,11 @@ import {
 } from "../src/lib/vision-plan.mjs";
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// Conservative operating guards for the selected 4B profile, not published
+// model minimums or a substitute for OS-level process isolation.
+const STARTUP_MEMORY_BYTES = 3 * 1024 ** 3;
+const VALIDATION_MEMORY_BYTES = 1.5 * 1024 ** 3;
+const RUNTIME_MEMORY_BYTES = 1024 ** 3;
 const manifest = JSON.parse(
   readFileSync(
     new URL(
@@ -72,7 +81,13 @@ export function createLocalVisionReader({
   // Protocol-test dependencies only; these are not environment/request options.
   requireAssets = true,
   spawnProcess = launchProcess,
+  availableMemory = freemem,
 } = {}) {
+  const memoryGuard = {
+    availableBytes: availableMemory,
+    startupBytes: VALIDATION_MEMORY_BYTES,
+    runtimeBytes: RUNTIME_MEMORY_BYTES,
+  };
   const cacheRoot = resolve(
     PROJECT,
     "receipt_training/.cache/vision-experiment",
@@ -147,6 +162,7 @@ export function createLocalVisionReader({
             signal: combined,
             cwd: PROJECT,
             spawnProcess,
+            memoryGuard,
             ...options,
           });
         try {
@@ -155,6 +171,7 @@ export function createLocalVisionReader({
               504,
               "Scan cancelled. Your photos are still available.",
             );
+          requireAvailableMemory(availableMemory, STARTUP_MEMORY_BYTES);
           await mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
           const root = await realpath(runtimeRoot);
           const inside = relative(await realpath(PROJECT), root);
@@ -266,6 +283,10 @@ export function createLocalVisionReader({
             ],
             {
               timeoutMs: LOCAL_VISION_MODEL_TIMEOUT_MS,
+              memoryGuard: {
+                ...memoryGuard,
+                startupBytes: STARTUP_MEMORY_BYTES,
+              },
             },
           );
           if (

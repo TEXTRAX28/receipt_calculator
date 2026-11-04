@@ -12,7 +12,20 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
+The latest [memory-admission/shutdown follow-up](LOCAL_VISION_MEMORY.md) refuses
+insufficient-memory local vision before private inputs/native startup and
+bounds closure after a reported exit. All 1,339 current unit cases pass through
+six disjoint shards with exact 74-file/test-name coverage; 35 focused cases,
+memory-capped full typecheck, formatting, build and graph checks pass. Two earlier
+320/390px real-API phone flows retain eight checks and exact 14.54/14.52 shares.
+A current real-OS HTTP 503 and byte identity of all 13 frontend artifacts establish
+explicit continuity; the final browser preflight is held without a launch.
+No receipt-model inference, cloud request or new accuracy score is claimed.
+Failed single-process/parallel checks and superseded source remain retained;
+no guard is lowered or user app closed. Primary-worker memory policy, physical
+devices, native accuracy/latency and public release remain separate gaps.
+
+The preceding [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
 primary reader's source-proposed included-tax rate when comparison would lose
 it. Controlled constructed-vision replay plus the actual saved Paddle reading
 improves the calculation 29.89 to 29.06 with unchanged money and agreement count;
@@ -716,13 +729,15 @@ advisory capture checks, optional edge suggestions, and responsive correction,
 refund-credit and sharing flows. Missing values and unfamiliar tax legends stay
 editable and block acceptance where required.
 
-The current merger follow-up passes 1,325 unit tests, 198 focused cases,
-typecheck, formatting and build. The original/supplementary regression keeps all
-253 normalized pairs unchanged. Three new built Chrome phone-emulation controls
-exercise automatic/always comparison and unavailable-reader fallback, with a
-pending included-fee proposal and exact reviewed splitting. They use constructed
-vision responses and saved actual primary OCR, not fresh model HTTP. The actual
-local vision attempt yields no draft after a resource stop.
+The current operational follow-up verifies all 1,339 unit cases through six
+disjoint runs, 35 focused cases, a full memory-capped typecheck, formatting,
+isolated frontend bundle build and graph refresh. It rejects low-memory vision
+before receipt inputs and bounds process/stream shutdown. Real-API phone flows
+on the intermediate backend retain primary review and exact splitting; the
+current error contract and all frontend artifacts are verified identical. The
+final headless preflight is held. The preceding included-fee merger and all
+71 interpretation-library files remain unchanged, with their paired replay
+evidence retained. None of these operational controls is new model accuracy.
 
 The preceding validation follow-up passes 22 saved-response/manual-entry Chrome
 browser cases, including 320/390/1440-pixel included-fee correction and splitting.
@@ -788,10 +803,10 @@ means implemented or investigated but a material acceptance condition remains.
 | P5: Costco packaging vs purchased quantity, codes/VAT, coupons, summaries, retailer rules while remaining general-purpose | UK financial vector and checked split pass; source-supported codes/coupons and general CORD/Tesco comparisons exist. | Generic Costco/general-retail reliability remains partial. Do not infer six purchased packs from a product's pack-size name or assume all retailers' A/Z meanings. |
 | P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; Azure/Veryfi/Gemini persistent finite local allowances and scan consent. The six Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. The proposed two-image trial is unapproved/unrun after exhausted quota. | Public terms/region/retention review and account-specific training commitments remain incomplete. A shared-directory local request allowance is not an authenticated public or account-wide spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
-| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and earlier browser journeys, including signed refund-credit ownership and rounding. Current 1,325 unit tests pass; three built 320/390px constructed-vision success/fallback controls preserve the mixed-fee proposal and complete exact splitting without money edits after automated source checks. The preceding primary-only and manual-fee cases retain their own scopes. A published refund example preserves its signed product in both device readers and the earlier production phone UI. | Full financial recognition/finalized splitting of the published refund remains unverified; no quantity or tax rate is invented. Broader genuine-format and independent human validation remain open. |
+| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and earlier browser journeys, including signed refund-credit ownership and rounding. Current 1,339 unit cases pass across six disjoint runs; three built 320/390px constructed-vision success/fallback controls preserve the mixed-fee proposal and complete exact splitting without money edits after automated source checks. The preceding primary-only and manual-fee cases retain their own scopes. A published refund example preserves its signed product in both device readers and the earlier production phone UI. | Full financial recognition/finalized splitting of the published refund remains unverified; no quantity or tax rate is invented. Broader genuine-format and independent human validation remain open. |
 | P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Live local camera preview with approximate edges and quality advice, explicit capture/review/retake, overlapping sections, native picker fallback; responsive editing/rereads/assignments and checked summaries. | Physical-device camera and Safari, genuine live guidance accuracy and calibrated clipping/pose diagnostics remain open. Browser camera streams are simulated; actual JPEG/OCR/splitting is tested. |
-| P10: secure uploads/types/size, hostile data/prompt injection, validation/rate/auth/keys/logs/retention/retries/quotas/privacy | Local boundary reviewed/tested; Gemini envelope/dimension guard; provider output remains untrusted, no model tools; finite cloud allowances where implemented. New virtual-process controls verify that an unconfirmed worker stop blocks scans and retains active inputs. | Public authentication/TLS, multi-user quotas/spend limits, durable jobs/crash cleanup/OS isolation and jurisdiction-specific privacy acceptance are not delivered. Loopback checks are not public authentication. |
-| P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Current 1,325 unit tests, 198 focused cases, typecheck, formatting and isolated build pass. Three built 320/390px success/fallback review/split controls preserve a pending source-backed included-fee proposal; vision controls are constructed and the primary response is actual saved OCR. All 506 saved-reading regression views retain paired facts and checks, using the same source-aware primary protocol as the parent. Prior native primary, 22-case browser and losing local-VLM studies retain their own scopes. | Latest full native latency cohort, independent full financial truth, the new source's actual independent hybrid and real handset evidence remain incomplete. The additional actual local model attempt is resource-stopped, not a successful reading. Saved-response browser checks are not fresh model HTTP or physical-phone observations. Fifteen previously reported historical artifact declarations cannot be reproduced from missing bytes. |
+| P10: secure uploads/types/size, hostile data/prompt injection, validation/rate/auth/keys/logs/retention/retries/quotas/privacy | Local boundary reviewed/tested; Gemini image guard, untrusted model output, finite cloud allowances and shutdown ownership. Local vision now enforces memory admission/runtime monitoring and bounded stream closure after reported exit; failed shutdown retains inputs and disables the reader. | Primary persistent-worker memory policy, public authentication/TLS, tenant quotas/spend, durable crash cleanup/OS isolation and jurisdiction-specific privacy acceptance remain open. Global memory polling is not an OS quota. |
+| P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Current 1,339 cases across six disjoint shards, 35 focused cases, memory-capped full typecheck, formatting/build/graph pass. Earlier real-API 320/390px phone flows preserve the primary draft, checks and exact split; current real-OS HTTP refusal and all 13 identical frontend artifacts establish continuity. The unchanged 71 libraries retain their 506-view paired replay evidence. | No successful current single-process suite is claimed. The final headless preflight is held; latest native latency/financial truth, the mixed source's actual independent hybrid and physical devices remain incomplete. Fifteen known historical artifact declarations remain unreproducible. |
 | P12: existing assessment, technology/architecture, improvements, measurements, Git/tests, limits and release path | This consolidated report and its machine-readable checkpoint supply those sections with provenance and limits. | Final acceptance remains open because P4/P9 capabilities and financial/public-readiness evidence above remain partial. |
 
 ## 7. Security/privacy disposition and path to release

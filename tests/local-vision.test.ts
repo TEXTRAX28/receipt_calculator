@@ -42,7 +42,10 @@ async function ownedRoot() {
   roots.push(root);
   return root;
 }
-async function reader(timeoutMs = 10000) {
+async function reader(
+  timeoutMs = 10000,
+  availableMemory = () => 8 * 1024 ** 3,
+) {
   const root = await ownedRoot();
   const starts: string[] = [];
   const formats: boolean[] = [];
@@ -51,6 +54,7 @@ async function reader(timeoutMs = 10000) {
     enabled: true,
     python: process.execPath,
     requireAssets: false,
+    availableMemory,
     runtimeRoot: root,
     timeoutMs,
     spawnProcess: (program, args, options) => {
@@ -287,6 +291,31 @@ describe("bounded local vision bridge (synthetic process protocol, not recogniti
     await rejection;
     expect(() => process.kill(pid, 0)).toThrow();
   });
+  it("stops only its owned process tree when runtime memory becomes insufficient", async () => {
+    const root = await ownedRoot();
+    let available = 8 * 1024 ** 3;
+    const pending = runPrivateProcess(
+      process.execPath,
+      [fixture, "tree", root],
+      {
+        cwd: root,
+        memoryGuard: {
+          availableBytes: () => available,
+          startupBytes: 3 * 1024 ** 3,
+          runtimeBytes: 1024 ** 3,
+        },
+      },
+    );
+    const rejected = expect(pending).rejects.toThrow(/memory/);
+    let pid = 0;
+    await vi.waitFor(async () => {
+      pid = Number(await readFile(join(root, "descendant.pid"), "utf8"));
+      expect(pid).toBeGreaterThan(0);
+    });
+    available = 1024 ** 3 - 1;
+    await rejected;
+    expect(() => process.kill(pid, 0)).toThrow();
+  });
 });
 
 describe("local vision shares the existing private API boundary", () => {
@@ -295,6 +324,22 @@ describe("local vision shares the existing private API boundary", () => {
     name: "Qwen3-VL 4B",
     maxPanels: 3,
     extract,
+  });
+  it("returns a bounded low-memory 503 without launching a process or calling a cloud provider", async () => {
+    const { model, root, starts } = await reader(
+      10000,
+      () => 3 * 1024 ** 3 - 1,
+    );
+    const fetcher = vi.fn();
+    const { post } = await api({ localVision: model, fetcher });
+    const response = await post();
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.error).toMatch(/memory/);
+    expect(body.error).not.toMatch(/\.exe|[A-Z]:\\|scan-/);
+    expect(starts).toEqual([]);
+    expect(await readdir(root)).toEqual([]);
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it("uses its explicit vision budget after a bounded request body and cancels a stalled model at that budget", async () => {
     const slow = localVision(

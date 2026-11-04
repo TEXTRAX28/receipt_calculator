@@ -2,7 +2,18 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
+The latest [local vision memory limits and shutdown repair](LOCAL_VISION_MEMORY.md)
+refuse insufficient-memory launches and bound closure even after reported exit.
+All 1,339 current unit cases across 74 files pass through six disjoint shards;
+35 focused cases, a memory-capped full typecheck, formatting, graph and isolated
+build pass. Earlier 320/390px real-API phone flows retain eight checks and exact
+splitting. Current real-OS HTTP refusal and 13 identical frontend artifacts bind
+their continuity; the final browser preflight is held, not claimed as a new run.
+Failed/intermediate runs remain retained. No guard is lowered, user app closed
+or receipt model/cloud provider called. OpenAI remains unused and the full goal
+stays active.
+
+The preceding [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
 primary invoice's included-tax proposal during independent-reading comparison.
 On a constructed vision protocol control plus the actual saved Paddle reading,
 the calculation improves 29.89 to 29.06 without changing printed money; agreement
