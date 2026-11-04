@@ -1,16 +1,23 @@
 # Advanced OCR investigation — work in progress
 
-Current consolidated status, 3 November 2026:
+Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The [mixed-fee financial checkpoint](INCLUDED_FEE_TAX.md) verifies the manual-entry
-invoice calculation improving from 29.89 to 29.06 without changing printed amounts.
-All 80 focused cases (40 new), typecheck and build pass. Full-unit validation is
-incomplete after a deadline and isolated process-bridge timeouts/RAM-floor stop.
-The 400-view saved-fifty replay is executed, but scoring/comparison and browser
-checks remain incomplete. There is no new OCR accuracy or corpus no-regression
-claim. OpenAI is reserved as the user's last resort, with no API receipt request.
-The following full-suite passing checks describe the preceding source.
-The latest [final-total fragment repair](FINAL_TOTAL_FRAGMENTS.md) retains both
+The [worker shutdown and regression follow-up](WORKER_SHUTDOWN_SAFETY.md) passes
+all 1,300 unit tests, 39 focused reader cases, typecheck and build. It preserves
+worker ownership and blocks scans/input cleanup after failed shutdown. A finite
+Windows OS-variable allowlist fixes the diagnostic launcher without passing
+credentials or changing time/memory limits. The saved-fifty scoring now completes:
+all 200 normalized pairs and four count vectors remain unchanged, with no scored
+regression. The 22 collected browser cases are held before startup; no new phone,
+OCR accuracy or whole-transaction pass is claimed. OpenAI stays the user's last
+resort, without credit use or an API receipt request. The wider goal stays active.
+
+The preceding [mixed-fee checkpoint](INCLUDED_FEE_TAX.md) verifies the manually
+transcribed invoice improving from 29.89 to 29.06 while retaining printed amounts.
+Its initial incomplete attempts remain historical; the follow-up above completes
+their unit/scoring checks. Its new browser controls and automatic mixed-basis
+invoice extraction remain unverified.
+The preceding [final-total fragment repair](FINAL_TOTAL_FRAGMENTS.md) retains both
 Bristol cashew purchases, separates printed 74.57 from the mixed SKU row and
 excludes the vision draft's false footer product. Hybrid unmatched scored
 predictions fall 1 to 0 in both currency modes. Primary supplied-currency matches

@@ -1,10 +1,10 @@
-# Mixed net goods and gross fees: financial checks pass, broader validation incomplete
+# Mixed net goods and gross fees: regression checks pass, browser validation pending
 
-3 November 2026. This financial implementation has focused, native calculation,
-type and build evidence. **Full regression and browser validation are incomplete.**
-It is not an OCR improvement or a completed twelve-phase acceptance checkpoint.
-The preceding source with a complete passing unit run remains
-`0b68d8dda63b34e4774d8e303aad11831c4f74b4`.
+Updated 4 November 2026. The financial implementation and its
+[worker-shutdown validation follow-up](WORKER_SHUTDOWN_SAFETY.md) now pass all
+1,300 unit tests, typecheck and build. The 400-view original-fifty comparison is
+scored and verified unchanged. **Browser validation remains incomplete.**
+This is not a new OCR accuracy result or a completed twelve-phase objective.
 
 ## Observed baseline
 
@@ -51,8 +51,10 @@ Phone layout has **not** been verified for these new controls.
 
 ## Verification status and next action
 
-The [retained evidence packet](included-fee-tax-v1.json) binds the source,
-successful checks and incomplete/failed attempts separately.
+The initial [retained evidence packet](included-fee-tax-v1.json) binds the
+3 November source, successful checks and incomplete/failed attempts separately.
+The [follow-up packet](worker-shutdown-safety-v1.json) records their subsequent
+resolution. Historical failures below are preserved rather than replaced.
 
 The first attempted test startup was refused before process creation at
 462,942,208 available bytes. After a qualifying memory change, the first actual
@@ -67,7 +69,7 @@ embedded fee tax, 4.01 added tax, and whole-receipt shares of 14.53/14.53. Item-
 equal shares are 14.54/14.52 because both odd-penny item residuals go to the first
 person under the existing stable rule.
 
-The full unit run reaches its unchanged 240-second deadline without a complete
+The initial full unit run reaches its unchanged 240-second deadline without a complete
 result. An isolated process-reader run records test and cleanup-hook timeouts,
 then is stopped at 106,042 ms when available RAM falls to 1,068,097,536 bytes,
 below the 1 GiB runtime floor. The reader, its fixture and its test source match
@@ -76,7 +78,7 @@ timeouts or a full regression pass.** The remaining 68-file batch is held at
 startup (1,455,017,984 available bytes); the vision batch is unexecuted. No test
 timeout or resource threshold is increased to obtain a pass.
 
-The frozen original-fifty replay executes **400 saved-reading views** with no
+The initial frozen original-fifty replay executes **400 saved-reading views** with no
 new inference. Scoring is subsequently held before startup at 1,465,495,552
 available bytes; its count comparison and the prepared paired analysis are
 unexecuted. No new accuracy or no-regression claim is made from that replay.
@@ -88,11 +90,13 @@ Their unchanged 2.5 GiB startup guard refuses at 2,341,171,200 bytes; no browser
 is spawned. They are not executed phone evidence. The code graph is refreshed
 locally to 232 files, 899 nodes and 1,602 links, with no LLM call.
 
-Next diagnose the protocol-worker timeouts without changing the guards, finish
-the remaining unit batches, score/analyze `grouped-amounts-v27`, and run the
-prepared browser cases only after a qualifying memory observation. The older
-1,256-test pass must not be represented as a result for this source. Do not close
-user apps or change reference truth to bypass an incomplete check.
+The follow-up completes the full 1,300-test run and scores/analyzes
+`grouped-amounts-v27`: all 200 paired drafts/calculations/source mappings/review
+checks and all four aggregate count vectors remain unchanged. No fee metadata
+is inferred into the automatic corpus drafts. The current browser selection
+collects 22 desktop/phone-emulation cases, but its unchanged preflight refuses at
+2,179,022,848 available bytes. Next run those cases after a qualifying memory
+observation. User apps and reference truth are not changed to bypass the guard.
 
 Automatic extraction of this mixed-basis invoice remains unresolved. This draft
 does not change its historical strict-reference eligibility or claim a correctly

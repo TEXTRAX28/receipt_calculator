@@ -59,6 +59,14 @@ const cancelled = () =>
     504,
     "Reading was cancelled or took too long. Your photos are still available.",
   );
+const stopFailed = () => {
+  const error = new LocalOcrError(
+    500,
+    "The computer reader could not be stopped. Further scans are blocked. Check this computer before scanning again; temporary files have been retained until the process exits.",
+  );
+  error.unsafeToCleanup = true;
+  return error;
+};
 
 // Keep provider credentials out of the model process, including unrelated keys.
 export function workerEnvironment() {
@@ -138,55 +146,72 @@ export function createLocalModelReader({
     pending,
     idle,
     active = false,
-    disposed = false;
+    disposed = false,
+    blocked = false,
+    stopping;
 
-  async function stop(error = failure()) {
+  function stop(error = failure()) {
     clearTimeout(idle);
     ready?.reject(error);
     pending?.reject(error);
     ready = undefined;
     pending = undefined;
+    if (stopping) return stopping;
     const processToStop = child;
-    child = undefined;
-    if (
-      !processToStop ||
-      processToStop.exitCode !== null ||
-      processToStop.signalCode !== null
-    )
-      return;
-    const closed = new Promise((resolveClose) =>
-      processToStop.once("close", resolveClose),
-    );
-    if (
-      process.platform === "win32" &&
-      Number.isSafeInteger(processToStop.pid)
-    ) {
-      await new Promise((resolveKill) =>
-        execFile(
-          "taskkill.exe",
-          ["/PID", String(processToStop.pid), "/T", "/F"],
-          { windowsHide: true, timeout: 10000 },
-          () => resolveKill(),
-        ),
-      );
-    } else if (Number.isSafeInteger(processToStop.pid))
-      processToStop.kill("SIGKILL");
-    let timer;
-    try {
-      await Promise.race([
-        closed,
-        new Promise((_, reject) => {
-          timer = setTimeout(() => reject(failure()), 5000);
-        }),
-      ]);
-    } finally {
-      clearTimeout(timer);
+    if (!processToStop) {
+      child = undefined;
+      return Promise.resolve();
     }
+    stopping = (async () => {
+      const closed = new Promise((resolveClose) =>
+        processToStop.once("close", resolveClose),
+      );
+      if (
+        processToStop.exitCode === null &&
+        processToStop.signalCode === null
+      ) {
+        if (
+          process.platform === "win32" &&
+          Number.isSafeInteger(processToStop.pid)
+        ) {
+          await new Promise((resolveKill) =>
+            execFile(
+              "taskkill.exe",
+              ["/PID", String(processToStop.pid), "/T", "/F"],
+              { windowsHide: true, timeout: 10000 },
+              () => resolveKill(),
+            ),
+          );
+        } else if (Number.isSafeInteger(processToStop.pid))
+          processToStop.kill("SIGKILL");
+      }
+      let timer;
+      try {
+        await Promise.race([
+          closed,
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(failure()), 5000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+      if (child === processToStop) child = undefined;
+    })()
+      .catch(() => {
+        blocked = true;
+        throw stopFailed();
+      })
+      .finally(() => {
+        stopping = undefined;
+      });
+    return stopping;
   }
 
   async function start(signal) {
+    if (stopping) await stopping;
+    if (!configured || disposed || blocked) throw failure();
     if (child) return;
-    if (!configured || disposed) throw failure();
     await mkdir(runtimeRoot, { recursive: true, mode: 0o700 });
     const root = await realpath(runtimeRoot);
     const project = await realpath(PROJECT);
@@ -223,7 +248,7 @@ export function createLocalModelReader({
     const decoder = new StringDecoder("utf8");
     let buffer = "";
     const fail = () => {
-      if (child === proc) void stop().catch(() => {});
+      if (child === proc && !stopping && !blocked) void stop().catch(() => {});
     };
     proc.on("error", fail);
     proc.on("close", () => {
@@ -236,7 +261,7 @@ export function createLocalModelReader({
     });
     proc.stdin.on("error", fail);
     proc.stdout.on("data", (chunk) => {
-      if (child !== proc) return;
+      if (child !== proc || stopping || blocked) return;
       buffer += decoder.write(chunk);
       if (Buffer.byteLength(buffer) > MAX_OUTPUT) return fail();
       let end;
@@ -265,10 +290,12 @@ export function createLocalModelReader({
   }
 
   return {
-    configured,
+    get configured() {
+      return configured && !disposed && !blocked;
+    },
     name,
     async extract(panels, { signal } = {}) {
-      if (!configured || disposed) throw failure();
+      if (!configured || disposed || blocked) throw failure();
       if (active)
         throw new LocalOcrError(
           429,
@@ -340,6 +367,7 @@ export function createLocalModelReader({
         if (parsed.engine !== expectedEngine) throw failure();
         return parsed;
       } catch (error) {
+        if (blocked) throw stopFailed();
         if (!stopping)
           stopping = stop(combined.aborted ? cancelled() : failure());
         await stopping;
@@ -350,6 +378,7 @@ export function createLocalModelReader({
         combined.removeEventListener("abort", abort);
         try {
           if (stopping) await stopping;
+          if (blocked) throw stopFailed();
           if (directory) {
             try {
               await removeOwnedJob(directory, runtimeRoot);
@@ -358,6 +387,7 @@ export function createLocalModelReader({
               try {
                 await removeOwnedJob(directory, runtimeRoot);
               } catch {
+                blocked = true;
                 throw new LocalOcrError(
                   500,
                   "Temporary receipt files could not be removed. The computer reader has stopped. Check the computer's file permissions before scanning again.",
@@ -367,7 +397,7 @@ export function createLocalModelReader({
           }
         } finally {
           active = false;
-          if (child) {
+          if (child && !blocked) {
             idle = setTimeout(() => {
               void stop().catch(() => {});
             }, idleMs);
