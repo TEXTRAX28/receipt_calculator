@@ -2,7 +2,16 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [actual selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md)
+The latest [4B Q8-cache profile](QWEN4_KV_MEMORY.md) measures the expected
+612 MiB cache, but still hits the unchanged runtime memory floor during warmup,
+before reading the synthetic image. Its remaining receipt/invoice calls stay
+unattempted. Five resource/profile controls pass. A fresh Free-only Gemini
+two-crop scope is prepared with 10 offline transport controls and approval-before-
+credential loading; no key or receipt is sent. Eight current saved-reading UK
+views retain the earlier financial results with an added primary item-list check. App/test source is
+unchanged, OpenAI stays unused, and the full goal remains active.
+
+The preceding [actual selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md)
 passes real JPEG/cache checks and the current three-GiB native startup floor,
 then hits the unchanged runtime floor without a draft. The outer controller
 stops its owned tree after 11.725 seconds. All recorded children are verified

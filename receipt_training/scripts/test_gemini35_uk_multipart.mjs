@@ -9,6 +9,7 @@ import {
   preflight,
   runOne,
   guardRequest,
+  loadApprovedApiKey,
   sha,
 } from "./gemini35_uk_multipart.mjs";
 
@@ -66,6 +67,44 @@ test("missing approval and altered prepared proof cannot start a request", async
     /Prepared source changed/,
   );
   assert.equal(calls, 0);
+  await assert.rejects(readFile(options.root + "/run/attempt.json"), /ENOENT/);
+});
+
+test("missing approval or changed source is rejected before credential loading", async () => {
+  const options = await scope();
+  let loads = 0;
+  const readKey = async () => {
+    loads++;
+    return key;
+  };
+  await assert.rejects(
+    loadApprovedApiKey({ ...options, approvedPlanSha: "", readKey }),
+    /Exact plan approval/,
+  );
+  assert.equal(loads, 0);
+  const path = options.root + "/prepared.json";
+  const prepared = await load(path);
+  prepared.proof.source_sha256["server/receipt-api.mjs"] = "0".repeat(64);
+  await writeFile(path, JSON.stringify(prepared));
+  await assert.rejects(
+    loadApprovedApiKey({ ...options, readKey }),
+    /Prepared source changed/,
+  );
+  assert.equal(loads, 0);
+});
+
+test("an exact preparation permits one injected key read without consuming an upload", async () => {
+  const options = await scope();
+  let loads = 0;
+  const result = await loadApprovedApiKey({
+    ...options,
+    readKey: async () => {
+      loads++;
+      return key;
+    },
+  });
+  assert.equal(result, key);
+  assert.equal(loads, 1);
   await assert.rejects(readFile(options.root + "/run/attempt.json"), /ENOENT/);
 });
 

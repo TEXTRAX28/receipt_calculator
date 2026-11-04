@@ -1,5 +1,27 @@
 # Gemini 3.5: one prepared two-image Costco comparison
 
+4 November 2026: **v3 is prepared locally; no live request or credential load has
+run.** Fresh approval and confirmation of one remaining request on the existing
+Free project are required. Daily limits [reset at midnight Pacific](https://aistudio.google.com/docs/rate-limits),
+but current account availability is unverified. OpenAI remains unused.
+
+Use `qa-artifacts/provider-review/gemini35-uk-multipart-v3/plan.json`, SHA256
+`28122e14e4fc5609d0f9015ad6c86873bc83c55b2d772704babe5f3dbaa544db`.
+This freezes current adapter/source and the same two reviewed JPEGs. Merchant,
+date and personal/payment identifiers are outside the crops; the clipped savings
+line retains a partly visible pound symbol. Limits remain one 90-second request,
+two images, 1 MiB response, no retry, paid activation, other provider or stored
+Interaction. The existing model, low-thinking and 24,000-token output limit stay
+fixed. `store:false` does not guarantee zero safety retention.
+
+Ten offline transport tests pass, including two new controls proving exact
+approval/source validation precedes the credential callback. The eight current
+same-reading baseline views are in `qa-artifacts/provider-review/uk-multipart-offline-v2`;
+their field scorer/reference are unchanged. They are not new reader inferences.
+No source checks are cleared and the full goal stays active.
+
+## Historical v2 preparation
+
 3 November 2026. **Prepared locally; unapproved and unexecuted.** The user
 reported “All is already at limit” when asked about this additional Free-quota
 request. No live request was made. The scope is unconsumed, but available quota

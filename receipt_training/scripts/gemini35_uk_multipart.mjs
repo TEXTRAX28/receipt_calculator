@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import { validatePreparedJpeg } from "../../server/receipt-zip.mjs";
 
-export const ROOT = "qa-artifacts/provider-review/gemini35-uk-multipart-v2";
+export const ROOT = "qa-artifacts/provider-review/gemini35-uk-multipart-v3";
 export const ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/interactions";
 const RUNNER = "receipt_training/scripts/gemini35_uk_multipart.mjs";
@@ -125,7 +125,7 @@ export async function prepare(root = ROOT) {
       billing_activation: false,
     },
     scope:
-      "One familiar UK transaction, two identifier-removed financial crops: all 18 purchases and the separate VAT table. Merchant/date/currency context removed. No photographic-overlap or blind-holdout claim.",
+      "One familiar UK transaction, two identifier-removed financial crops: all 18 purchases and the separate VAT table. Merchant/date are outside the crops; a partly visible pound symbol remains in the clipped savings line. Assess automatic currency separately from user-supplied GBP. No photographic-overlap or blind-holdout claim.",
     authorization:
       "Fresh Phase 6 approval and confirmation of at least one remaining Free request required. All earlier scopes are consumed.",
     inference:
@@ -170,6 +170,23 @@ export async function prepare(root = ROOT) {
     ready_for_approval: true,
   });
   return proof;
+}
+
+// Reject stale or unapproved preparations before even requesting credentials.
+export async function loadApprovedApiKey({
+  root = ROOT,
+  approvedPlanSha,
+  readKey,
+}) {
+  const { proof } = await preflight(root);
+  const prepared = await load(root + "/prepared.json");
+  assert.ok(
+    approvedPlanSha && approvedPlanSha === proof.plan_sha256,
+    "Exact plan approval required",
+  );
+  assert.deepEqual(proof, prepared.proof, "Prepared source changed");
+  assert.equal(typeof readKey, "function");
+  return readKey();
 }
 
 export async function runOne({
@@ -274,12 +291,13 @@ if (
     process.argv[2] === "--execute-approved" &&
     /^[a-f0-9]{64}$/.test(process.argv[3] || "")
   ) {
-    const { loadEnv } = await import("vite");
-    const { GEMINI_API_KEY: apiKey } = loadEnv(
-      "development",
-      process.cwd(),
-      "",
-    );
+    const apiKey = await loadApprovedApiKey({
+      approvedPlanSha: process.argv[3],
+      readKey: async () => {
+        const { loadEnv } = await import("vite");
+        return loadEnv("development", process.cwd(), "").GEMINI_API_KEY;
+      },
+    });
     const result = await runOne({ approvedPlanSha: process.argv[3], apiKey });
     console.log(
       JSON.stringify({

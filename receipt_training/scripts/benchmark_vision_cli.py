@@ -63,8 +63,12 @@ manifest_path.relative_to((ROOT / "receipt_training/evaluation").resolve())
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 small_candidate = manifest["model"] == "unsloth/Qwen3.5-2B-GGUF"
 research_backend = request.get("research_backend")
+kv_q8 = research_backend == "qwen3-vl-4b-q8-kv-fa-v1"
 strict_cpu = research_backend in ["cpu-small-batch-v1", "cpu-small-batch-no-repack-v1"]
-if research_backend is not None and (not small_candidate or not strict_cpu):
+if kv_q8:
+    from qwen4_kv_profile import FLAGS as kv_flags, Qwen4KVMemoryGuard, validate_profile
+    validate_profile(manifest, request)
+elif research_backend is not None and (not small_candidate or not strict_cpu):
     raise ValueError("Only the pinned 2B research CPU profile is supported")
 if strict_cpu and (request.get("gpu_layers") != 0 or request.get("projector_gpu") is not False):
     raise ValueError("The CPU research profile requires explicit CPU model and projector placement")
@@ -77,6 +81,9 @@ if small_candidate:
     if manifest != pinned_small_manifest():
         raise ValueError("The 2B trial requires the exact pinned research manifest")
     guard = Qwen35MemoryGuard()
+elif kv_q8:
+    # Honor an explicitly requested legacy four-GiB guard; never reduce it.
+    guard = VisionMemoryGuard() if args.memory_guard else Qwen4KVMemoryGuard()
 else:
     guard = VisionMemoryGuard() if args.memory_guard or manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" else None
 if guard:
@@ -120,6 +127,8 @@ if small_candidate:
         small_helpers.append("qwen35_projector_manifest.py")
     for helper in small_helpers:
         (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
+if kv_q8:
+    (out / "qwen4_kv_profile.py").write_bytes(Path(__file__).with_name("qwen4_kv_profile.py").read_bytes())
 if request.get("normalize_numeric_json", False):
     (out / "vision_cli_json.py").write_bytes(Path(__file__).with_name("vision_cli_json.py").read_bytes())
 if output_mode == "structured-receipt":
@@ -135,6 +144,8 @@ command = [str(cli), "-m", str(model), "--mmproj", str(projector),
            "--gpu-layers", str(request.get("gpu_layers", "auto")), "--batch-size", str(batch), "--ubatch-size", str(ubatch),
            "--threads", "4", "--threads-batch", "4", "--temp", "0", "--seed", "20261031"]
 command.extend(placement_flags)
+if kv_q8:
+    command.extend(kv_flags)
 if output_mode == "structured-receipt" and request.get("constrain_schema", True):
     command.extend(["--json-schema-file", str(out / "schema.json")])
 if executable == "llama-cli.exe":
@@ -182,6 +193,11 @@ if small_candidate:
     metadata["effective_batches"] = {"batch": batch, "ubatch": ubatch}
     metadata["native_placement_flags"] = placement_flags
     metadata["small_candidate_helpers_sha256"] = {name: sha(out / name) for name in small_helpers}
+if kv_q8:
+    metadata["research_profile"] = research_backend
+    metadata["research_flags"] = list(kv_flags)
+    metadata["effective_batches"] = {"batch": batch, "ubatch": ubatch}
+    metadata["qwen4_kv_helper_sha256"] = sha(out / "qwen4_kv_profile.py")
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]
 memory_fn=ctypes.WinDLL("psapi").GetProcessMemoryInfo

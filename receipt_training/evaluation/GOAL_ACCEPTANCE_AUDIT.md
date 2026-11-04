@@ -12,7 +12,16 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md) uses the
+The latest [Q8-cache memory profile](QWEN4_KV_MEMORY.md) allocates the expected
+612 MiB but still stops at the runtime memory floor before image encoding. No
+receipt draft or new accuracy score exists, and remaining calls are unattempted.
+Five profile controls pass. The refreshed Free-only Gemini two-crop plan has 10
+offline controls and checks approval/source before credential loading; execution
+needs fresh consent/quota confirmation. Eight current-source historical UK views
+retain the old financial results with an added primary item-list check. Application/test source remains
+unchanged, OpenAI stays unused, and the full objective remains active.
+
+The preceding [selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md) uses the
 actual reader after qualifying the current three-GiB startup floor. Real image
 and asset validation pass, but the outer runtime memory guard stops the owned
 tree without output. This exhausts the one remaining planned resume. Recorded
