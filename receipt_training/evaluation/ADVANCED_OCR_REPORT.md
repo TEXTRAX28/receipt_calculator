@@ -1,5 +1,17 @@
 # Advanced OCR investigation — work in progress
 
+Latest research diagnostic, 4 November 2026:
+[partial free-row ordering](PARTIAL_FREE_ORDER_DIAGNOSTIC.md) traces a skipped
+non-Costco product to unresolved association of a correctly recognized literal
+quantity/price row. A research-only narrow prototype passes seventeen helper
+controls and changes one of twenty-four saved development-reader views. A broad
+pack-ambiguous prototype is rejected. No incomplete row supplies missing money
+or a product. These are JavaScript-isolate helper results, not a full-parser
+financial benchmark or a production fix. Actual parser/regression promotion and
+the prepared original-photo native test remain held by resource admission.
+Application sources and the pending OpenAI job are unchanged and no key, API
+credit or external receipt upload is used. The full goal remains active.
+
 Latest real workflow checkpoint, 4 November 2026:
 [native Paddle phone flow](NATIVE_PHONE_COSTCO_FLOW.md) exercises the current
 compiled UI at 390px with one actual local recognition POST and two uploaded

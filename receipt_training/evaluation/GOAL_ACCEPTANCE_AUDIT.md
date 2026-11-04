@@ -12,6 +12,17 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The new [partial-row diagnostic](PARTIAL_FREE_ORDER_DIAGNOSTIC.md) identifies a
+specific skipped non-Costco product despite a correctly observed complete price
+expression. Its research-only candidate uses an incomplete zero-price row only
+as ordering evidence. Seventeen isolated helper controls pass; just one of
+twenty-four saved development-reader views gains an association. Missing fields
+stay missing. A broader pack-ambiguous candidate is rejected. This is neither a
+production change nor a full-parser financial score. Available RAM prevents the
+actual parser/regression promotion and the prepared original-photo native scan;
+no child or inference starts for either. Current application bytes and the
+pending, unexecuted OpenAI job remain unchanged. Broader gaps remain open.
+
 The latest [real native phone flow](NATIVE_PHONE_COSTCO_FLOW.md) uses the current
 compiled application, normal upload controls and actual Paddle inference at
 390px. Supplied GBP, eighteen source-matching financial rows, four correct
