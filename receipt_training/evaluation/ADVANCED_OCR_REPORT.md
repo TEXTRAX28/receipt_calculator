@@ -2,7 +2,20 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [Costco development check](RAPIDOCR_COSTCO_DEVELOPMENT.md) adds two
+The latest [approved Gemini and completed Rapid development comparison](GEMINI_UK_AND_RAPID_DEVELOPMENT.md)
+executes the single newly approved two-crop request and completes all five
+remaining local PNG readings. Gemini returns HTTP 200 but no accepted draft:
+VAT-rate formatting fails the strict contract and four coupons become extra
+rows. The native diagnostic matches 18/18 purchase prices and 0/4 coupon owners;
+the scope is consumed, without retry or OpenAI use. Rapid's six familiar
+development receipts match 39/42 components and 37/41 prices with supplied
+currency, but only 4/7 coupon owners; it remains experimental. Current source
+passes all 1,377 tests across 77 files, full typecheck, isolated compilation and
+graph checks. A current 400-view original-fifty replay has no scored regressions
+or calculated-total changes. Browser/capture and broader financial verification
+remain outstanding; no new default provider or whole-goal completion is claimed.
+
+The preceding [Costco development check](RAPIDOCR_COSTCO_DEVELOPMENT.md) adds two
 actual local frame readings of the familiar UK transaction. Saved Paddle medium
 and new Rapid small both recover 18/18 purchases, prices and quantities, all four
 coupon owners, and the printed £176.78 total from the same two cropped JPEGs.
