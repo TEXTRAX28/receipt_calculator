@@ -24,7 +24,7 @@ def word(text, confidence, box):
     return {"text": text, "confidence": score, "box": coordinates}
 
 
-def reading_lines(words):
+def reading_lines(words, polygons=None, width=None, height=None):
     """Join adjacent column fragments on the same baseline; preserve repeats.
 
     This operates on geometry only. It neither knows receipt labels nor repairs
@@ -32,6 +32,8 @@ def reading_lines(words):
     """
     if len(words) > 10000:
         raise ValueError("Too many OCR tokens")
+    if polygons is not None:
+        return polygon_reading_lines(words, polygons, width, height)
     rows = []
     for token in sorted(words, key=lambda w: ((w["box"][1] + w["box"][3]) / 2, w["box"][0])):
         if not token["text"].strip():
@@ -59,6 +61,64 @@ def reading_lines(words):
     return lines
 
 
+def polygon_reading_lines(words, polygons, width, height):
+    """Use measured word directions for grouping; preserve original rectangles."""
+    if len(words) != len(polygons) or len(words) > 10000:
+        raise ValueError("Mismatched or excessive OCR geometry")
+    if any(len(points) != 4 for points in polygons):
+        return reading_lines(words)
+    positions = []
+    for source, polygon in zip(words, polygons, strict=True):
+        points = [tuple(float(v) for v in p) for p in polygon]
+        if any(len(p) != 2 or not all(math.isfinite(v) for v in p) for p in points):
+            raise ValueError("Invalid OCR quadrilateral")
+        a, b, c, d = points
+        dx = ((b[0] - a[0]) + (c[0] - d[0])) / 2
+        dy = ((b[1] - a[1]) + (c[1] - d[1])) / 2
+        h = ((d[1] - a[1]) + (c[1] - b[1])) / 2
+        ordered = a[0] < b[0] and d[0] < c[0] and a[1] < d[1] and b[1] < c[1]
+        slope = dy / dx if dx > 0 else 0
+        reliable = ordered and h >= 2 and dx >= 2 * h and abs(slope) <= math.tan(math.radians(15)) and source['confidence'] >= .75
+        positions.append({'word': source, 'x': sum(p[0] for p in points) / 4,
+                          'y': sum(p[1] for p in points) / 4,
+                          'height': h if ordered and h > 0 else (source['box'][3] - source['box'][1]) * height,
+                          'slope': slope if reliable else None})
+    directions = [p['slope'] for p in positions if p['slope'] is not None]
+    if len(directions) < 3:
+        return reading_lines(words)
+    global_slope = median(directions)
+    if abs(math.degrees(math.atan(global_slope))) < .5 or math.degrees(math.atan(median(abs(s - global_slope) for s in directions))) > 5:
+        return reading_lines(words)
+    rows = []
+    for token in sorted(positions, key=lambda p: (p['y'] - global_slope * p['x'], p['x'])):
+        if not token['word']['text'].strip():
+            continue
+        candidates = []
+        for index, row in enumerate(rows):
+            delta = abs(token['y'] - (row['intercept'] + row['slope'] * token['x']))
+            if delta <= .45 * min(token['height'], row['height']):
+                candidates.append((delta, index))
+        if candidates:
+            row = rows[min(candidates)[1]]
+        else:
+            row = {'tokens': []}
+            rows.append(row)
+        row['tokens'].append(token)
+        local = [p['slope'] for p in row['tokens'] if p['slope'] is not None]
+        row['slope'] = median(local) if local else global_slope
+        row['intercept'] = median(p['y'] - row['slope'] * p['x'] for p in row['tokens'])
+        row['height'] = median(p['height'] for p in row['tokens'])
+    rows.sort(key=lambda r: r['intercept'] + r['slope'] * width / 2)
+    lines = []
+    for row in rows:
+        tokens = sorted((p['word'] for p in row['tokens']), key=lambda w: w['box'][0])
+        lines.append({'text': ' '.join(w['text'].strip() for w in tokens),
+                      'confidence': min(w['confidence'] for w in tokens),
+                      'box': [min(w['box'][0] for w in tokens), min(w['box'][1] for w in tokens),
+                              max(w['box'][2] for w in tokens), max(w['box'][3] for w in tokens)]})
+    return lines
+
+
 class PaddleAdapter:
     name = "paddle-ppocrv6-medium-onnx"
 
@@ -80,7 +140,8 @@ class PaddleAdapter:
             box = [max(0, min(xs) / width), max(0, min(ys) / height),
                    min(1, max(xs) / width), min(1, max(ys) / height)]
             words.append(word(text, score, box))
-        return {"width": width, "height": height, "words": words, "lines": reading_lines(words)}
+        return {"width": width, "height": height, "words": words,
+                "lines": reading_lines(words, result["rec_polys"], width, height)}
 
 
 class DoctrAdapter:

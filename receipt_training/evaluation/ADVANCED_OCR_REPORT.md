@@ -1,6 +1,20 @@
 # Advanced OCR investigation — work in progress
 
-Latest phone usability checkpoint, 4 November 2026:
+Latest extraction checkpoint, 4 November 2026:
+[detector-angle grouping](DETECTOR_ANGLE_LAYOUT.md) preserves original word text,
+scores and rectangles while rejoining sloped printed columns in the browser and
+native Paddle adapters. On seven actual Rapid development panels from six
+familiar transactions, matched purchases improve 39/42 → 41/42, coupon owners
+4/7 → 6/7 and supplied-currency prices 37/41 → 39/41, with no scored regression.
+This is partial development evidence, not a new holdout or complete-financial
+accuracy claim. All 1,381 tests across 78 files pass in six disjoint guarded
+runs; typecheck, formatting, isolated compilation and graph checks pass. A real
+current tiny-browser scan returns nine prices but retains unit/code/total errors;
+its preview crosses the memory guard, and a later area precheck fails. These are
+retained failures, not a clean browser pass. No cloud upload, provider-default
+change or OpenAI request occurs. The full objective remains active.
+
+Preceding phone usability checkpoint, 4 November 2026:
 [source-image zoom and current browser verification](SOURCE_ZOOM_PHONE_CHECK.md).
 Highlighted rows now zoom from 100% to 400% inside a bounded scrolling region.
 A real on-device synthetic scan at 320px, source review at 320/390px and a

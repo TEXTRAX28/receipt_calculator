@@ -2,6 +2,7 @@ import { z } from "zod";
 import { recognitionSchema } from "./recognition-schema.mjs";
 import { extractionOutputSchema } from "./parser";
 import type { Recognition } from "./receipt-layout";
+import { polygonReadingLines } from "./polygon-lines";
 
 const sdkResult = z.object({
   image: z.strictObject({
@@ -53,7 +54,26 @@ export function paddlePanel(
       Math.min(1, Math.max(...poly.map((p) => p[1])) / height),
     ],
   }));
-  // Same geometry-only grouping as the measured native adapter. No amount repairs.
+  const lines = polygonReadingLines(
+    words,
+    result.items.map((item) => item.poly),
+    width,
+    height,
+    horizontalLines,
+  );
+  // Browser-only engine identity; remote engines cannot claim this or SDK ownership.
+  return recognitionSchema.shape.panels.element.parse({
+    photo,
+    part,
+    width,
+    height,
+    words,
+    lines,
+  });
+}
+
+// Preserve the previous grouping when usable word directions are unavailable.
+function horizontalLines(words: Region[]): Region[] {
   const rows: Region[][] = [];
   for (const token of [...words].sort(
     (a, b) =>
@@ -82,7 +102,7 @@ export function paddlePanel(
     if (best >= 0) rows[best].push(token);
     else rows.push([token]);
   }
-  const lines: Region[] = rows.map((row) => ({
+  return rows.map((row) => ({
     text: row
       .sort((a, b) => a.box[0] - b.box[0])
       .map((w) => w.text.trim())
@@ -95,13 +115,4 @@ export function paddlePanel(
       Math.max(...row.map((w) => w.box[3])),
     ],
   }));
-  // Browser-only engine identity; remote engines cannot claim this or SDK ownership.
-  return recognitionSchema.shape.panels.element.parse({
-    photo,
-    part,
-    width,
-    height,
-    words,
-    lines,
-  });
 }
