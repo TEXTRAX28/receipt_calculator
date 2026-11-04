@@ -15,7 +15,7 @@ import {
 
 export function receiptFromAi(
   output: unknown,
-  provider: "Gemini" | "Local vision" = "Gemini",
+  provider: "Gemini" | "Local vision" | "OpenAI" = "Gemini",
   context?: ReadingContext,
 ): Receipt {
   const data = (

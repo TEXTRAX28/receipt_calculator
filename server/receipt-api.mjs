@@ -26,6 +26,8 @@ import { MAX_READING_PANELS } from "../src/lib/scan-limits.mjs";
 import { validatePreparedJpeg } from "./receipt-zip.mjs";
 import { createDocumentAllowance } from "./document-allowance.mjs";
 import { randomUUID } from "node:crypto";
+import { createOpenAiReader, OpenAiError } from "./openai-reader.mjs";
+import { openaiRequestSchema } from "../src/lib/openai-schema.mjs";
 
 const requestSchema = z.strictObject({
   consent: z.literal(true),
@@ -163,7 +165,7 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>}} [options]
+ * @param {{apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>, openaiReader?: ReturnType<typeof import("./openai-reader.mjs").createOpenAiReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
@@ -177,6 +179,7 @@ export function createReceiptApi({
   localVision,
   veryfiReader,
   azureReader,
+  openaiReader = createOpenAiReader(),
 } = {}) {
   // One local operator grant covers every Gemini key/model in this directory.
   // Rotating a key or restarting the server must not replenish the allowance.
@@ -249,6 +252,8 @@ export function createReceiptApi({
       });
     if (pathname === "/api/receipts/config" && req.method === "GET")
       return send(200, await geminiStatus());
+    if (pathname === "/api/receipts/openai/config" && req.method === "GET")
+      return send(200, await openaiReader.getStatus());
     if (pathname === "/api/receipts/providers" && req.method === "GET")
       return send(200, {
         localModel: {
@@ -267,6 +272,7 @@ export function createReceiptApi({
       });
     const isVeryfi = pathname === "/api/receipts/veryfi";
     const isAzure = pathname === "/api/receipts/azure";
+    const isOpenAi = pathname === "/api/receipts/openai";
     const isBatchedVision = pathname === "/api/receipts/vision-batches";
     const isVision = isBatchedVision || pathname === "/api/receipts/vision";
     const isLocal = isVision || pathname === "/api/receipts/recognize";
@@ -274,6 +280,7 @@ export function createReceiptApi({
       (!isLocal &&
         !isVeryfi &&
         !isAzure &&
+        !isOpenAi &&
         pathname !== "/api/receipts/extract") ||
       req.method !== "POST"
     )
@@ -297,12 +304,17 @@ export function createReceiptApi({
       return send(503, {
         error: "Azure is not enabled with a section allowance on this server.",
       });
-    if (!isLocal && !isVeryfi && !isAzure && !apiKey)
+    if (isOpenAi && !openaiReader.configured)
+      return send(503, {
+        error:
+          "OpenAI is not enabled with a key and attempt allowance on this server. Choose another reader.",
+      });
+    if (!isLocal && !isVeryfi && !isAzure && !isOpenAi && !apiKey)
       return send(503, {
         error:
           "Gemini is not connected yet. Add GEMINI_API_KEY to .env.local on this computer and restart Gather. You can still use the on-device reader.",
       });
-    if (!isLocal && !isVeryfi && !isAzure && !allowance.configured)
+    if (!isLocal && !isVeryfi && !isAzure && !isOpenAi && !allowance.configured)
       return send(503, {
         error:
           "Gemini needs a finite request allowance on this server before scanning. You can still use the on-device reader.",
@@ -352,24 +364,28 @@ export function createReceiptApi({
         );
       }
       const parsed = (
-        isAzure
-          ? azureRequestSchema
-          : isVeryfi
-            ? veryfiRequestSchema
-            : isLocal
-              ? localRequestSchema
-              : requestSchema
+        isOpenAi
+          ? openaiRequestSchema
+          : isAzure
+            ? azureRequestSchema
+            : isVeryfi
+              ? veryfiRequestSchema
+              : isLocal
+                ? localRequestSchema
+                : requestSchema
       ).safeParse(body);
       if (!parsed.success)
         throw new ScanError(
           400,
-          isAzure
-            ? "Confirm sending these receipt sections to Azure after reviewing its data-use notice."
-            : isVeryfi
-              ? "Confirm sending these receipt sections to Veryfi after reviewing its data-use notice."
-              : isLocal
-                ? "The receipt request is incomplete or invalid. Choose the photos again."
-                : "The receipt request is incomplete or invalid. Choose the photos again and confirm sending them to Gemini.",
+          isOpenAi
+            ? "Confirm sending these sections to OpenAI and using API credits for this scan."
+            : isAzure
+              ? "Confirm sending these receipt sections to Azure after reviewing its data-use notice."
+              : isVeryfi
+                ? "Confirm sending these receipt sections to Veryfi after reviewing its data-use notice."
+                : isLocal
+                  ? "The receipt request is incomplete or invalid. Choose the photos again."
+                  : "The receipt request is incomplete or invalid. Choose the photos again and confirm sending them to Gemini.",
         );
       attempts = attempts.filter((time) => Date.now() - time < 3600000);
       if (
@@ -384,6 +400,13 @@ export function createReceiptApi({
       active = true;
       ownsActive = true;
       attempts.push(Date.now());
+      if (isOpenAi)
+        return send(
+          200,
+          await openaiReader.extract(parsed.data.panels, {
+            signal: abort.signal,
+          }),
+        );
       if (isAzure) {
         clearTimeout(deadline);
         deadline = setTimeout(() => abort.abort(), 180000);
@@ -528,7 +551,9 @@ export function createReceiptApi({
       await reservation
         ?.finish(abort.signal.aborted ? "cancelled" : "failed", "unknown")
         .catch(() => {});
-      if (error instanceof VeryfiError || error instanceof AzureError)
+      if (error instanceof OpenAiError)
+        send(error.status, { error: error.message });
+      else if (error instanceof VeryfiError || error instanceof AzureError)
         send(error.status, { error: error.message, cleanup: error.cleanup });
       else if (abort.signal.aborted)
         send(504, {

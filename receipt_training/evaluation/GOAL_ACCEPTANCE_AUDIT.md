@@ -12,6 +12,31 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The [manual OpenAI app option](OPENAI_LAST_RESORT_APP.md) is now implemented,
+with server-only credentials, an operator-set finite allowance, per-scan
+upload/credit consent and no automatic selection or retry. It remains disabled
+by default, and this integration used no real key or provider request. All 1,439
+unit cases across 80 files pass, as do strict TypeScript, isolated compilation
+and six desktop/phone fake-response browser cases. Current parsing/calculation
+matches all 200 retained original-fifty vectors (38 development, 12 evaluation;
+no new inference or independent truth). The untouched two-photo native phone
+test was actually attempted: its memory guard stopped the owned process tree
+at 974,778,368 available bytes before a draft. The error retained both photos
+without horizontal overflow; generated job copies were removed after verifying
+their hashes. This is a failed recognition attempt, not a corrected success.
+No new cloud permission or credit spend was consumed.
+
+A separate higher-admission native follow-up then completed the same untouched
+photos through ordinary 390×844 UI controls. Extraction took 22.049 seconds;
+all 18 quantities, unit/line prices and tax codes and all four coupon owners
+match the familiar partial reference. There are two O/0 description typos.
+With GBP supplied and one count review, no financial edits were needed to
+calculate £163.16 + £13.62 VAT = £176.78 or finalize £58.93/£58.93/£58.92.
+The preview/worker closed with no temporary jobs and no cloud use. This closes
+the original-photo workflow gap for this transaction; broader physical-camera,
+representative accuracy and public-release gaps remain open. Both attempts
+are preserved separately in the new implementation evidence.
+
 The approved [OpenAI last-resort test](OPENAI_COSTCO_ONCE_RESULT.md) now completes
 one two-crop request in 24.756 seconds, with no retry. All eighteen partial-reference
 purchase names, quantities, unit prices and line totals match; all four coupons
@@ -21,7 +46,7 @@ the checked standard rates; account charges remain unverified. The familiar
 source-reviewed transaction is not independent human truth or a representative
 provider selection. Current core offline replay preserves returned fields,
 blocks automatic currency, and calculates £176.78 with supplied GBP and review
-still outstanding. No app provider or automatic spending is enabled; the one
+still outstanding. At that checkpoint no app provider was enabled; the one
 approval is consumed. Raw evidence and the software checkpoint are sealed in
 `advanced-openai-costco-once-v1.json` and `advanced-openai-costco-checkpoint-v1.json`.
 
@@ -39,7 +64,8 @@ that crossed the reserve and a local replay output-parent failure stay recorded;
 the successful new build is separate and its twelve artifacts are verified.
 The immutable checkpoint is `advanced-partial-free-order-fix-v1.json`. This is a
 narrow interpretation improvement, not a fresh recognition or representative
-hybrid result. The prepared full original-photo native scan remains unexecuted.
+hybrid result. The full original-photo native scan was then unexecuted; the
+later attempted scan and its memory stop are recorded above.
 Broader accuracy, capture and public-release gaps remain open.
 
 The latest [real native phone flow](NATIVE_PHONE_COSTCO_FLOW.md) uses the current

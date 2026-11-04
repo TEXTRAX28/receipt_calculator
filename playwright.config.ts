@@ -50,6 +50,10 @@ export default defineConfig({
     env: {
       LOCAL_OCR_PYTHON: "",
       GEMINI_API_KEY: "",
+      OPEN_AI_KEY: "",
+      OPENAI_API_KEY: "",
+      OPENAI_ALLOWANCE_ID: "",
+      OPENAI_REQUEST_LIMIT: "0",
       VERYFI_CLIENT_ID: "",
       VERYFI_BEARER_KEY: "",
       VERYFI_ALLOWANCE_ID: "",

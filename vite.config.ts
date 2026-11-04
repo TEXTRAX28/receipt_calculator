@@ -7,6 +7,7 @@ import { createLocalVisionReader } from "./server/local-vision.mjs";
 import { privateFileDeny } from "./server/private-paths.mjs";
 import { createVeryfiReader } from "./server/veryfi-reader.mjs";
 import { createAzureReader } from "./server/azure-reader.mjs";
+import { createOpenAiReader } from "./server/openai-reader.mjs";
 import { resolve } from "node:path";
 import { LOCAL_VISION_TIMEOUT_MS } from "./src/lib/vision-plan.mjs";
 
@@ -36,6 +37,14 @@ export default defineConfig(({ mode }) => {
         },
         localReader,
         localVision,
+        openaiReader: createOpenAiReader({
+          apiKey: env.OPEN_AI_KEY || env.OPENAI_API_KEY || "",
+          directory: resolve(
+            env.OPENAI_ALLOWANCE_DIRECTORY || ".receipt-reader-state/openai",
+          ),
+          grant: env.OPENAI_ALLOWANCE_ID || "",
+          limit: Number(env.OPENAI_REQUEST_LIMIT || 0),
+        }),
         visionTimeoutMs: LOCAL_VISION_TIMEOUT_MS,
         azureReader: createAzureReader({
           endpoint: env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT || "",

@@ -1,5 +1,38 @@
 # Implementation and security report
 
+4 November 2026 supplement: OpenAI is available as a manual last-resort reader,
+disabled until an operator supplies both a server-held key and finite persistent
+attempt allowance. The browser never selects it automatically. Each scan requires
+explicit upload and credit consent; changed photos revoke consent. A fixed
+Responses endpoint/model, strict schemas, source-photo bounds, JPEG validation,
+response/body limits, no tools/redirects/retries and a 90-second deadline bound
+the request. The existing loopback, host/origin, intent, rate and concurrency
+checks apply. Attempts are reserved atomically before I/O and remain consumed
+on failure/cancellation. The US$0.60 estimate guard is not a billing guarantee.
+No actual key configuration, allowance grant, cloud upload or credit use occurred
+for this integration. All new provider responses in automated tests are fake.
+See [the implementation report](../receipt_training/evaluation/OPENAI_LAST_RESORT_APP.md)
+for validation and the separate historical live test.
+
+All 1,439 unit cases across 80 files pass; complete strict TypeScript and isolated
+compilation pass. Six desktop/phone OpenAI UI protocol cases pass. The original
+50 saved-reading replay preserves 200 receipt/calculation comparisons. These
+checks establish software behavior, not recognition accuracy. A real native
+scan of the two untouched full Costco photographs at 390×844 stopped at the
+one-GiB available-memory reserve before returning evidence. Its UI retained both
+photos; temporary job copies left by the forced stop were verified and removed
+locally. The original uploads were unchanged. This is a failed scan, with no
+recognition or end-to-end success claimed. Crash cleanup remains release work.
+
+A separate trial with three-GiB outer startup admission then completed the same
+untouched two-photo phone workflow. Native reading took 22.049 seconds; all 18
+quantities, unit/line prices and tax codes plus four coupon owners matched the
+familiar partial reference. Two O/0 name typos remained. With GBP supplied before
+reading and one source-count review, the unchanged financial draft calculated
+£176.78 and finalized to £58.93/£58.93/£58.92. The worker closed and temporary
+jobs were empty. This is one source-reviewed transaction, not representative
+or independently verified recognition accuracy; no cloud provider was used.
+
 3 November 2026 supplement: Gemini now requires a finite persistent request
 allowance as well as a server-held key. The existing atomic slot ledger is
 shared across handler instances and persists through restart/key/model changes.

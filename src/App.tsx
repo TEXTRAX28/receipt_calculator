@@ -64,6 +64,7 @@ import { canReadPdfText, readPdfText } from "./lib/pdf-text";
 import { localOcrProvider, type ExtractionProvider } from "./lib/ocr";
 import { enhancedOcrProvider } from "./lib/paddle-browser";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
+import { extractWithOpenAi, openaiConfiguration } from "./lib/openai";
 import {
   extractWithLocalModel,
   localReaderConfiguration,
@@ -299,6 +300,7 @@ export default function App() {
     | "computer"
     | "vision"
     | "gemini"
+    | "openai"
     | "veryfi"
     | "azure"
     | "pdf"
@@ -347,6 +349,9 @@ export default function App() {
     availability?: string;
   } | null>(null);
   const [checkingAi, setCheckingAi] = useState(false);
+  const [openaiConfig, setOpenaiConfig] = useState<Awaited<
+    ReturnType<typeof openaiConfiguration>
+  > | null>(null);
   const controller = useRef<AbortController | null>(null);
   const [rawText, setRawText] = useState("");
   const [privacy, setPrivacy] = useState(false);
@@ -393,6 +398,7 @@ export default function App() {
     )?.message;
   useEffect(() => {
     // Editing, replacing or removing an input invalidates its old coordinate map.
+    setAiConsented(false);
     setScanEvidence(null);
     setSourceItemId(null);
     setSourceCheckKey(null);
@@ -424,6 +430,24 @@ export default function App() {
       .then(setAiConfig)
       .catch(() => {
         if (!check.signal.aborted) setAiConfig(null);
+      })
+      .finally(() => {
+        if (!check.signal.aborted) setCheckingAi(false);
+      });
+    return () => check.abort();
+  }, [reader]);
+  useEffect(() => {
+    if (reader !== "openai") return;
+    const check = new AbortController();
+    setCheckingAi(true);
+    openaiConfiguration(
+      AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
+    )
+      .then((config) => {
+        if (!check.signal.aborted) setOpenaiConfig(config);
+      })
+      .catch(() => {
+        if (!check.signal.aborted) setOpenaiConfig(null);
       })
       .finally(() => {
         if (!check.signal.aborted) setCheckingAi(false);
@@ -646,6 +670,11 @@ export default function App() {
   async function scan() {
     if (busyRef.current || !images.length || !canReplace()) return;
     if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
+    if (
+      reader === "openai" &&
+      (!aiConsented || !openaiConfig?.configured || checkingAi)
+    )
+      return;
     if (reader === "veryfi" && (!aiConsented || !veryfiConfig?.configured))
       return;
     if (reader === "azure" && (!aiConsented || !azureConfig?.configured))
@@ -803,6 +832,24 @@ export default function App() {
         );
         return;
       }
+      if (reader === "openai") {
+        const parsed = await extractWithOpenAi(
+          images,
+          controller.current.signal,
+          setScanStatus,
+          readingContext,
+        );
+        replaceReceipt(
+          requireCorrectedPhotoReview(
+            parsed,
+            images.some((image) => !!image.geometry),
+          ),
+        );
+        setNotice(
+          "OpenAI finished. Check every purchase, discount, tax setting and total against the original photos before confirming.",
+        );
+        return;
+      }
       if (reader === "gemini") {
         const parsed = await extractWithGemini(
           images,
@@ -916,6 +963,12 @@ export default function App() {
           : "OCR could not start or finish. Try another image or use manual entry.",
       );
     } finally {
+      if (reader === "openai") {
+        setAiConsented(false);
+        await openaiConfiguration(AbortSignal.timeout(5000))
+          .then(setOpenaiConfig)
+          .catch(() => setOpenaiConfig(null));
+      }
       if (reader === "gemini") {
         setAiConsented(false);
         await geminiConfiguration(AbortSignal.timeout(5000))
@@ -1453,6 +1506,18 @@ export default function App() {
                       <Sparkles size={17} />
                       Gemini AI
                     </button>
+                    <button
+                      type="button"
+                      className={`button ${reader === "openai" ? "button-primary" : "button-outline"}`}
+                      aria-pressed={reader === "openai"}
+                      onClick={() => {
+                        readerChosen.current = true;
+                        setReader("openai");
+                        setAiConsented(false);
+                      }}
+                    >
+                      <Sparkles size={17} /> OpenAI last resort
+                    </button>
                     {(veryfiConfig?.configured || reader === "veryfi") && (
                       <button
                         type="button"
@@ -1626,6 +1691,53 @@ export default function App() {
                         have read the data-use notice above.
                       </label>
                     </div>
+                  ) : reader === "openai" ? (
+                    <div className="ai-reader-info">
+                      <p>
+                        Use this last resort when the other readers need help.
+                        It uses OpenAI API credits and prepares a draft for you
+                        to check.
+                      </p>
+                      <p className="hint" role="status">
+                        {checkingAi
+                          ? "Checking the app's OpenAI allowance…"
+                          : openaiConfig?.configured
+                            ? `App allowance: ${openaiConfig.remaining} scan ${openaiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. Failed or cancelled attempts can still use credits.`
+                            : "OpenAI is not enabled here or its attempt allowance is used up. Choose another reader."}
+                      </p>
+                      <p className="hint">
+                        Requests estimated above US$0.60 are rejected before
+                        sending. This estimate guard is not an account spending
+                        cap; actual charges depend on usage. No automatic retry
+                        is made.
+                      </p>
+                      <p className="hint">
+                        Crop out membership and payment details. OpenAI API
+                        content is excluded from training by default, but safety
+                        logs and caching can retain content and processing may
+                        occur outside your country. Gather does not save these
+                        photos or model requests.{" "}
+                        <a
+                          href="https://developers.openai.com/api/docs/guides/your-data"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          OpenAI’s data-use information
+                        </a>
+                      </p>
+                      <label className="check-line">
+                        <input
+                          type="checkbox"
+                          checked={aiConsented}
+                          disabled={checkingAi || !openaiConfig?.configured}
+                          onChange={(event) =>
+                            setAiConsented(event.target.checked)
+                          }
+                        />
+                        Send these receipt sections to OpenAI and use API
+                        credits for this scan. I have read the notice above.
+                      </label>
+                    </div>
                   ) : (
                     <div className="ai-reader-info">
                       <p>
@@ -1722,7 +1834,13 @@ export default function App() {
                         (reader === "azure" &&
                           (!aiConsented || !azureConfig?.configured)) ||
                         (reader === "gemini" &&
-                          (!aiConsented || !aiConfig?.configured || checkingAi))
+                          (!aiConsented ||
+                            !aiConfig?.configured ||
+                            checkingAi)) ||
+                        (reader === "openai" &&
+                          (!aiConsented ||
+                            !openaiConfig?.configured ||
+                            checkingAi))
                       }
                       onClick={() => void scan()}
                     >
@@ -1737,15 +1855,17 @@ export default function App() {
                           ? "Read PDF text on this device"
                           : reader === "gemini"
                             ? "Read receipt with Gemini"
-                            : reader === "veryfi"
-                              ? "Read receipt with Veryfi"
-                              : reader === "azure"
-                                ? "Read receipt with Azure"
-                                : reader === "computer"
-                                  ? "Read receipt on this computer"
-                                  : reader === "vision"
-                                    ? "Read receipt with local vision"
-                                    : "Read receipt on this device"}
+                            : reader === "openai"
+                              ? "Read receipt with OpenAI credits"
+                              : reader === "veryfi"
+                                ? "Read receipt with Veryfi"
+                                : reader === "azure"
+                                  ? "Read receipt with Azure"
+                                  : reader === "computer"
+                                    ? "Read receipt on this computer"
+                                    : reader === "vision"
+                                      ? "Read receipt with local vision"
+                                      : "Read receipt on this device"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -3235,6 +3355,13 @@ export default function App() {
               Gemini. It returns a receipt draft for you to check. The API key
               stays on the server; Gather does not save the photos or model
               requests. Google processes requests under its own data-use terms.
+            </p>
+            <p>
+              OpenAI is an optional last resort. Selecting it, consenting and
+              starting a scan sends your receipt sections to OpenAI and uses API
+              credits. The key stays on the server. The local attempt allowance
+              persists across restarts, including failures; it is not an account
+              spending cap. Provider safety logs and caching can retain content.
             </p>
             <p>
               Veryfi OCR is optional and requires a separate server allowance.
