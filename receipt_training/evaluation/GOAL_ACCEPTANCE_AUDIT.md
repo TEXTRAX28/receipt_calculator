@@ -12,7 +12,17 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [visible-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
+The latest [fresh-cohort collection](FRESH_CORD_COHORT.md) preserves a selection
+made before inspecting new source content: twelve development and twelve reserved
+evaluation receipts. All 24 are collected, all 48 raw artifacts reverified, and
+no old/new overlap candidate is flagged. Seventeen native-format and five
+quarantine controls pass. The bounded public-source collection fits unchanged
+memory/disk reserves; no scanner changes, inference, private upload or OpenAI
+use occur. All 221 application/test files retain the preceding validation.
+This supplies separate data for further tuning, not a fresh accuracy score or
+UK Costco coverage. Baseline extraction and visual reference review remain next.
+
+The preceding [visible-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
 fixed original evaluation images and retains uncertain fields explicitly. All
 85 shared readable facts agree with previous references. Saved current-source
 hybrid views match all 22 visible components and 14 readable quantities; primary

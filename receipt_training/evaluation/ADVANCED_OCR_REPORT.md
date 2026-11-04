@@ -2,7 +2,16 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [evaluation-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
+The latest [separate fresh cohort](FRESH_CORD_COHORT.md) collects all 24 sources
+selected before viewing new content: twelve development and twelve reserved
+evaluation receipts. All 48 image/label artifacts reverify, with no old/new
+overlap candidates. Seventeen native-format and five quarantine controls pass;
+bounded public-source collection fits unchanged memory/disk reserves. App/test
+source stays unchanged, OpenAI remains unused, and no new inference or accuracy
+score is claimed. Development baseline and visible-source annotation are next;
+this is not representative Costco or complete-receipt evidence.
+
+The preceding [evaluation-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
 fixed evaluation images and freezes visibility-qualified references. All 85
 shared readable facts agree with the prior labels. Current-source saved hybrid
 views match 22/22 components and 14/14 readable quantities, versus primary 14/22
