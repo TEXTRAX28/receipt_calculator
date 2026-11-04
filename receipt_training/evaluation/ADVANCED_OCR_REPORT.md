@@ -2,7 +2,19 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The [local LightOnOCR comparison and browser follow-up](LIGHTON_LOCAL_SCREEN.md)
+The [source-backed mixed invoice repair](MIXED_INVOICE_SOURCE.md) uses one fresh
+selected-Paddle reading to recover wrapped products, quantities, unit prices,
+VAT-inclusive carriage and full printed VAT. On that identical reading, the
+calculation improves 20.07 to 29.06 without changing printed money; eight source
+checks remain pending. All 1,312 unit tests, 185 focused cases, typecheck and build
+pass. The built UI completes saved-response review/splitting at 320/390px. All
+506 original/supplementary saved-reading views retain their paired facts and
+checks. The source-aware primary replay has a separately disclosed difference
+from an older text-only benchmark; both hybrid vectors reproduce. This is one
+familiar primary-reader case, not a new hybrid or whole-corpus accuracy claim.
+OpenAI remains unused and the full goal stays active.
+
+The preceding [local LightOnOCR comparison and browser follow-up](LIGHTON_LOCAL_SCREEN.md)
 executes two fixed five-development-crop profiles and two synthetic controls.
 The corrected vendor-template profile still matches only 18/23 known line prices
 and 18/24 purchases with supplied currency, versus the current hybrid's 22/23

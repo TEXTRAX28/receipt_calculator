@@ -1,4 +1,9 @@
-# Mixed net goods and gross fees: regression checks pass, browser validation pending
+# Mixed net goods and gross fees: manual-entry implementation checkpoint
+
+The later [source-backed mixed invoice proposal](MIXED_INVOICE_SOURCE.md) adds
+actual selected-Paddle extraction/interpretation and passes built-interface
+saved-response splitting at 320/390px. The following paragraphs retain the
+earlier manual-entry checkpoint and its then-pending browser status.
 
 Updated 4 November 2026. The financial implementation and its
 [worker-shutdown validation follow-up](WORKER_SHUTDOWN_SAFETY.md) now pass all

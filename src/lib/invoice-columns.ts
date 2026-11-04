@@ -7,7 +7,7 @@ import {
 } from "./model";
 import type { ReadingContext } from "./reading-context.mjs";
 import type { parseReceiptWithSources } from "./parser";
-import { money, weight } from "./money";
+import { money, roundDiv, SCALE, weight } from "./money";
 import { printedAmount } from "./printed-amount";
 import { normalizeReceiptDate } from "./receipt-date";
 import {
@@ -60,6 +60,49 @@ const amountConfidence = (words: InvoiceRow["cells"]) =>
       .map((word) => word.confidence),
   );
 
+/** Complete scalar rows only; parentheses qualify the printed fee, never its amount. */
+function scalarSummary(row: InvoiceRow) {
+  const match = row.text.match(
+    /^(sub[-\s]?total|total|(?:vat|tax)(?:\s*@?\s*(\d+(?:[.,]\d{1,6})?)\s*%)?|(?:carriage|shipping|delivery|handling|service)(?:\s+(?:charges?|fees?))?(?:\s+(?:net|gross))?)\s*:?\s+(.+)$/i,
+  );
+  if (!match) return null;
+  const role: AmountRole = /^sub/i.test(match[1])
+    ? "net"
+    : /^total$/i.test(match[1])
+      ? "total"
+      : /^(?:vat|tax)\b/i.test(match[1])
+        ? "tax"
+        : "fee";
+  const qualifier = match[3].match(
+    /\s+\((incl(?:uding)?|excl(?:uding)?)\.?\s+(?:VAT|tax)\)\s*$/i,
+  );
+  const literal = (
+    qualifier ? match[3].slice(0, qualifier.index) : match[3]
+  ).trim();
+  if (!monetary(literal) || (qualifier && role !== "fee")) return null;
+  const labelledBasis = /\bnet$/i.test(match[1])
+    ? "net"
+    : /\bgross$/i.test(match[1])
+      ? "gross"
+      : undefined;
+  const basis: "net" | "gross" | undefined = qualifier
+    ? /^incl/i.test(qualifier[1])
+      ? "gross"
+      : "net"
+    : labelledBasis;
+  if (labelledBasis && labelledBasis !== basis) return null;
+  return {
+    role,
+    literal,
+    index: row.index,
+    label: match[1] + (qualifier ? qualifier[0] : ""),
+    confidence: amountConfidence(row.cells),
+    basis,
+    includesTax: !!qualifier && basis === "gross",
+    rate: role === "tax" && match[2] ? match[2].replace(",", ".") : undefined,
+  };
+}
+
 function namedAmounts(rows: InvoiceRow[]) {
   const found: {
     role: AmountRole;
@@ -67,8 +110,16 @@ function namedAmounts(rows: InvoiceRow[]) {
     index: number;
     label: string;
     confidence: number;
+    basis?: "net" | "gross";
+    includesTax?: boolean;
+    rate?: string;
   }[] = [];
   for (const row of rows) {
+    const scalar = scalarSummary(row);
+    if (scalar) {
+      found.push(scalar);
+      continue;
+    }
     for (const [start, cell] of row.cells.entries()) {
       for (
         let end = start;
@@ -314,13 +365,46 @@ export function readInvoiceColumns(
       valid.flatMap((table) => (table.basis ? [table.basis] : [])),
     );
     if (explicit.length > 1) return null;
+    // One contiguous footer assigns its sole printed VAT rate to the explicitly
+    // inclusive fee as a pending proposal. No country/default rate or amount search.
+    const ordered = [...amounts].sort((a, b) => a.index - b.index);
+    const mixedFee =
+      pages.length === 1 &&
+      valid.length === 1 &&
+      ordered.length === 4 &&
+      ordered.map((row) => row.role).join() === "net,fee,tax,total" &&
+      ordered[0].index > valid[0].header &&
+      ordered.every(
+        (row, index) =>
+          row.index === ordered[0].index + index && row.confidence >= 0.9,
+      ) &&
+      ordered[1].includesTax &&
+      ordered[2].rate
+        ? { fee: ordered[1], rate: ordered[2].rate }
+        : null;
+    const mixedRate = mixedFee ? weight(mixedFee.rate) : 0n;
+    if (mixedFee && (mixedRate <= 0n || mixedRate > 100n * SCALE)) return null;
+    const grossFee = mixedFee
+      ? money(decode(mixedFee.fee.literal), currency)
+      : 0n;
+    const mixedNet =
+      !!mixedFee &&
+      !!net &&
+      !!tax &&
+      money(tax.value, currency) > 0n &&
+      money(net.value, currency) +
+        grossFee +
+        money(tax.value, currency) -
+        roundDiv(grossFee * mixedRate, 100n * SCALE + mixedRate) ===
+        money(total.value, currency);
     const basis =
       explicit[0] ||
+      (mixedNet ||
       (net &&
-      tax &&
-      money(tax.value, currency) > 0n &&
-      money(net.value, currency) + money(tax.value, currency) ===
-        money(total.value, currency)
+        tax &&
+        money(tax.value, currency) > 0n &&
+        money(net.value, currency) + money(tax.value, currency) ===
+          money(total.value, currency))
         ? "net"
         : null);
     if (!basis) return null;
@@ -442,6 +526,22 @@ export function readInvoiceColumns(
           ...heading.map((row) => row.index),
         ];
       }
+      if (!receipt.merchant && origin === "ocr") {
+        const first = rows[0];
+        if (
+          first &&
+          first.cells.every(
+            (cell) => cell.box[3] < 0.18 && cell.confidence >= 0.9,
+          ) &&
+          /^[\p{L}][\p{L} &'’.-]{2,99}$/u.test(first.text) &&
+          !/^(?:invoice|statement|tax|vat|bill|customer|page)\b/i.test(
+            first.text,
+          )
+        ) {
+          receipt.merchant = first.text;
+          fieldSources.merchant = [first.index];
+        }
+      }
     }
     const dates = rows.flatMap((row) => {
       const match = row.text.match(
@@ -488,6 +588,7 @@ export function readInvoiceColumns(
       let previous:
         | { item: (typeof receipt.items)[number]; y: number; open: boolean }
         | undefined;
+      let leading: { text: string; y: number; indices: number[] } | undefined;
       closed = false;
       for (const row of table.rows) {
         if (
@@ -498,12 +599,16 @@ export function readInvoiceColumns(
           /^(?:▌\s*)?VAT Details\b/i.test(row.text)
         )
           break;
-        const description = invoiceCell(row, table.description),
-          quantity = invoiceCell(row, table.quantity),
+        let description = invoiceCell(row, table.description);
+        const quantity = invoiceCell(row, table.quantity),
           unit = invoiceCell(row, table.unit),
           line = invoiceCell(row, table.total);
         if (/^\(?\s*(?:incl|excl)/i.test(row.text)) continue;
         if (/^\d{1,9}(?:[.,]\d{1,6})?$/.test(quantity)) {
+          if (leading) {
+            if (row.cells[0].box[1] - leading.y >= 0.025) return null;
+            description = `${leading.text} ${description}`.trim();
+          }
           if (
             /[.,]\d{3}$/.test(quantity) ||
             receipt.items.length >= 300 ||
@@ -537,7 +642,12 @@ export function readInvoiceColumns(
             item.note =
               `Description continues: ${description.slice(180)}`.slice(0, 300);
           receipt.items.push(item);
-          sources[item.id] = [...headerIndices(table), row.index];
+          sources[item.id] = [
+            ...headerIndices(table),
+            ...(leading?.indices || []),
+            row.index,
+          ];
+          leading = undefined;
           previous = { item, y: row.cells[0].box[3], open: true };
           closed = false;
         } else if (monetary(unit) || monetary(line)) {
@@ -572,6 +682,22 @@ export function readInvoiceColumns(
           )
         ) {
           if (previous) previous.open = false;
+        } else if (
+          !previous &&
+          !closed &&
+          description &&
+          !quantity &&
+          !unit &&
+          !line &&
+          invoiceCellWords(row, table.description).length === row.cells.length
+        ) {
+          if (leading && row.cells[0].box[1] - leading.y >= 0.025) return null;
+          leading = {
+            text: `${leading ? leading.text + " " : ""}${description}`,
+            y: Math.max(...row.cells.map((cell) => cell.box[3])),
+            indices: [...(leading?.indices || []), row.index],
+          };
+          if (leading.text.length > 450) return null;
         } else if (
           previous?.open &&
           !closed &&
@@ -616,14 +742,18 @@ export function readInvoiceColumns(
       if (observed !== money(net.value, currency)) return null;
     }
     for (const amount of amounts.filter((entry) => entry.role === "fee")) {
-      const feeBasis = /\bnet$/i.test(amount.label)
-        ? "net"
-        : /\bgross$/i.test(amount.label)
-          ? "gross"
-          : undefined;
+      const feeBasis =
+        amount.basis ||
+        (/\bnet$/i.test(amount.label)
+          ? "net"
+          : /\bgross$/i.test(amount.label)
+            ? "gross"
+            : undefined);
+      const includedFee =
+        basis === "net" && mixedNet && mixedFee?.fee === amount;
       if (
         !feeBasis ||
-        feeBasis !== basis ||
+        (feeBasis !== basis && !includedFee) ||
         amounts.filter(
           (entry) =>
             entry.role === "fee" &&
@@ -641,9 +771,10 @@ export function readInvoiceColumns(
         kind: "fee",
         amount: value,
         allocation: "proportional",
+        ...(includedFee && mixedFee ? { includedTaxRate: mixedFee.rate } : {}),
       });
-      sources[id] = [amount.index];
-      (fieldSources.adjustments ||= []).push(amount.index);
+      sources[id] = [amount.index, ...(includedFee ? tax?.indices || [] : [])];
+      (fieldSources.adjustments ||= []).push(...sources[id]);
     }
     if (basis === "net" && tax) {
       if (receipt.adjustments.length >= 30) return null;
@@ -714,7 +845,14 @@ export function readInvoiceColumns(
                   : []),
                 ...(tax ? [{ label: "Printed tax", value: tax.value }] : []),
               ]
-            : undefined,
+            : field === "adjustments" && mixedNet && mixedFee
+              ? [
+                  {
+                    label: "VAT rate proposed for the inclusive fee",
+                    value: `${mixedFee.rate}% from the printed VAT summary; check this applies to the fee.`,
+                  },
+                ]
+              : undefined,
       });
     receipt.warnings.push(
       origin === "ocr"
