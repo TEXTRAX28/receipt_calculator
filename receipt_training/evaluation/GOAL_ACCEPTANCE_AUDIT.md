@@ -12,7 +12,20 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [detector-angle layout repair](DETECTOR_ANGLE_LAYOUT.md) reuses seven
+The latest [fresh grouping evaluation](FRESH_GROUPING_EVALUATION.md) freezes
+source/model before reading twelve project-reserved CORD test sources. Eleven
+readings return; one oversized original remains a raw research-boundary failure
+in the full cohort rather than disappearing from the denominator. Partial
+source-reviewed component and supplied-IDR price matches improve 12/37 → 14/37,
+with no scored regression. Quantities remain 0/37 and unit prices 0/7, so the
+smaller reader is not promoted. Final totals remain 7/11 with supplied currency;
+all views require review and complete-financial accuracy remains unscorable.
+Browser/native geometry agrees on all eleven readings. The unchanged 225 source
+files retain the prior 1,381-case validation; no new browser-memory or full-suite
+run is claimed. No private upload, provider-default change or OpenAI call occurs.
+Selected-provider accuracy, recovery, genuine capture and release work remain.
+
+The preceding [detector-angle layout repair](DETECTOR_ANGLE_LAYOUT.md) reuses seven
 actual captured development panels with byte-identical original observations.
 It improves matched purchases 39/42 → 41/42, item coupon owners 4/7 → 6/7 and
 supplied-currency prices 37/41 → 39/41 without a scored regression. It changes

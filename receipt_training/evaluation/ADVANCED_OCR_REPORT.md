@@ -1,6 +1,20 @@
 # Advanced OCR investigation — work in progress
 
-Latest extraction checkpoint, 4 November 2026:
+Latest evaluation checkpoint, 4 November 2026:
+[frozen fresh grouping evaluation](FRESH_GROUPING_EVALUATION.md) captures eleven
+of twelve project-reserved CORD test images, retaining one raw-input size-limit
+failure in every whole-cohort denominator. Source-qualified partial references
+are created after output freeze. Matched components and supplied-IDR prices
+improve 12/37 → 14/37; quantities remain 0/37 and explicit unit prices 0/7.
+Supplied-currency final totals remain 7/11. No scored field regresses, but all
+views still require review and complete-financial accuracy is unscorable.
+Browser/native geometry agrees on all eleven actual observations. The smaller
+reader is not promoted. Application/test source remains identical to the
+1,381-case checkpoint; no new full-suite or clean browser-runtime pass is
+claimed. No private upload, provider-default change or OpenAI call occurs.
+The full objective remains active.
+
+Preceding extraction checkpoint, 4 November 2026:
 [detector-angle grouping](DETECTOR_ANGLE_LAYOUT.md) preserves original word text,
 scores and rectangles while rejoining sloped printed columns in the browser and
 native Paddle adapters. On seven actual Rapid development panels from six
