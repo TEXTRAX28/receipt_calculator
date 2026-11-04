@@ -2,6 +2,14 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The [retention audit follow-up](EVIDENCE_RETENTION_AUDIT.md) covers all 119 frozen
+aggregate reports: 76,042 of 76,057 declarations resolve exactly; the same fifteen
+historical gaps remain, with no new losses. All sixteen evaluation-tool controls
+and normal discovery pass. Eight bounded batches establish full input coverage;
+the failed single-process attempts are retained. Application bytes still match
+the 1,300-test source, with no new browser, receipt-reader inference or provider
+receipt request.
+
 The [worker shutdown and regression follow-up](WORKER_SHUTDOWN_SAFETY.md) passes
 all 1,300 unit tests, 39 focused reader cases, typecheck and build. It preserves
 worker ownership and blocks scans/input cleanup after failed shutdown. A finite

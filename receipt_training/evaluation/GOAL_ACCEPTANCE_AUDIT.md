@@ -12,6 +12,14 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The [historical evidence follow-up](EVIDENCE_RETENTION_AUDIT.md) covers all 119
+frozen aggregate reports and 76,057 top-level evidence declarations. It resolves
+76,042 exact current/archive matches and confirms the same fifteen historical
+gaps, with no new losses. Sixteen evaluation-tool controls and native discovery
+pass. Coverage comes from eight disjoint bounded runs, not a single-process
+120-second pass or clean integrity result. The application source remains
+byte-identical to the 1,300-test checkpoint; no new browser/inference runs occur.
+
 The [worker shutdown and validation follow-up](WORKER_SHUTDOWN_SAFETY.md) passes
 all 1,300 unit tests, 39 focused process-reader cases, typecheck and build. It
 serializes shutdown, retains ownership until closure and blocks scans/input
@@ -552,12 +560,14 @@ unchanged; later column and source-word packets supplement it. Raw receipts, mod
 local artifacts remain ignored by Git. Exact old source bytes are used when a
 previous checkpoint explicitly archived them.
 
-The last completed global evidence audit disclosed **thirteen legacy missing
-artifact declarations**, across three older checkpoints. The refund checkpoint's
-full historical re-audit exceeds its deadline; its targeted changed-file audit
-verifies all 187 relevant prior declarations with exact-byte archive fallback.
-New tests cannot restore the thirteen historical bytes, screenshots or timings.
-No fresh full-manifest or zero-gap claim is made.
+The [4 November full-coverage retention audit](EVIDENCE_RETENTION_AUDIT.md)
+inspects the frozen 119-report set through eight disjoint bounded runs. It finds
+76,042 exact matches and fifteen unresolved declarations: the thirteen earlier
+area/PDF/refund records plus two old generated graphs. All aggregate input bytes
+are unchanged, with no newly missing versions. The two single-process attempts
+still exceed 120 seconds; they are retained failures. The combined result proves
+coverage, not a single-process pass or clean integrity. New tests cannot restore
+missing historical bytes, screenshots or timings.
 
 ## 3. Measured before and after
 
