@@ -2,7 +2,15 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [Qwen3.5 2B memory feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
+The latest [local Q8-projector trial](QWEN35_Q8_PROJECTOR.md) saves 306.7 MB and
+completes two synthetic 2B scans in about 44 seconds within the unchanged memory
+floor. Both miss explicit quantities and invent unprinted summary fields, so
+the configuration is rejected and its receipt batch stays unattempted. The
+derivative has pinned provenance and preserved tensor shapes; this establishes
+local feasibility, not a real-receipt accuracy gain. App/test source remains
+unchanged, OpenAI stays unused, and the full goal remains active.
+
+The preceding [Qwen3.5 2B memory feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
 installs a pinned 1.95 GB candidate and replays the frozen five-crop baseline.
 Four distinct synthetic profiles are resource-stopped without a draft; the
 planned receipt comparison remains unattempted. Strict CPU placement reduces

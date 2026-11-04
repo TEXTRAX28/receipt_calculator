@@ -12,7 +12,16 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [smaller Qwen3.5 feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
+The latest [Q8-projector comparison](QWEN35_Q8_PROJECTOR.md) reduces a local
+projector by 306.7 MB and gets two finite synthetic drafts within the unchanged
+memory floor. Both fail explicit quantity criteria and invent summary facts;
+the configuration is rejected without a receipt batch or app change. Exact
+derivative provenance, five guard controls, source identity and targeted prior
+packet checks pass. This is resource/delivery and synthetic-quality evidence,
+not a new real-receipt accuracy score. OpenAI and private external uploads stay
+unused; the full goal remains active.
+
+The preceding [smaller Qwen3.5 feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
 installs and verifies a 1.95 GB 2B candidate, freezes five development requests,
 and reproduces the current saved-reading baseline. Four distinct synthetic
 profiles hit the unchanged runtime memory floor without a draft. The planned

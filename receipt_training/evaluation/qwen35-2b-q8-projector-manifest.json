@@ -1,0 +1,47 @@
+{
+  "model": "unsloth/Qwen3.5-2B-GGUF",
+  "base_model": "Qwen/Qwen3.5-2B",
+  "base_model_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+  "revision": "f6d5376be1edb4d416d56da11e5397a961aca8ae",
+  "license": "apache-2.0",
+  "research_only": true,
+  "runtime_release_marker": "v0.8.0",
+  "runtime_build": "b11960",
+  "runtime_commit": "8642541b255bfb5dc39cd351a178be09013a55d6",
+  "files": [
+    {
+      "path": "qwen35-2b/Qwen3.5-2B-Q4_K_M.gguf",
+      "bytes": 1280835840,
+      "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+      "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf"
+    },
+    {
+      "path": "qwen35-2b/mmproj-Q8_0-local.gguf",
+      "bytes": 361518784,
+      "sha256": "3dc9c77a3323342e6a08b85cf715bf8d8d20704fb50723ba2458487703cb9c24",
+      "derived_from": {
+        "path": "qwen35-2b/mmproj-F16.gguf",
+        "bytes": 668227264,
+        "sha256": "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
+        "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/mmproj-F16.gguf"
+      },
+      "quantizer_sha256": "3c045bd055736deba6713cd577552917e556e90f4de8757beb42396891cb91d0",
+      "quantizer_options": [
+        "--max-buffer-size",
+        "64",
+        "--pure"
+      ],
+      "quantizer_type": "Q8_0",
+      "quantizer_threads": 4
+    },
+    {
+      "path": "llama-b11960-bin-win-vulkan-x64.zip",
+      "bytes": 37345851,
+      "sha256": "bac6914b5e83523eb008c6789eaa12669f93fbc196c3b9e8237b6672323b33e9",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11960/llama-b11960-bin-win-vulkan-x64.zip"
+    }
+  ],
+  "private_uploads": 0,
+  "projector_quantization": "Q8_0",
+  "local_derivative": true
+}

@@ -70,7 +70,10 @@ if strict_cpu and (request.get("gpu_layers") != 0 or request.get("projector_gpu"
     raise ValueError("The CPU research profile requires explicit CPU model and projector placement")
 if small_candidate:
     from qwen35_resources import Qwen35MemoryGuard
-    from setup_qwen35_candidate import manifest as pinned_small_manifest
+    if manifest.get("projector_quantization") == "Q8_0":
+        from qwen35_projector_manifest import manifest as pinned_small_manifest
+    else:
+        from setup_qwen35_candidate import manifest as pinned_small_manifest
     if manifest != pinned_small_manifest():
         raise ValueError("The 2B trial requires the exact pinned research manifest")
     guard = Qwen35MemoryGuard()
@@ -112,7 +115,10 @@ for path in images:
 for helper in ["vision_trial_guard.py", "qwen8b_resources.py", "setup_vision_candidate.py", "setup_qwen8b_candidate.py"]:
     (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
 if small_candidate:
-    for helper in ["qwen35_resources.py", "setup_qwen35_candidate.py"]:
+    small_helpers = ["qwen35_resources.py", "setup_qwen35_candidate.py"]
+    if manifest.get("projector_quantization") == "Q8_0":
+        small_helpers.append("qwen35_projector_manifest.py")
+    for helper in small_helpers:
         (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
 if request.get("normalize_numeric_json", False):
     (out / "vision_cli_json.py").write_bytes(Path(__file__).with_name("vision_cli_json.py").read_bytes())
@@ -168,11 +174,14 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs","special_tokens"]},
             "timing_scope":"Fresh CLI model loading, image encoding and generation; decoder-constraint setting recorded separately. Excludes verified download/setup, browser preprocessing and deterministic financial validation"}
 if small_candidate:
-    metadata["research_profile"] = f"qwen35-2b-q4-f16-{research_backend}" if strict_cpu else "qwen35-2b-q4-f16-canonical-greedy-v1"
+    projector_quantization = manifest.get("projector_quantization", "F16").lower()
+    profile_suffix = research_backend if strict_cpu else "canonical-greedy-v1"
+    metadata["research_profile"] = f"qwen35-2b-q4-{projector_quantization}-{profile_suffix}"
+    metadata["projector_quantization"] = projector_quantization
     metadata["research_backend"] = research_backend
     metadata["effective_batches"] = {"batch": batch, "ubatch": ubatch}
     metadata["native_placement_flags"] = placement_flags
-    metadata["small_candidate_helpers_sha256"] = {name: sha(out / name) for name in ["qwen35_resources.py", "setup_qwen35_candidate.py"]}
+    metadata["small_candidate_helpers_sha256"] = {name: sha(out / name) for name in small_helpers}
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]
 memory_fn=ctypes.WinDLL("psapi").GetProcessMemoryInfo

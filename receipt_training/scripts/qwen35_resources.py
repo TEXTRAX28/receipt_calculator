@@ -13,5 +13,5 @@ class Qwen35MemoryGuard(VisionMemoryGuard):
     def summary(self):
         result = super().summary()
         result['startup_floor_bytes'] = STARTUP_RAM_FLOOR
-        result['profile'] = 'qwen35-2b-q4-f16-research'
+        result['profile'] = 'qwen35-2b-q4-research'
         return result
