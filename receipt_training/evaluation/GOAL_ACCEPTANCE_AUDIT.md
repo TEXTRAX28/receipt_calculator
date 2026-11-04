@@ -12,7 +12,16 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [Q8-projector comparison](QWEN35_Q8_PROJECTOR.md) reduces a local
+The latest [selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md) uses the
+actual reader after qualifying the current three-GiB startup floor. Real image
+and asset validation pass, but the outer runtime memory guard stops the owned
+tree without output. This exhausts the one remaining planned resume. Recorded
+children are verified absent before exact-job follow-up cleanup, leaving zero
+jobs. No graceful HTTP result, independent model-field vector or financial
+accuracy is claimed; application/test bytes stay unchanged. The full goal
+remains active and OpenAI stays unused.
+
+The preceding [Q8-projector comparison](QWEN35_Q8_PROJECTOR.md) reduces a local
 projector by 306.7 MB and gets two finite synthetic drafts within the unchanged
 memory floor. Both fail explicit quantity criteria and invent summary facts;
 the configuration is rejected without a receipt batch or app change. Exact

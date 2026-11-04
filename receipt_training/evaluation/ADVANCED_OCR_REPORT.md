@@ -2,7 +2,16 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [local Q8-projector trial](QWEN35_Q8_PROJECTOR.md) saves 306.7 MB and
+The latest [actual selected-4B invoice resume](MIXED_INVOICE_NATIVE_RESUME.md)
+passes real JPEG/cache checks and the current three-GiB native startup floor,
+then hits the unchanged runtime floor without a draft. The outer controller
+stops its owned tree after 11.725 seconds. All recorded children are verified
+absent before exact-job cleanup; zero temporary jobs remain. This consumes the
+single remaining resume attempt. It supplies resource/ownership evidence, not
+independent hybrid accuracy or graceful HTTP-fallback proof. App/test code is
+unchanged, OpenAI remains unused, and the full goal stays active.
+
+The preceding [local Q8-projector trial](QWEN35_Q8_PROJECTOR.md) saves 306.7 MB and
 completes two synthetic 2B scans in about 44 seconds within the unchanged memory
 floor. Both miss explicit quantities and invent unprinted summary fields, so
 the configuration is rejected and its receipt batch stays unattempted. The
