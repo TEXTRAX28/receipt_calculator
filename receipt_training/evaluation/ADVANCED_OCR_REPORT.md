@@ -2,7 +2,17 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [persistent OCR memory safeguard](PRIMARY_WORKER_MEMORY.md) adds fixed
+The latest [evaluation-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
+fixed evaluation images and freezes visibility-qualified references. All 85
+shared readable facts agree with the prior labels. Current-source saved hybrid
+views match 22/22 components and 14/14 readable quantities, versus primary 14/22
+and 1/14; role failures remain and all 48 views stay blocked by validation. Seven
+reference and four diagnostic controls pass. No scanner change, new inference,
+provider upload, fresh blind result or model-accuracy gain is claimed. Original
+test policy/scores stay unchanged; fresh evaluation data is needed before tuning.
+OpenAI remains unused and the whole goal remains active.
+
+The preceding [persistent OCR memory safeguard](PRIMARY_WORKER_MEMORY.md) adds fixed
 1.5 GiB admission and 1 GiB runtime monitoring to the primary worker. All 1,362
 cases across 75 files pass in six bounded shards, alongside typecheck, formatting,
 build and graph checks. A real owned worker/descendant control stops safely; one

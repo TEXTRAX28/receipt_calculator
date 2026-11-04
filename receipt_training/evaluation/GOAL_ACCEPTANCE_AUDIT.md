@@ -12,7 +12,18 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [primary-worker safeguard](PRIMARY_WORKER_MEMORY.md) implements fixed
+The latest [visible-source audit](EVALUATION_SOURCE_AUDIT.md) checks all twelve
+fixed original evaluation images and retains uncertain fields explicitly. All
+85 shared readable facts agree with previous references. Saved current-source
+hybrid views match all 22 visible components and 14 readable quantities; primary
+matches 14 and one. Wrong payment/total roles remain, with all 48 views blocked
+by validation. Seven reference-integrity and four diagnostic controls pass. No
+scanner is changed or tuned, no new inference/price score is claimed, and no
+private receipt or key is sent. Original scores/test policy are preserved; a
+fresh project evaluation set is needed before subsequent tuning. The full goal
+remains active and OpenAI stays unused.
+
+The preceding [primary-worker safeguard](PRIMARY_WORKER_MEMORY.md) implements fixed
 1.5 GiB admission and 1 GiB runtime memory checks for persistent OCR. All 1,362
 unit cases across 75 files pass through six disjoint bounded runs, alongside full
 typecheck, formatting, build and graph checks. A real owned worker/descendant
@@ -838,7 +849,7 @@ means implemented or investigated but a material acceptance condition remains.
 | Objective requirement group | Disposition and evidence | Outstanding acceptance |
 |---|---|---|
 | P1: inspect repository/branches, frontend/backend/models, image/parser/split paths, datasets and security; preserve dirty changes; run the existing app | Verified investigation and preserved baseline; Git references above, original frozen source, baseline tests and report history. | No outstanding initial-investigation blocker. This does not certify all later code defect-free. |
-| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. Two native-text PDF invoices and three image-only PDF inputs have separate genuine-source observations. A new selected-Paddle reading of the familiar mixed-tax invoice supports a checked primary proposal and exact calculation; constructed merger controls preserve it. | One compatible scanned invoice has complete source coverage and scores 0/1; the mixed-basis invoice retains partial eligibility and its actual independent hybrid remains unbenchmarked after the resource-stopped local attempt. Payment-only and complete original-fifty truth remain separate limitations; unknown fields must stay unknown. |
+| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. The twelve fixed evaluation images now have a separate full visible-region source audit: 85 shared readable facts agree with old references, with absent/ambiguous fields retained and no old score rewritten. Two native-text PDF invoices and three image-only PDF inputs have separate genuine-source observations. A new selected-Paddle reading of the familiar mixed-tax invoice supports a checked primary proposal and exact calculation; constructed merger controls preserve it. | One compatible scanned invoice has complete source coverage and scores 0/1; the mixed-basis invoice retains partial eligibility and its actual independent hybrid remains unbenchmarked after the resource-stopped local attempt. Payment-only and complete original-fifty truth remain separate limitations; unknown fields must stay unknown. |
 | P3A: investigate dedicated APIs, fields, Costco/general layouts, versions, cost and privacy | Veryfi and Azure measured on approved crops and integrated optionally; Google/AWS official capabilities investigated. | No full-corpus external permission. Google/AWS not benchmarked; exact future regional/version/cost/privacy configuration needs verification if selected. |
 | P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. Gemini 3.5 now has a six-crop real comparison and a rejected offline Azure-word combination. | OpenAI credits are reported available and reserved as the user's last resort; no OpenAI request or key setup is authorized by that preference. OpenAI/Claude remain unbenchmarked. Six familiar crops do not establish long-receipt, blind-holdout or complete financial accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. The smaller LightOnOCR-3 1B now executes two five-crop profiles but does not beat the selected hybrid. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
