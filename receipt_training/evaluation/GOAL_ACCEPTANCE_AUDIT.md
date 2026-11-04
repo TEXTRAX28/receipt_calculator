@@ -12,7 +12,20 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [mixed-invoice source proposal](MIXED_INVOICE_SOURCE.md) combines the
+The latest [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
+primary reader's source-proposed included-tax rate when comparison would lose
+it. Controlled constructed-vision replay plus the actual saved Paddle reading
+improves the calculation 29.89 to 29.06 with unchanged money and agreement count;
+pending checks increase 2 to 3. All 1,325 unit tests, 198 focused cases, typecheck,
+formatting and isolated build pass. All 253 saved-reading pairs stay unchanged.
+Three built 320/390px success/fallback controls retain review gates and exact
+14.54/14.52 splitting. This is not a new vision-accuracy result: the one actual
+local Qwen attempt is resource-stopped without output, and additional preflights
+refuse startup. No guard is lowered or user app closed; OpenAI remains unused.
+The same source's actual independent hybrid and physical-phone evidence remain
+open, and the full goal stays active.
+
+The preceding [mixed-invoice source proposal](MIXED_INVOICE_SOURCE.md) combines the
 selected Paddle reader's actual words with general column/summary interpretation.
 On one identical new reading, wrapped names/quantities/units and printed fee/VAT
 roles recover, improving the calculation from 20.07 to 29.06. All eight source
@@ -688,9 +701,10 @@ preserves the primary draft and mandatory coverage checks; it never triggers an
 unapproved cloud fallback. Optional cloud readers are not silently selected.
 
 Source locations were verified against graph nodes and actual code:
-`src/lib/compared-reader.ts:L19`, `src/lib/verify-readings.ts:L163`,
-`src/lib/financial-basis.ts:L36`, `src/lib/pdf.ts:L25`,
-`src/lib/engine.ts:L55` and `src/lib/engine.ts:L479`.
+`src/lib/compared-reader.ts:L21`, `src/lib/verify-readings.ts:L170`,
+`src/lib/financial-basis.ts:L311`, `src/lib/pdf.ts:L25`,
+`src/lib/financial-roles.ts:L115`, `src/lib/engine.ts:L57` and
+`src/lib/engine.ts:L540`.
 
 ## 5. Implemented improvements and latest validation fix
 
@@ -702,11 +716,20 @@ advisory capture checks, optional edge suggestions, and responsive correction,
 refund-credit and sharing flows. Missing values and unfamiliar tax legends stay
 editable and block acceptance where required.
 
-The current validation follow-up passes 22 saved-response/manual-entry Chrome
+The current merger follow-up passes 1,325 unit tests, 198 focused cases,
+typecheck, formatting and build. The original/supplementary regression keeps all
+253 normalized pairs unchanged. Three new built Chrome phone-emulation controls
+exercise automatic/always comparison and unavailable-reader fallback, with a
+pending included-fee proposal and exact reviewed splitting. They use constructed
+vision responses and saved actual primary OCR, not fresh model HTTP. The actual
+local vision attempt yields no draft after a resource stop.
+
+The preceding validation follow-up passes 22 saved-response/manual-entry Chrome
 browser cases, including 320/390/1440-pixel included-fee correction and splitting.
 A test-only coupon change verifies that confirming one item's discount leaves
 the other unconfirmed and final confirmation blocked. Current typecheck passes;
-application implementation and all prior unit-test inputs remain unchanged.
+application implementation and all prior unit-test inputs remain unchanged at
+that checkpoint.
 The earlier 1,300-unit result is preserved, not rerun. The 19 new literal-format
 controls belong to the separate unpromoted document-model research adapter.
 
@@ -750,13 +773,13 @@ means implemented or investigated but a material acceptance condition remains.
 | Objective requirement group | Disposition and evidence | Outstanding acceptance |
 |---|---|---|
 | P1: inspect repository/branches, frontend/backend/models, image/parser/split paths, datasets and security; preserve dirty changes; run the existing app | Verified investigation and preserved baseline; Git references above, original frozen source, baseline tests and report history. | No outstanding initial-investigation blocker. This does not certify all later code defect-free. |
-| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. Two native-text PDF invoices and three image-only PDF inputs have separate genuine-source observations. A new selected-Paddle reading of the familiar mixed-tax invoice now supports a checked primary proposal and exact calculation. | One compatible scanned invoice has complete source coverage and scores 0/1; the mixed-basis invoice retains partial eligibility and its independent hybrid remains unbenchmarked. Payment-only and complete original-fifty truth remain separate limitations; unknown fields must stay unknown. |
+| P2: test all available sources; physical/digital/long/poor-quality formats; source truth and per-receipt field/error/time/cost metrics | Verified original fifty plus separate supplementary/control evidence; all 53 unique original source hashes accounted for; strict source-derived references, per-case scores and latency/cost limits retained. Two native-text PDF invoices and three image-only PDF inputs have separate genuine-source observations. A new selected-Paddle reading of the familiar mixed-tax invoice supports a checked primary proposal and exact calculation; constructed merger controls preserve it. | One compatible scanned invoice has complete source coverage and scores 0/1; the mixed-basis invoice retains partial eligibility and its actual independent hybrid remains unbenchmarked after the resource-stopped local attempt. Payment-only and complete original-fifty truth remain separate limitations; unknown fields must stay unknown. |
 | P3A: investigate dedicated APIs, fields, Costco/general layouts, versions, cost and privacy | Veryfi and Azure measured on approved crops and integrated optionally; Google/AWS official capabilities investigated. | No full-corpus external permission. Google/AWS not benchmarked; exact future regional/version/cost/privacy configuration needs verification if selected. |
 | P3B: independently read images with structured VLMs; assess layout, codes, quantities, coupons, long/faded inputs | Qwen full cohort and several model/profile pilots measured; source-only independent extraction implemented. Gemini 3.5 now has a six-crop real comparison and a rejected offline Azure-word combination. | OpenAI credits are reported available and reserved as the user's last resort; no OpenAI request or key setup is authorized by that preference. OpenAI/Claude remain unbenchmarked. Six familiar crops do not establish long-receipt, blind-holdout or complete financial accuracy. |
 | P3C: modern open source, local size/GPU/mobile/license tradeoffs | Paddle/docTR/Qwen measured; other specialist profiles tested; Surya researched. The smaller LightOnOCR-3 1B now executes two five-crop profiles but does not beat the selected hybrid. Pinned assets/runtime/licenses and working sets recorded. | Server-local GPU inference is not phone-local inference. Larger-model feasibility and full deployment resource costs remain unmeasured. |
 | P3D: same-image/reference framework, representative sample, per-field/error/latency/cost/reliability/privacy comparison; evidence-based selection | Reproducible frozen cohorts/panels/source/scorer, full comparisons and narrower separately labelled pilots; losing profiles retained rather than promoted. | No universal provider winner; latency vintages and partial references limit comparisons. |
 | P4.1: detect blur/cropping/rotation/distortion/poor light; appropriate correction; preserve originals; recapture advice | Partial. Low resolution, darkness, low detail and blur advice now also runs on live camera frames; optional edge/crop suggestions plus bounded user-controlled rotation/projective correction, preview and original preservation. See CAPTURE_GEOMETRY.md and LIVE_CAMERA_CAPTURE.md. | Automatic clipping/pose/distortion diagnostics, genuine-photo correction accuracy, paper curvature and physical-device performance remain uncalibrated. |
-| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two native-text PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. Three genuine image-only pages correctly route to OCR. The selected primary now proposes one mixed-tax invoice's wrapped columns, inclusive fee and full VAT correctly, with source review. | Image subtype classification is not implemented. Broader mixed-basis coverage and independent merged-reader behavior on the new source remain unverified. The other native invoice's printed unit/line discrepancies correctly remain blocking. |
+| P4.2: recognize photograph/scan/digital/screenshot/PDF; use embedded text | Partial. Supported image/PDF validation and page/text routing, direct usable text extraction, native invoice-column roles and scanned/mixed fallback. Two native-text PDFs preserve all six source quantities/unit/line values and both tax/final totals; one reaches a checked exact split. Three genuine image-only pages correctly route to OCR. The selected primary proposes one mixed-tax invoice's wrapped columns, inclusive fee and full VAT correctly, with source review; protocol controls now preserve its included-fee proposal through merging. | Image subtype classification is not implemented. Broader mixed-basis coverage and actual independent merged-reader accuracy on the new source remain unverified. The other native invoice's printed unit/line discrepancies correctly remain blocking. |
 | P4.3: best practical primary extraction of all structured purchase/financial fields | Paddle primary and optional readers implemented/tested; source-preserving parser and review work. | Known missing products, prices, merchant, fee/tax/payment roles and totals remain. A schema-valid draft is not a correct receipt. |
 | P4.4: independent image-based verification/recovery for uncertainty, discounts, duplicate rows and failed arithmetic; bounded extra calls | Implemented automatic local policy, independent original-image VLM, guarded source proposals, bounded batches and fallback checks; same-reading gains measured. | General automatic recovery and difficult overlap/role errors remain. Current selection is a checked-draft hybrid. |
 | P4.5: independent deterministic quantity×unit, item/coupon/tax/charge/refund/subtotal/final validation; inclusive-tax conventions | Implemented exact decimal/bigint engine and regression coverage; disagreement blocks finalization. | A validator detects inconsistency but cannot establish unreadable source facts or correct model financial roles. |
@@ -765,10 +788,10 @@ means implemented or investigated but a material acceptance condition remains.
 | P5: Costco packaging vs purchased quantity, codes/VAT, coupons, summaries, retailer rules while remaining general-purpose | UK financial vector and checked split pass; source-supported codes/coupons and general CORD/Tesco comparisons exist. | Generic Costco/general-retail reliability remains partial. Do not infer six purchased packs from a product's pack-size name or assume all retailers' A/Z meanings. |
 | P6: exact provider rationale/setup/cost/privacy, server-only ignored credentials; approve private uploads/paid activation | Verified consumed scopes and server-held credentials; Azure/Veryfi/Gemini persistent finite local allowances and scan consent. The six Gemini 3.5 uploads had separate approval and Free-quota confirmation; no retries or paid activation. The proposed two-image trial is unapproved/unrun after exhausted quota. | Public terms/region/retention review and account-specific training commitments remain incomplete. A shared-directory local request allowance is not an authenticated public or account-wide spending budget. |
 | P7: preserve existing changes, stable reference, separate improvement branch, incremental commits; no unauthorized merge/push | Verified stable and original-diff invariants; local commits on improvement branch. | No merge, push or deployment is authorized or performed. |
-| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and earlier browser journeys, including signed refund-credit ownership and rounding. Current 1,312 unit tests pass; the primary mixed-fee source proposal completes saved-response built UI splitting at 320/390px without financial edits, after automated source checks. Prior manual-fee cases covered 320/390/1440px. A published refund example preserves its signed product in both device readers and the earlier production phone UI. | Full financial recognition/finalized splitting of the published refund remains unverified; no quantity or tax rate is invented. Broader genuine-format and independent human validation remain open. |
+| P8: individual/equal/ratio/quantity/shared splitting, discounts/tax/currency/decimals, invalid/unassigned values, exact conservation and regressions | Verified unit/generated financial invariants and earlier browser journeys, including signed refund-credit ownership and rounding. Current 1,325 unit tests pass; three built 320/390px constructed-vision success/fallback controls preserve the mixed-fee proposal and complete exact splitting without money edits after automated source checks. The preceding primary-only and manual-fee cases retain their own scopes. A published refund example preserves its signed product in both device readers and the earlier production phone UI. | Full financial recognition/finalized splitting of the published refund remains unverified; no quantity or tax rate is invented. Broader genuine-format and independent human validation remain open. |
 | P9: mobile capture, edges/guidance/progress/editing/source checks/rereads/reconciliation/assignments/payment summaries, preserve style | Partial. Live local camera preview with approximate edges and quality advice, explicit capture/review/retake, overlapping sections, native picker fallback; responsive editing/rereads/assignments and checked summaries. | Physical-device camera and Safari, genuine live guidance accuracy and calibrated clipping/pose diagnostics remain open. Browser camera streams are simulated; actual JPEG/OCR/splitting is tested. |
 | P10: secure uploads/types/size, hostile data/prompt injection, validation/rate/auth/keys/logs/retention/retries/quotas/privacy | Local boundary reviewed/tested; Gemini envelope/dimension guard; provider output remains untrusted, no model tools; finite cloud allowances where implemented. New virtual-process controls verify that an unconfirmed worker stop blocks scans and retains active inputs. | Public authentication/TLS, multi-user quotas/spend limits, durable jobs/crash cleanup/OS isolation and jurisdiction-specific privacy acceptance are not delivered. Loopback checks are not public authentication. |
-| P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Current 1,312 unit tests, 185 focused cases, typecheck and isolated build pass. One fresh selected-Paddle source reading and two 320/390px built UI saved-response review/split journeys are verified separately. All 506 saved-reading regression views retain paired facts and checks; the source-aware primary protocol difference is disclosed. The preceding 22-case browser and losing local-VLM studies retain their own scopes. | Latest full native latency cohort, independent full financial truth, the new source's independent hybrid and real handset evidence remain incomplete. Saved-response browser checks are not fresh model HTTP or physical-phone observations. Fifteen previously reported historical artifact declarations cannot be reproduced from missing bytes. |
+| P11: run both tiers, repeat original cohort, full upload-to-split, source values/finances, errors/security/resources, protect stable, separate new cases | Current 1,325 unit tests, 198 focused cases, typecheck, formatting and isolated build pass. Three built 320/390px success/fallback review/split controls preserve a pending source-backed included-fee proposal; vision controls are constructed and the primary response is actual saved OCR. All 506 saved-reading regression views retain paired facts and checks, using the same source-aware primary protocol as the parent. Prior native primary, 22-case browser and losing local-VLM studies retain their own scopes. | Latest full native latency cohort, independent full financial truth, the new source's actual independent hybrid and real handset evidence remain incomplete. The additional actual local model attempt is resource-stopped, not a successful reading. Saved-response browser checks are not fresh model HTTP or physical-phone observations. Fifteen previously reported historical artifact declarations cannot be reproduced from missing bytes. |
 | P12: existing assessment, technology/architecture, improvements, measurements, Git/tests, limits and release path | This consolidated report and its machine-readable checkpoint supply those sections with provenance and limits. | Final acceptance remains open because P4/P9 capabilities and financial/public-readiness evidence above remain partial. |
 
 ## 7. Security/privacy disposition and path to release
@@ -811,8 +834,9 @@ Before public release, the remaining work is concrete:
    failed proposals and source-review requirements visible.
 2. Calibrate clipping/rotation/perspective diagnostics and test the new optional
    correction on genuine photos. Preserve originals and abstain on unsupported frames.
-3. Expand the repaired scanned-invoice column path and resolve mixed-basis source failures; expand
-   screenshot/refund evidence when available. Keep new cases separate from the
+3. Obtain an actual independent local reading of the repaired mixed-fee source
+   when resources qualify; the constructed merger control is not accuracy proof.
+   Expand genuine scanned-invoice, screenshot/refund evidence when available. Keep new cases separate from the
    original cohort. Independently review enough
    financial truth for an honest whole-receipt metric.
 4. Validate real phone camera/Safari workflows and current end-to-end resource

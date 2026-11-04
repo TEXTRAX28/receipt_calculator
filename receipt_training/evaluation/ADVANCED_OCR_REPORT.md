@@ -2,7 +2,19 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The [source-backed mixed invoice repair](MIXED_INVOICE_SOURCE.md) uses one fresh
+The latest [included-fee merger repair](INCLUDED_FEE_MERGE.md) preserves the
+primary invoice's included-tax proposal during independent-reading comparison.
+On a constructed vision protocol control plus the actual saved Paddle reading,
+the calculation improves 29.89 to 29.06 without changing printed money; agreement
+count stays 11 and pending checks increase 2 to 3. This is a merger result, not
+new model accuracy. All 1,325 unit tests, 198 focused cases, typecheck, formatting
+and build pass; 253 saved-reading pairs stay unchanged. Three built phone-width
+success/fallback controls reach exact reviewed 14.54/14.52 shares. One actual
+local Qwen attempt is resource-stopped without a draft; additional preflights
+refuse startup. No guard is lowered, no user app is closed, and OpenAI stays
+unused. The whole goal remains active.
+
+The preceding [source-backed mixed invoice repair](MIXED_INVOICE_SOURCE.md) uses one fresh
 selected-Paddle reading to recover wrapped products, quantities, unit prices,
 VAT-inclusive carriage and full printed VAT. On that identical reading, the
 calculation improves 20.07 to 29.06 without changing printed money; eight source

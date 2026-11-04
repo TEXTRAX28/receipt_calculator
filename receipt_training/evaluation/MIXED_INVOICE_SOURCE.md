@@ -3,6 +3,12 @@
 4 November 2026, parent `cabd815`. Improvement branch only; the full goal remains
 active.
 
+Follow-up: [included-fee merger preservation](INCLUDED_FEE_MERGE.md) now carries
+this primary-source rate through constructed vision success controls without
+counting it as independent agreement. The actual local vision attempt is stopped
+by the memory guard without a draft; its accuracy remains unverified. Counts and
+observations below describe this earlier primary-reader checkpoint.
+
 The selected computer reader now interprets the supplementary Western Towing
 invoice's wrapped products, quantities, unit prices, VAT-inclusive carriage and
 full printed VAT. On the **same new Paddle reading**, the calculated total

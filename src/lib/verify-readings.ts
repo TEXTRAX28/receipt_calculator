@@ -30,7 +30,10 @@ import {
   recoverExclusivePriceBasis,
   readFinancialSummary,
 } from "./financial-basis";
-import { recoverFinancialRoles } from "./financial-roles";
+import {
+  proposeIncludedInvoiceFeeTax,
+  recoverFinancialRoles,
+} from "./financial-roles";
 import { findPaymentAdjustments } from "./payment-rows";
 import { recoverReducedPriceRole } from "./reduced-price-role";
 import { readZeroPriceRows } from "./zero-price-purchases";
@@ -1544,18 +1547,73 @@ export function verifyIndependentReadings(
       ].slice(0, 30);
     }
   }
+  const includedFeeTaxRecovery =
+    sourceRecoveryAllowed &&
+    !options.blockedScalarFields?.length &&
+    raw.pricesIncludeTax === false &&
+    (["subtotal", "printedTax", "printedTotal"] as const).every((field) =>
+      sameAmount(raw[field], ocr[field], receipt.currency),
+    )
+      ? proposeIncludedInvoiceFeeTax(receipt, parsed)
+      : null;
+  if (includedFeeTaxRecovery) {
+    receipt.adjustments = includedFeeTaxRecovery.adjustments;
+    globalCheck(
+      "adjustments",
+      "recovered",
+      "The primary invoice reader proposed included fee tax. This is not independent agreement; confirm its printed rate and applicability.",
+    );
+    const check = checks.find(
+      (entry) => entry.scope === "receipt" && entry.field === "adjustments",
+    )!;
+    check.details = [
+      ...(check.details || []),
+      ...includedFeeTaxRecovery.details,
+    ].slice(0, 30);
+    fieldSources.adjustments = [
+      ...new Set([
+        ...(fieldSources.adjustments || []),
+        ...includedFeeTaxRecovery.sourceIndices,
+      ]),
+    ].sort((a, b) => a - b);
+    // Preserve original invoice context for viewing; this does not clear the
+    // existing unsupported/different scalar checks or establish agreement.
+    for (const field of ["pricesIncludeTax", "printedTax"] as const)
+      fieldSources[field] = [
+        ...new Set([
+          ...(fieldSources[field] || []),
+          ...(parsed.fieldSources[field] || []),
+        ]),
+      ].sort((a, b) => a - b);
+  }
   const financialAdjustments = receipt.adjustments
-    .map(({ kind, amount }) => `${kind}:${amount}`)
+    .map(
+      ({ kind, amount, includedTaxRate }) =>
+        `${kind}:${amount}:${includedTaxRate ?? ""}`,
+    )
     .sort();
   const otherAdjustments = ocr.adjustments
-    .map(({ kind, amount }) => `${kind}:${amount}`)
+    .map(
+      ({ kind, amount, includedTaxRate }) =>
+        `${kind}:${amount}:${includedTaxRate ?? ""}`,
+    )
     .sort();
-  if (JSON.stringify(financialAdjustments) !== JSON.stringify(otherAdjustments))
+  if (
+    JSON.stringify(financialAdjustments) !== JSON.stringify(otherAdjustments)
+  ) {
     globalCheck(
       "adjustments",
       otherAdjustments.length ? "coverage" : "unsupported",
       "Check the printed charges and deductions",
     );
+    if (ocr.adjustments.some((row) => row.includedTaxRate !== undefined))
+      fieldSources.adjustments = [
+        ...new Set([
+          ...(fieldSources.adjustments || []),
+          ...ocr.adjustments.flatMap((row) => parsed.sources[row.id] || []),
+        ]),
+      ].sort((a, b) => a - b);
+  }
 
   fieldSources.adjustments = [
     ...new Set([
@@ -1649,6 +1707,7 @@ export function verifyIndependentReadings(
     scalarRecoveries,
     taxBasisRecovery,
     financialRoleRecovery,
+    ...(includedFeeTaxRecovery ? { includedFeeTaxRecovery } : {}),
     removedAdjustments,
     ...(removedSummaryItems.length ? { removedSummaryItems } : {}),
     agreements,

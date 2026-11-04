@@ -1,6 +1,7 @@
 // Actual Paddle output from one supplementary public invoice. No recipient/address blocks.
 // Full raw source is retained in the local evaluation record; no invented OCR geometry.
 import { validateRecognition } from "../../src/lib/recognition-schema.mjs";
+import { aiReceiptSchema } from "../../src/lib/extraction-schema.mjs";
 export function mixedInvoiceRecognition() {
   return validateRecognition(
     {
@@ -316,4 +317,43 @@ export function mixedInvoiceRecognition() {
     },
     [{ photo: 1, part: 1 }],
   );
+}
+
+/** Constructed merger-control input, never a retained independent model output. */
+export function mixedInvoiceProtocolDraft() {
+  return aiReceiptSchema.parse({
+    merchant: "Western Towing",
+    date: "",
+    currency: "GBP",
+    subtotal: "20.07",
+    printedTotal: "29.06",
+    printedTax: "4.84",
+    pricesIncludeTax: false,
+    printedItemCount: null,
+    taxCodes: [],
+    warnings: [],
+    items: [
+      {
+        description: "Kartt 200mm x 56mm Spare wheel",
+        quantity: "1",
+        unitPrice: "16.32",
+        lineTotal: "16.32",
+        discount: "0",
+        taxCode: "",
+        note: "",
+        sourcePhotos: [1],
+      },
+      {
+        description: "Kartt Jockey Wheel Axle & Pin KA008",
+        quantity: "1",
+        unitPrice: "3.75",
+        lineTotal: "3.75",
+        discount: "0",
+        taxCode: "",
+        note: "",
+        sourcePhotos: [1],
+      },
+    ],
+    adjustments: [{ label: "Carriage", kind: "fee", amount: "4.98" }],
+  });
 }

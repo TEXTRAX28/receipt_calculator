@@ -1,5 +1,7 @@
 import type { Adjustment, Receipt } from "./model";
 import type { readFinancialSummary } from "./financial-basis";
+import type { parseReceiptWithSources } from "./parser";
+import { money, SCALE, weight } from "./money";
 
 type Section = NonNullable<ReturnType<typeof readFinancialSummary>>;
 const labelKey = (text: string) => {
@@ -104,4 +106,105 @@ export function recoverFinancialRoles(
     details,
     previous: { printedTax: receipt.printedTax, taxMode: receipt.taxMode },
   };
+}
+
+/** Carry an existing invoice-source proposal, never independent model agreement.
+ * The caller separately requires original vision scalar/basis agreement and
+ * permits source recovery. This changes no amount, role, allocation or identity.
+ */
+export function proposeIncludedInvoiceFeeTax(
+  receipt: Receipt,
+  primary: ReturnType<typeof parseReceiptWithSources>,
+) {
+  const source = primary.receipt;
+  const proposed = source.adjustments.filter(
+    (row) => row.includedTaxRate !== undefined,
+  );
+  if (
+    !proposed.length ||
+    source.source !== "ocr" ||
+    source.currencyUnresolved ||
+    receipt.currencyUnresolved ||
+    source.currency !== receipt.currency ||
+    source.pricesIncludeTax ||
+    receipt.pricesIncludeTax ||
+    source.taxMode !== "printed" ||
+    receipt.taxMode !== "printed" ||
+    source.taxCodes.length ||
+    receipt.taxCodes.length ||
+    source.adjustments.filter((row) => row.kind === "tax").length !== 1 ||
+    receipt.adjustments.filter((row) => row.kind === "tax").length !== 1 ||
+    receipt.adjustments.some((row) => row.includedTaxRate !== undefined)
+  )
+    return null;
+  try {
+    for (const field of ["subtotal", "printedTax", "printedTotal"] as const)
+      if (
+        money(source[field], source.currency) !==
+        money(receipt[field], receipt.currency)
+      )
+        return null;
+    const financial = (rows: Adjustment[]) =>
+      rows
+        .map(
+          (row) => `${row.kind}:${money(row.amount, receipt.currency, true)}`,
+        )
+        .sort();
+    if (
+      JSON.stringify(financial(source.adjustments)) !==
+      JSON.stringify(financial(receipt.adjustments))
+    )
+      return null;
+    const feeKey = (label: string) =>
+      label
+        .replace(/\s*\((?:incl(?:uding)?)\.?\s+(?:VAT|tax)\)\s*$/i, "")
+        .toUpperCase()
+        .replace(/[^\p{L}\p{N}]/gu, "");
+    const adjustments = receipt.adjustments.map((row) => ({ ...row }));
+    const indices = new Set<number>();
+    const details: { label: string; value: string }[] = [];
+    const claimed = new Set<string>();
+    for (const row of proposed) {
+      if (
+        row.kind !== "fee" ||
+        !row.includedTaxRate ||
+        weight(row.includedTaxRate) > 100n * SCALE ||
+        (primary.sources[row.id]?.length || 0) < 2
+      )
+        return null;
+      const key = feeKey(row.label);
+      const matches = adjustments.filter(
+        (entry) =>
+          entry.kind === "fee" &&
+          feeKey(entry.label) === key &&
+          money(entry.amount, receipt.currency) ===
+            money(row.amount, source.currency),
+      );
+      if (!key || matches.length !== 1 || claimed.has(matches[0].id))
+        return null;
+      claimed.add(matches[0].id);
+      matches[0].includedTaxRate = row.includedTaxRate;
+      for (const index of [
+        ...primary.sources[row.id],
+        ...(primary.fieldSources.pricesIncludeTax || []),
+        ...(primary.fieldSources.adjustments || []),
+      ])
+        indices.add(index);
+      details.push({
+        label: `Primary invoice fee: ${row.label}`.slice(0, 100),
+        value:
+          `${row.includedTaxRate}% included tax proposed on ${row.amount}; confirm the source.`.slice(
+            0,
+            80,
+          ),
+      });
+    }
+    return {
+      adjustments,
+      sourceIndices: [...indices].sort((a, b) => a - b),
+      details,
+    };
+  } catch {
+    return null;
+  }
 }
