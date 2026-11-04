@@ -2,6 +2,13 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
+The [small local OCR comparison preparation](SMALL_LOCAL_OCR_READINESS.md)
+downloads and checksum-verifies LightOnOCR-3 1B after a retained transfer failure
+and preflight refusal. Its synthetic startup is then stopped by the unchanged
+runtime memory floor, with no transcription or private-receipt candidate scan.
+A frozen five-crop current baseline records correct fields and extra proposed
+rows. No model is promoted.
+
 The [retention audit follow-up](EVIDENCE_RETENTION_AUDIT.md) covers all 119 frozen
 aggregate reports: 76,042 of 76,057 declarations resolve exactly; the same fifteen
 historical gaps remain, with no new losses. All sixteen evaluation-tool controls
