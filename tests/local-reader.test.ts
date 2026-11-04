@@ -31,7 +31,9 @@ const panels = (tag = "MILK") => [
     ]).toString("base64"),
   },
 ];
-async function reader(options: { timeoutMs?: number } = {}) {
+async function reader(
+  options: { timeoutMs?: number; availableMemory?: () => number } = {},
+) {
   await mkdir(ownedBase, { recursive: true });
   const root = await mkdtemp(resolve(ownedBase, "runtime-"));
   roots.push(root);
@@ -40,6 +42,7 @@ async function reader(options: { timeoutMs?: number } = {}) {
     python: process.execPath,
     runtimeRoot: root,
     requireModels: false,
+    availableMemory: options.availableMemory ?? (() => 4 * 1024 ** 3),
     workerScript: resolve("tests/fixtures/local-worker.mjs"),
     timeoutMs: options.timeoutMs || 10000,
     spawnWorker: (program, args, spawnOptions) => {
@@ -226,6 +229,18 @@ describe("local recognition shares the receipt API security boundary", () => {
     );
     expect(fetcher).not.toHaveBeenCalled();
     expect(await readdir(root)).toEqual([]);
+  });
+  it("returns a safe memory failure without starting a worker, writing photos or calling a cloud reader", async () => {
+    const { model, root, starts } = await reader({
+      availableMemory: () => 1024 ** 3,
+    });
+    const { post, fetcher } = await api(model);
+    const response = await post();
+    expect(response.status).toBe(503);
+    expect(JSON.stringify(await response.json())).toContain("memory");
+    expect(starts()).toBe(0);
+    expect(await readdir(root)).toEqual([]);
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it("rejects cross-origin, malformed and repeated-panel requests before model startup", async () => {
     const { model, starts } = await reader();

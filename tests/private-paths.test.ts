@@ -18,7 +18,7 @@ afterEach(async () => {
 
 it("serves public files but blocks private data through direct, encoded and absolute development HTTP paths", async () => {
   await mkdir(ownedBase, { recursive: true });
-  root = await mkdtemp(join(ownedBase, "app-"));
+  root = await realpath(await mkdtemp(join(ownedBase, "app-")));
   const secret = "SYNTHETIC_PRIVATE_CONTENT_MUST_NOT_BE_SERVED";
   const privateFiles = [
     "private-receipts/runtime/scan-fixture/1.jpg",

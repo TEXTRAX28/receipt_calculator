@@ -104,6 +104,7 @@ async function fixture(respond = true) {
   const model = createLocalModelReader({
     python: process.execPath,
     requireModels: false,
+    availableMemory: () => 4 * 1024 ** 3,
     runtimeRoot: root,
     workerScript: resolve("tests/fixtures/local-worker.mjs"),
     spawnWorker: () => {

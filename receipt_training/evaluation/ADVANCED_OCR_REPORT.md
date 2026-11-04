@@ -2,7 +2,17 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [4B Q8-cache profile](QWEN4_KV_MEMORY.md) measures the expected
+The latest [persistent OCR memory safeguard](PRIMARY_WORKER_MEMORY.md) adds fixed
+1.5 GiB admission and 1 GiB runtime monitoring to the primary worker. All 1,362
+cases across 75 files pass in six bounded shards, alongside typecheck, formatting,
+build and graph checks. A real owned worker/descendant control stops safely; one
+actual Paddle invoice reading exactly preserves the prior 59 words and geometry.
+All 13 frontend artifacts match the preceding phone-tested package; no new browser
+run is claimed. The improvement branch now resides in the new worktree, while the
+old comparison checkout, handoff and pending Gemini source remain frozen. OpenAI
+stays unused, no private external upload occurs, and the full goal remains active.
+
+The preceding [4B Q8-cache profile](QWEN4_KV_MEMORY.md) measures the expected
 612 MiB cache, but still hits the unchanged runtime memory floor during warmup,
 before reading the synthetic image. Its remaining receipt/invoice calls stay
 unattempted. Five resource/profile controls pass. A fresh Free-only Gemini

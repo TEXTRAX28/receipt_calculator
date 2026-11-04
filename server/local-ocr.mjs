@@ -12,6 +12,7 @@ import {
 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { StringDecoder } from "node:string_decoder";
+import { freemem } from "node:os";
 import {
   validateRecognition,
   requestPanelsSchema,
@@ -20,6 +21,8 @@ import { MAX_AI_BODY_BYTES } from "../src/lib/scan-limits.mjs";
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_OUTPUT = 1024 * 1024;
+const STARTUP_MEMORY_BYTES = 1536 * 1024 * 1024;
+const RUNTIME_MEMORY_BYTES = 1024 * 1024 * 1024;
 const modelManifest = JSON.parse(
   readFileSync(new URL("./local-model-manifest.json", import.meta.url), "utf8"),
 );
@@ -130,6 +133,7 @@ export function createLocalModelReader({
   ),
   requireModels = true,
   spawnWorker = launchWorker,
+  availableMemory = freemem,
 } = {}) {
   const configured =
     ["paddle-v6", "doctr"].includes(engine) &&
@@ -145,13 +149,31 @@ export function createLocalModelReader({
     ready,
     pending,
     idle,
+    memoryTimer,
+    memoryFailure,
     active = false,
     disposed = false,
     blocked = false,
     stopping;
 
+  function requireMemory(minimumBytes) {
+    if (memoryFailure) throw memoryFailure;
+    try {
+      const available = availableMemory();
+      if (Number.isSafeInteger(available) && available >= minimumBytes) return;
+    } catch {
+      // A failed probe must not silently remove the operating limit.
+    }
+    throw new LocalOcrError(
+      503,
+      "The computer's receipt reader cannot run with the current free memory. Your photos are still available; use the on-device reader or try again later.",
+    );
+  }
+
   function stop(error = failure()) {
     clearTimeout(idle);
+    clearInterval(memoryTimer);
+    memoryTimer = undefined;
     ready?.reject(error);
     pending?.reject(error);
     ready = undefined;
@@ -218,6 +240,7 @@ export function createLocalModelReader({
     const inside = relative(project, root);
     if (inside.startsWith("..") || isAbsolute(inside)) throw failure();
     if (signal.aborted) throw cancelled();
+    requireMemory(STARTUP_MEMORY_BYTES);
     let resolveReady, rejectReady;
     const promise = new Promise((ok, fail) => {
       resolveReady = ok;
@@ -253,6 +276,8 @@ export function createLocalModelReader({
     proc.on("error", fail);
     proc.on("close", () => {
       if (child !== proc) return;
+      clearInterval(memoryTimer);
+      memoryTimer = undefined;
       child = undefined;
       ready?.reject(failure());
       pending?.reject(failure());
@@ -286,6 +311,16 @@ export function createLocalModelReader({
         }
       }
     });
+    memoryTimer = setInterval(() => {
+      if (child !== proc || stopping || blocked) return;
+      try {
+        requireMemory(RUNTIME_MEMORY_BYTES);
+      } catch (error) {
+        memoryFailure = error;
+        void stop(error).catch(() => {});
+      }
+    }, 250);
+    memoryTimer.unref();
     await promise;
   }
 
@@ -312,6 +347,7 @@ export function createLocalModelReader({
           "These photos are too large together. Choose fewer sections.",
         );
       active = true;
+      memoryFailure = undefined;
       clearTimeout(idle);
       const combined = signal
         ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
@@ -324,12 +360,15 @@ export function createLocalModelReader({
       combined.addEventListener("abort", abort, { once: true });
       try {
         if (combined.aborted) throw cancelled();
+        requireMemory(STARTUP_MEMORY_BYTES);
         await start(combined);
         if (combined.aborted) throw cancelled();
+        requireMemory(STARTUP_MEMORY_BYTES);
         directory = await mkdtemp(join(await realpath(runtimeRoot), "scan-"));
         const inputs = [];
         for (const [index, panel] of panels.entries()) {
           if (combined.aborted) throw cancelled();
+          requireMemory(RUNTIME_MEMORY_BYTES);
           const data = Buffer.from(panel.data, "base64");
           if (
             data.length > 6 * 1024 * 1024 ||
@@ -351,12 +390,14 @@ export function createLocalModelReader({
             sha256: createHash("sha256").update(data).digest("hex"),
           });
         }
+        requireMemory(RUNTIME_MEMORY_BYTES);
         if (combined.aborted || !child) throw cancelled();
         const response = new Promise((resolveResponse, rejectResponse) => {
           pending = { resolve: resolveResponse, reject: rejectResponse };
         });
         child.stdin.write(JSON.stringify({ panels: inputs }) + "\n");
         const result = await response;
+        requireMemory(RUNTIME_MEMORY_BYTES);
         if (combined.aborted || !child) throw cancelled();
         if (result.error === "invalid-image")
           throw new LocalOcrError(
@@ -394,6 +435,10 @@ export function createLocalModelReader({
                 );
               }
             }
+          }
+          if (memoryFailure) {
+            await stop(memoryFailure);
+            throw memoryFailure;
           }
         } finally {
           active = false;
