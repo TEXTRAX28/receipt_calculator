@@ -2,7 +2,21 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) returns all
+The latest [Costco development check](RAPIDOCR_COSTCO_DEVELOPMENT.md) adds two
+actual local frame readings of the familiar UK transaction. Saved Paddle medium
+and new Rapid small both recover 18/18 purchases, prices and quantities, all four
+coupon owners, and the printed £176.78 total from the same two cropped JPEGs.
+GBP context is supplied; currency remains unresolved automatically. Three
+mandatory source checks remain. This is parity on a partial development
+reference, not independent complete-receipt or phone evidence. A 400-view
+original-50 replay reproduces all 200 historical comparison views; financial
+literals remain unchanged in every before/after pair. The parent checkpoint's
+full TypeScript check now passes. A later purchase-count message fix passes 60
+focused assertions and formatting; its broader checks remain pending RAM
+admission. Five other development PNGs have not been inferred. No external
+receipt upload or OpenAI use occurs; the whole objective remains active.
+
+The preceding [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) returns all
 thirteen planned local calls, including twelve development receipts. A paired
 Tesseract run uses the same twelve prepared JPEGs. With IDR context, saved
 small-model replays and the adjacent-terms parser improvement detect 10/19

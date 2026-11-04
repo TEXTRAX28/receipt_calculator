@@ -166,7 +166,7 @@ try {
               );
           }
           const primary = parseReceiptWithSources(
-            assembleRecognition(evidence).text,
+            { ...assembleRecognition(evidence), recognition: evidence },
             mode === "automatic" ? undefined : { currency },
           );
           const paymentExclusions = result.removedAdjustments.filter((entry) =>

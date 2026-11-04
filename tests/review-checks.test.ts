@@ -10,6 +10,7 @@ import {
 } from "../src/lib/review-checks";
 import { loadDraft, saveDraft } from "../src/lib/storage";
 import { assign, review, shop } from "./helpers";
+import { parseReceiptText } from "../src/lib/parser";
 
 function fixture() {
   const state = shop(["10.00"]);
@@ -27,6 +28,26 @@ function fixture() {
   return { state, check };
 }
 describe("independent reading disagreements cannot be accepted by arithmetic alone", () => {
+  it("explains a purchase-count check without calling the positive receipt a refund", () => {
+    let receipt = parseReceiptText(
+      "Corner shop GBP\nApples 1x 2.00 2.00\nTOTAL NUMBER OF ITEMS SOLD 1\nTOTAL GBP 2.00",
+    );
+    const check = receipt.reviewChecks.find(
+      (entry) =>
+        entry.scope === "receipt" &&
+        entry.field === "items" &&
+        entry.reason === "classification",
+    );
+    expect(check).toBeDefined();
+    expect(checkIsPending(receipt, check!)).toBe(true);
+    const result = calculateReceipt(receipt);
+    expect(result.discrepancy).toBe(0n);
+    const issue = result.issues.find((entry) => entry.path === "items");
+    expect(issue?.message).toContain("item-count summary");
+    expect(issue?.message).not.toMatch(/negative row|refund/i);
+    receipt = confirmReviewCheck(receipt, reviewKey(check!));
+    expect(calculateReceipt(receipt).issues).toEqual([]);
+  });
   it("blocks a fully balanced, assigned and globally reviewed draft until the affected value is checked", () => {
     const { state, check } = fixture();
     expect(calculateReceipt(state.receipt).discrepancy).toBe(0n);

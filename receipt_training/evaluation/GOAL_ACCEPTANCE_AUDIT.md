@@ -12,7 +12,22 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) completes
+The latest [Costco development check](RAPIDOCR_COSTCO_DEVELOPMENT.md) returns two
+local frames of the familiar UK transaction. Small and saved medium readings
+both recover all eighteen purchase prices and quantities, four coupon owners
+and the printed total from identical crops. Automatic currency is unresolved;
+three source checks remain even with supplied GBP and balanced arithmetic.
+This is development parity, not representative complete-receipt accuracy.
+The 400-view original-50 regression exactly reproduces all 200 historical
+comparison views and preserves financial literals across all 200 before/after
+pairs. The parent full typecheck now passes. The subsequent purchase-count
+wording fix has 60 passing focused assertions and formatting; its full suite,
+typecheck, compilation and graph refresh remain pending resource admission.
+Five other development PNGs have not been inferred. No receipt upload, OpenAI
+use or fresh reserved-evaluation inference occurs. The whole goal remains
+active, and the experimental model has not been promoted.
+
+The preceding [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) completes
 thirteen actual local OCR calls, including twelve development receipts, and a
 paired twelve-image Tesseract comparison. Identical saved inputs and parser
 snapshots support component-level comparison. The source-reviewed references

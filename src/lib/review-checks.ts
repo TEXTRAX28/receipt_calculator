@@ -108,6 +108,15 @@ export function reviewMessage(check: ReviewCheck): string {
         ? " Check for missing or repeated rows and discounts."
         : ""
     }${check.other ? ` ${check.other}` : ""}`;
+  if (
+    check.reason === "classification" &&
+    check.scope === "receipt" &&
+    check.field === "items"
+  )
+    return (
+      check.other ||
+      "Check which rows are purchases against the original receipt."
+    );
   if (check.reason === "classification")
     return check.scope === "item"
       ? "The document marks a refund or credit. Check the signed product row and refund heading, then confirm who receives the credit."
