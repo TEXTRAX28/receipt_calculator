@@ -1,6 +1,13 @@
 import { spawn, execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fstatSync,
+  openSync,
+  readFileSync,
+  readSync,
+} from "node:fs";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import {
   dirname,
@@ -29,17 +36,29 @@ const modelManifest = JSON.parse(
 export function verifiedModelCache(engine, cacheRoot) {
   try {
     const files = modelManifest[engine]?.files;
-    return (
-      !!files?.length &&
-      files.every((entry) => {
-        const path = resolve(cacheRoot, entry.path);
-        return (
-          statSync(path).size === entry.bytes &&
-          createHash("sha256").update(readFileSync(path)).digest("hex") ===
-            entry.sha256
-        );
-      })
-    );
+    if (!files?.length) return false;
+    // Model files are large. Keep verification memory bounded before admitting
+    // a native worker instead of retaining whole-file Buffers until the next GC.
+    const buffer = Buffer.allocUnsafe(64 * 1024);
+    return files.every((entry) => {
+      const path = resolve(cacheRoot, entry.path);
+      const fd = openSync(path, "r");
+      try {
+        if (fstatSync(fd).size !== entry.bytes) return false;
+        const hash = createHash("sha256");
+        let total = 0;
+        for (;;) {
+          const count = readSync(fd, buffer, 0, buffer.length, null);
+          if (count === 0) break;
+          total += count;
+          if (total > entry.bytes) return false;
+          hash.update(buffer.subarray(0, count));
+        }
+        return total === entry.bytes && hash.digest("hex") === entry.sha256;
+      } finally {
+        closeSync(fd);
+      }
+    });
   } catch {
     return false;
   }

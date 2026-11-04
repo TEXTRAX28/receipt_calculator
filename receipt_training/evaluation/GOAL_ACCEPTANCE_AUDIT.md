@@ -12,7 +12,19 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [fresh-cohort collection](FRESH_CORD_COHORT.md) preserves a selection
+The latest [cache-verification fix](CACHE_HASH_MEMORY.md) bounds model hashing to
+64 KiB, reducing its observed retained buffers from 76.9 MB while preserving full
+size/SHA checks and descriptor cleanup. All 1,371 assertions across 76 files,
+73 focused cases, typecheck, formatting, build and graph checks pass. All thirteen
+frontend artifacts match the previous phone-tested package. Two actual fresh
+development profiles still return memory refusals on their first case;
+each retains eleven unattempted cases and no returned recognition or accuracy
+score. Workers close and jobs clear. Fresh source bytes and the reserved twelve
+evaluation receipts remain intact. RapidOCR 3.10.0 is researched for the next
+isolated runtime comparison, not promoted. OpenAI remains unused by this work
+and the full goal stays active.
+
+The preceding [fresh-cohort collection](FRESH_CORD_COHORT.md) preserves a selection
 made before inspecting new source content: twelve development and twelve reserved
 evaluation receipts. All 24 are collected, all 48 raw artifacts reverified, and
 no old/new overlap candidate is flagged. Seventeen native-format and five

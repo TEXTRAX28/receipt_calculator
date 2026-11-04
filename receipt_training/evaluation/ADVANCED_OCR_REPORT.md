@@ -2,7 +2,18 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [separate fresh cohort](FRESH_CORD_COHORT.md) collects all 24 sources
+The latest [bounded cache-verification repair](CACHE_HASH_MEMORY.md) replaces
+whole-model buffers with a 64 KiB hashing buffer, preserving full integrity
+checks. All 1,371 unit assertions across 76 files and required static/build/graph
+checks pass; thirteen frontend artifacts retain the previous package's exact
+bytes. Both frozen fresh-development reader profiles still refuse the first
+case on a memory check, with no returned receipt reading or new accuracy
+score; each leaves eleven cases unattempted. Owned workers close, jobs clear,
+and all fresh sources remain unchanged. RapidOCR 3.10.0 is the next researched
+runtime candidate, uninstalled and untested. OpenAI stays unused by this work,
+the reserved evaluation set remains unopened, and the whole goal remains active.
+
+The preceding [separate fresh cohort](FRESH_CORD_COHORT.md) collects all 24 sources
 selected before viewing new content: twelve development and twelve reserved
 evaluation receipts. All 48 image/label artifacts reverify, with no old/new
 overlap candidates. Seventeen native-format and five quarantine controls pass;
