@@ -1,5 +1,19 @@
 # Advanced OCR investigation — work in progress
 
+Latest real workflow checkpoint, 4 November 2026:
+[native Paddle phone flow](NATIVE_PHONE_COSTCO_FLOW.md) exercises the current
+compiled UI at 390px with one actual local recognition POST and two uploaded
+Costco crops. With GBP supplied before scanning, eighteen financial rows and
+four coupon owners match source-backed values, both repeated chickens remain,
+and no financial edit is needed. One source-count check precedes an exact
+£58.93/£58.93/£58.92 split of £176.78. Two description character errors remain.
+The backend call takes 12.332 seconds; this excludes browser preparation and
+review. The preview closes normally within unchanged memory safeguards, leaving
+zero runtime jobs and preserving the user's tab. Application source/build are
+unchanged; no new full-suite, physical-phone, hybrid or broad accuracy claim is
+made. OpenAI remains pending approval with no request or spend. The full goal
+remains active.
+
 Latest comparison and readiness checkpoint, 4 November 2026:
 [selected Paddle on the reserved twelve](SELECTED_PADDLE_FRESH_COMPARISON.md)
 returns eleven actual readings, preserving the same one raw-input failure.

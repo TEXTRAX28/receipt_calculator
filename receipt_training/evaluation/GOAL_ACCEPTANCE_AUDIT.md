@@ -12,7 +12,20 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [selected-primary comparison](SELECTED_PADDLE_FRESH_COMPARISON.md)
+The latest [real native phone flow](NATIVE_PHONE_COSTCO_FLOW.md) uses the current
+compiled application, normal upload controls and actual Paddle inference at
+390px. Supplied GBP, eighteen source-matching financial rows, four correct
+coupon owners and one source-count review yield £176.78 and exact three-way
+shares without financial edits. Two OCR description variants remain. The
+backend call is 12.332 seconds, and the owned preview closes normally after
+393.495 seconds with zero runtime jobs and no cloud/key use. Its memory floor
+and source/build hashes remain intact. One transient browser wait and a failed
+full-page capture are retained; the viewport screenshot succeeds. The original
+user tab survives and the viewport resets. This is one familiar transaction,
+not physical capture, the full hybrid or representative accuracy. All broader
+gaps and the pending OpenAI upload/spend approval remain open.
+
+The preceding [selected-primary comparison](SELECTED_PADDLE_FRESH_COMPARISON.md)
 reads eleven of the same twelve reserved sources with Paddle medium. It matches
 16/37 referenced components versus Rapid's 14/37, but proposes more extra rows;
 automatic prices stay 3/37 and quantities 0/37. Supplied-IDR printed totals are
