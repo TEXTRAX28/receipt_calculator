@@ -2160,14 +2160,49 @@ dialog::backdrop {
 .source-figure {
   margin: 20px 0 12px;
 }
-.receipt-source-image {
-  display: block;
+.source-image-viewport {
   width: 100%;
-  height: auto;
+  min-width: 0;
   max-height: 35dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: white;
+}
+.source-image-viewport:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+.receipt-source-image {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+}
+.source-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.source-zoom .button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+}
+.source-zoom output {
+  min-width: 3.5ch;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.source-zoom-help {
+  margin: 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 .source-region {
   fill: transparent;

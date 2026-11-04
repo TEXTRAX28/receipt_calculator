@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Minus, Plus } from "lucide-react";
 import ReceiptAreaReader from "./ReceiptAreaReader";
 import type { Item } from "./lib/model";
 import {
@@ -11,48 +11,100 @@ import {
 
 function SourceImage({ panel }: { panel: SourcePanel }) {
   const [url, setUrl] = useState("");
+  const [zoom, setZoom] = useState(1);
   useEffect(() => {
     const next = URL.createObjectURL(panel.blob);
     setUrl(next);
+    setZoom(1);
     return () => URL.revokeObjectURL(next);
   }, [panel.blob]);
   const frame = sourceViewport(panel);
   if (!url) return <p role="status">Loading receipt area…</p>;
   return (
-    <svg
-      className="receipt-source-image"
-      role="img"
-      aria-label={`Highlighted receipt area in photo ${panel.photo}, section ${panel.part}`}
-      width={frame.width}
-      height={frame.height}
-      viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
-    >
-      <image href={url} width={panel.width} height={panel.height} />
-      {panel.regions.map((region, index) => (
-        <rect
-          key={index}
-          data-testid="source-region"
-          className={panel.unclear ? "source-region unclear" : "source-region"}
-          x={region.box[0] * panel.width}
-          y={region.box[1] * panel.height}
-          width={(region.box[2] - region.box[0]) * panel.width}
-          height={(region.box[3] - region.box[1]) * panel.height}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      {panel.uncertainWords?.map((word, index) => (
-        <rect
-          key={`word-${index}`}
-          data-testid="uncertain-word-region"
-          className="source-region unclear"
-          x={word.box[0] * panel.width}
-          y={word.box[1] * panel.height}
-          width={(word.box[2] - word.box[0]) * panel.width}
-          height={(word.box[3] - word.box[1]) * panel.height}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
+    <>
+      <div
+        className="source-zoom"
+        role="group"
+        aria-label="Receipt source zoom"
+      >
+        <button
+          type="button"
+          className="button button-outline"
+          aria-label="Zoom out receipt source"
+          disabled={zoom === 1}
+          onClick={() => setZoom((value) => Math.max(1, value - 0.5))}
+        >
+          <Minus size={17} aria-hidden="true" />
+        </button>
+        <output aria-label="Receipt source zoom level" aria-live="polite">
+          {Math.round(zoom * 100)}%
+        </output>
+        <button
+          type="button"
+          className="button button-outline"
+          aria-label="Zoom in receipt source"
+          disabled={zoom === 4}
+          onClick={() => setZoom((value) => Math.min(4, value + 0.5))}
+        >
+          <Plus size={17} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="button button-outline"
+          disabled={zoom === 1}
+          onClick={() => setZoom(1)}
+        >
+          Fit width
+        </button>
+      </div>
+      <div
+        className="source-image-viewport"
+        role="region"
+        aria-label={`Scrollable receipt source in photo ${panel.photo}, section ${panel.part}`}
+        tabIndex={0}
+      >
+        <svg
+          className="receipt-source-image"
+          style={{ width: `${zoom * 100}%` }}
+          role="img"
+          aria-label={`Highlighted receipt area in photo ${panel.photo}, section ${panel.part}`}
+          width={frame.width}
+          height={frame.height}
+          viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
+        >
+          <image href={url} width={panel.width} height={panel.height} />
+          {panel.regions.map((region, index) => (
+            <rect
+              key={index}
+              data-testid="source-region"
+              className={
+                panel.unclear ? "source-region unclear" : "source-region"
+              }
+              x={region.box[0] * panel.width}
+              y={region.box[1] * panel.height}
+              width={(region.box[2] - region.box[0]) * panel.width}
+              height={(region.box[3] - region.box[1]) * panel.height}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {panel.uncertainWords?.map((word, index) => (
+            <rect
+              key={`word-${index}`}
+              data-testid="uncertain-word-region"
+              className="source-region unclear"
+              x={word.box[0] * panel.width}
+              y={word.box[1] * panel.height}
+              width={(word.box[2] - word.box[0]) * panel.width}
+              height={(word.box[3] - word.box[1]) * panel.height}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+      </div>
+      <p className="source-zoom-help">
+        Zoom in, then scroll within the image to inspect the print.
+      </p>
+    </>
   );
 }
 

@@ -1,6 +1,18 @@
 # Advanced OCR investigation — work in progress
 
-Current consolidated status, 4 November 2026:
+Latest phone usability checkpoint, 4 November 2026:
+[source-image zoom and current browser verification](SOURCE_ZOOM_PHONE_CHECK.md).
+Highlighted rows now zoom from 100% to 400% inside a bounded scrolling region.
+A real on-device synthetic scan at 320px, source review at 320/390px and a
+reviewed £6.20 → £3.10/£3.10 split pass without financial edits or page overflow.
+Typecheck, formatting, isolated compilation and graph checks pass. All 1,377
+assertions complete in one run, but its memory controller fails; a smaller-heap
+attempt also stops at the unchanged floor. A clean guarded current full-suite
+run is therefore not claimed. The successful preview remains within its memory
+floor and closes normally. No provider upload or OpenAI request occurs.
+Broader recognition, genuine capture and release requirements remain open.
+
+Previous consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
 The latest [approved Gemini and completed Rapid development comparison](GEMINI_UK_AND_RAPID_DEVELOPMENT.md)
 executes the single newly approved two-crop request and completes all five
