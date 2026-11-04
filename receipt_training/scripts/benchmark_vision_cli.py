@@ -61,7 +61,21 @@ out.mkdir(exist_ok=False)
 manifest_path = (ROOT / request.get("model_manifest", "receipt_training/evaluation/vision-candidate-manifest.json")).resolve()
 manifest_path.relative_to((ROOT / "receipt_training/evaluation").resolve())
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-guard = VisionMemoryGuard() if args.memory_guard or manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" else None
+small_candidate = manifest["model"] == "unsloth/Qwen3.5-2B-GGUF"
+research_backend = request.get("research_backend")
+strict_cpu = research_backend in ["cpu-small-batch-v1", "cpu-small-batch-no-repack-v1"]
+if research_backend is not None and (not small_candidate or not strict_cpu):
+    raise ValueError("Only the pinned 2B research CPU profile is supported")
+if strict_cpu and (request.get("gpu_layers") != 0 or request.get("projector_gpu") is not False):
+    raise ValueError("The CPU research profile requires explicit CPU model and projector placement")
+if small_candidate:
+    from qwen35_resources import Qwen35MemoryGuard
+    from setup_qwen35_candidate import manifest as pinned_small_manifest
+    if manifest != pinned_small_manifest():
+        raise ValueError("The 2B trial requires the exact pinned research manifest")
+    guard = Qwen35MemoryGuard()
+else:
+    guard = VisionMemoryGuard() if args.memory_guard or manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" else None
 if guard:
     from setup_qwen8b_candidate import manifest as pinned_8b_manifest, verify_runtime
     if manifest["model"] == "Qwen/Qwen3-VL-8B-Instruct-GGUF" and manifest != pinned_8b_manifest():
@@ -97,16 +111,24 @@ for path in images:
 (out / "vision_cli_text.py").write_bytes(Path(__file__).with_name("vision_cli_text.py").read_bytes())
 for helper in ["vision_trial_guard.py", "qwen8b_resources.py", "setup_vision_candidate.py", "setup_qwen8b_candidate.py"]:
     (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
+if small_candidate:
+    for helper in ["qwen35_resources.py", "setup_qwen35_candidate.py"]:
+        (out / helper).write_bytes(Path(__file__).with_name(helper).read_bytes())
 if request.get("normalize_numeric_json", False):
     (out / "vision_cli_json.py").write_bytes(Path(__file__).with_name("vision_cli_json.py").read_bytes())
 if output_mode == "structured-receipt":
     (out / "schema.json").write_text(json.dumps(request["schema"]), encoding="utf-8")
+batch, ubatch = (128, 32) if strict_cpu else (256, 128)
+placement_flags = ["--device", "none", "--no-op-offload", "--fit", "off"] if strict_cpu else []
+if research_backend == "cpu-small-batch-no-repack-v1":
+    placement_flags.append("--no-repack")
 command = [str(cli), "-m", str(model), "--mmproj", str(projector),
            "--image", ",".join(str(path) for path in images), "-p", request["prompt"],
            "--ctx-size", str(request.get("context", 4096)),
            "--n-predict", str(request.get("max_tokens", 1800)), "--image-max-tokens", str(request.get("image_tokens", 1024)),
-           "--gpu-layers", str(request.get("gpu_layers", "auto")), "--batch-size", "256", "--ubatch-size", "128",
+           "--gpu-layers", str(request.get("gpu_layers", "auto")), "--batch-size", str(batch), "--ubatch-size", str(ubatch),
            "--threads", "4", "--threads-batch", "4", "--temp", "0", "--seed", "20261031"]
+command.extend(placement_flags)
 if output_mode == "structured-receipt" and request.get("constrain_schema", True):
     command.extend(["--json-schema-file", str(out / "schema.json")])
 if executable == "llama-cli.exe":
@@ -145,6 +167,12 @@ metadata = {"model": manifest["model"], "revision": manifest["revision"], "runti
             "resource_control_sha256": {name:sha(out / name) for name in ["vision_trial_guard.py", "qwen8b_resources.py", "setup_vision_candidate.py", "setup_qwen8b_candidate.py"]},
             "settings":{k:request.get(k) for k in ["context","max_tokens","image_tokens","gpu_layers","projector_gpu","verbose","constrain_schema","normalize_numeric_json","chat_template_kwargs","special_tokens"]},
             "timing_scope":"Fresh CLI model loading, image encoding and generation; decoder-constraint setting recorded separately. Excludes verified download/setup, browser preprocessing and deterministic financial validation"}
+if small_candidate:
+    metadata["research_profile"] = f"qwen35-2b-q4-f16-{research_backend}" if strict_cpu else "qwen35-2b-q4-f16-canonical-greedy-v1"
+    metadata["research_backend"] = research_backend
+    metadata["effective_batches"] = {"batch": batch, "ubatch": ubatch}
+    metadata["native_placement_flags"] = placement_flags
+    metadata["small_candidate_helpers_sha256"] = {name: sha(out / name) for name in ["qwen35_resources.py", "setup_qwen35_candidate.py"]}
 class Memory(ctypes.Structure):
     _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD)]+[(name,ctypes.c_size_t) for name in ["PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage"]]
 memory_fn=ctypes.WinDLL("psapi").GetProcessMemoryInfo

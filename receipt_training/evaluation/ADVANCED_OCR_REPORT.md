@@ -2,7 +2,16 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [local vision memory limits and shutdown repair](LOCAL_VISION_MEMORY.md)
+The latest [Qwen3.5 2B memory feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
+installs a pinned 1.95 GB candidate and replays the frozen five-crop baseline.
+Four distinct synthetic profiles are resource-stopped without a draft; the
+planned receipt comparison remains unattempted. Strict CPU placement reduces
+the diagnostic language compute buffer, but still fails the unchanged runtime
+floor during image encoding. No reader is promoted or app source changed;
+five research guard controls pass and prior 1,339-case source remains identical.
+No private external upload or OpenAI request occurs. The full goal stays active.
+
+The preceding [local vision memory limits and shutdown repair](LOCAL_VISION_MEMORY.md)
 refuse insufficient-memory launches and bound closure even after reported exit.
 All 1,339 current unit cases across 74 files pass through six disjoint shards;
 35 focused cases, a memory-capped full typecheck, formatting, graph and isolated

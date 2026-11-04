@@ -12,7 +12,18 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [memory-admission/shutdown follow-up](LOCAL_VISION_MEMORY.md) refuses
+The latest [smaller Qwen3.5 feasibility screen](QWEN35_SMALL_MEMORY_SCREEN.md)
+installs and verifies a 1.95 GB 2B candidate, freezes five development requests,
+and reproduces the current saved-reading baseline. Four distinct synthetic
+profiles hit the unchanged runtime memory floor without a draft. The planned
+receipt/invoice calls remain unattempted; no model is promoted or app code
+changed. Five research guard tests pass, all 220 verified application/test files
+remain identical, and earlier targeted evidence checks still pass. This is
+resource feasibility evidence, with no new recognition or latency score.
+OpenAI remains unused, no private external receipt upload occurs, and this
+F16-projector trial is stopped pending a materially smaller memory footprint.
+
+The preceding [memory-admission/shutdown follow-up](LOCAL_VISION_MEMORY.md) refuses
 insufficient-memory local vision before private inputs/native startup and
 bounds closure after a reported exit. All 1,339 current unit cases pass through
 six disjoint shards with exact 74-file/test-name coverage; 35 focused cases,
