@@ -2,15 +2,29 @@
 
 Current consolidated status, 4 November 2026:
 [technical checkpoint and requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md).
-The latest [bounded cache-verification repair](CACHE_HASH_MEMORY.md) replaces
+The latest [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) returns all
+thirteen planned local calls, including twelve development receipts. A paired
+Tesseract run uses the same twelve prepared JPEGs. With IDR context, saved
+small-model replays and the adjacent-terms parser improvement detect 10/19
+products, read 10/20 priced-component amounts and associate 2/2 item discounts;
+Tesseract detects 0/19 products on this development cohort. These are partial,
+source-reviewed development references, not representative Costco or complete
+financial truth. All 145 focused assertions and the full 1,376 assertions across
+77 files pass, alongside formatting, isolated compilation and graph checks.
+Typecheck remains pending after runtime-RAM and heap-capacity failures.
+The smaller model remains experimental; provider configuration is unchanged.
+The installation disk reserve is unmet; the successful model screen was
+explicitly diskless. OpenAI remains unused and the whole goal stays active.
+
+The preceding [bounded cache-verification repair](CACHE_HASH_MEMORY.md) replaces
 whole-model buffers with a 64 KiB hashing buffer, preserving full integrity
 checks. All 1,371 unit assertions across 76 files and required static/build/graph
 checks pass; thirteen frontend artifacts retain the previous package's exact
 bytes. Both frozen fresh-development reader profiles still refuse the first
 case on a memory check, with no returned receipt reading or new accuracy
 score; each leaves eleven cases unattempted. Owned workers close, jobs clear,
-and all fresh sources remain unchanged. RapidOCR 3.10.0 is the next researched
-runtime candidate, uninstalled and untested. OpenAI stays unused by this work,
+and all fresh sources remain unchanged. At that checkpoint RapidOCR 3.10.0 was
+the next researched runtime, still uninstalled and untested. OpenAI stays unused by this work,
 the reserved evaluation set remains unopened, and the whole goal remains active.
 
 The preceding [separate fresh cohort](FRESH_CORD_COHORT.md) collects all 24 sources

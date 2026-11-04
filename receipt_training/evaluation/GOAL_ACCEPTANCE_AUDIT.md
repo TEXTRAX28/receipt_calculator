@@ -12,7 +12,21 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The latest [cache-verification fix](CACHE_HASH_MEMORY.md) bounds model hashing to
+The latest [RapidOCR small-model screen](RAPIDOCR_SMALL_SCREEN.md) completes
+thirteen actual local OCR calls, including twelve development receipts, and a
+paired twelve-image Tesseract comparison. Identical saved inputs and parser
+snapshots support component-level comparison. The source-reviewed references
+remain partial; no complete financial receipt accuracy is asserted. The
+adjacent-terms parser revision improves quantities, zero-price coverage and
+item-discount ownership on that cohort. Its 145 focused assertions and the full
+1,376 assertions across 77 files pass, alongside formatting, isolated compilation
+and graph checks. Typecheck remains pending after resource-capacity failures.
+The candidate is not a
+production provider, and the ten-GiB installation reserve remains unmet.
+No external receipt upload, OpenAI use or reserved-evaluation inference occurs.
+The full goal remains active; the new full suite covers the parser revision.
+
+The preceding [cache-verification fix](CACHE_HASH_MEMORY.md) bounds model hashing to
 64 KiB, reducing its observed retained buffers from 76.9 MB while preserving full
 size/SHA checks and descriptor cleanup. All 1,371 assertions across 76 files,
 73 focused cases, typecheck, formatting, build and graph checks pass. All thirteen
@@ -20,8 +34,8 @@ frontend artifacts match the previous phone-tested package. Two actual fresh
 development profiles still return memory refusals on their first case;
 each retains eleven unattempted cases and no returned recognition or accuracy
 score. Workers close and jobs clear. Fresh source bytes and the reserved twelve
-evaluation receipts remain intact. RapidOCR 3.10.0 is researched for the next
-isolated runtime comparison, not promoted. OpenAI remains unused by this work
+evaluation receipts remain intact. At that checkpoint RapidOCR 3.10.0 was
+researched for the next isolated runtime comparison. OpenAI remains unused by this work
 and the full goal stays active.
 
 The preceding [fresh-cohort collection](FRESH_CORD_COHORT.md) preserves a selection

@@ -29,6 +29,8 @@ export const extractionOutputSchema = z.object({
 });
 export const PHOTO_SEPARATOR = "--- GATHER PHOTO BOUNDARY ---";
 const amountPattern = /[-−]?\d[\d,.]*[.,]\d{2,3}-?/g;
+const itemTermsPattern =
+  /^(\d{1,9}(?:[.,]\d{1,6})?)\s*[x×]\s*@\s*(\d[\d,.]*)\s*$/i;
 export function normalizeAmount(token: string, currency?: Currency): string {
   return printedAmount(token, { currency });
 }
@@ -727,7 +729,7 @@ export function parseReceiptWithSources(
       continue;
     }
     const generic = line.match(
-      /^(.+?)\s+([-−]?[£$€]?\s*\d[\d,.]*[.,]\d{2,3}-?)\s*([A-Z])?\s*$/,
+      /^(.+?)\s+([-−]?[£$€]?\s*(?:\d[\d,.]*[.,]\d{2,3}|0)-?)\s*([A-Z])?\s*$/,
     );
     if (
       generic &&
@@ -748,6 +750,23 @@ export function parseReceiptWithSources(
         !quantity && !/[-−]/.test(generic[2])
           ? description.match(/^(\d+(?:[.,]\d+)?)\s*[x×]\s+(\p{L}.*)$/iu)
           : null;
+      // Some receipts put an explicit count and @ unit price immediately above
+      // the named line total. Keep both printed values; never derive either.
+      const precedingTerms =
+        !quantity && !leadingQuantity && !/[-−]/.test(generic[2])
+          ? (lines[lineIndex - 1] || "").match(itemTermsPattern)
+          : null;
+      const explicitTerms =
+        precedingTerms && /[1-9]/.test(precedingTerms[1])
+          ? precedingTerms
+          : null;
+      // A bare zero can be an option or an administrative code. This new
+      // integer-price path needs the adjacent explicit purchase terms.
+      if (/^[-−]?[£$€]?\s*0-?$/.test(generic[2]) && !explicitTerms) {
+        pendingDescription = "";
+        pendingSource = undefined;
+        continue;
+      }
       const percentDeduction =
         /^(?:amount|amt)\b/i.test(description) &&
         /^DISC(?:OUNT)?\b.*%/i.test(lines[lineIndex - 1] || "");
@@ -769,6 +788,35 @@ export function parseReceiptWithSources(
         !documentCredit &&
         !/\b(?:return(?:ed)?|refund(?:ed)?)\b/i.test(description);
       if (deduction || ambiguous) {
+        const owner = receipt.items.at(-1);
+        const ownerSources = owner ? sources[owner.id] : undefined;
+        if (
+          percentDeduction &&
+          /^DISC(?:OUNT)?\s+ITEM\b.*%/i.test(lines[lineIndex - 1] || "") &&
+          printedNegative &&
+          amount &&
+          owner &&
+          ownerSources?.length === 2 &&
+          itemTermsPattern.test(lines[ownerSources[0]]) &&
+          ownerSources?.at(-1) === lineIndex - 2 &&
+          owner.discount === "0" &&
+          !owner.lineTotal.startsWith("-")
+        ) {
+          owner.discount = amount.replace(/^-/, "");
+          sources[owner.id] = [...ownerSources, lineIndex - 1, lineIndex];
+          receipt.reviewChecks.push({
+            scope: "item",
+            itemId: owner.id,
+            field: "discount",
+            reason: "source",
+            other:
+              "A printed item discount follows this purchase. Confirm its amount and owner against the source.",
+            confirmedValue: "",
+          });
+          pendingDescription = "";
+          pendingSource = undefined;
+          continue;
+        }
         const adjustment = {
           id: crypto.randomUUID(),
           label: description.slice(0, 100),
@@ -811,8 +859,14 @@ export function parseReceiptWithSources(
           ? quantity[1].replace(",", ".")
           : leadingQuantity
             ? leadingQuantity[1].replace(",", ".")
+            : explicitTerms
+              ? explicitTerms[1].replace(",", ".")
+              : "";
+        item.unitPrice = quantity?.[2]
+          ? normalize(quantity[2])
+          : explicitTerms
+            ? normalize(explicitTerms[2])
             : "";
-        item.unitPrice = quantity?.[2] ? normalize(quantity[2]) : "";
         item.lineTotal = amount;
         item.taxCode = generic[3] || "";
         if (leadingQuantity)
@@ -825,11 +879,24 @@ export function parseReceiptWithSources(
               "Confirm that the leading count is purchased quantity, not part of the pack description.",
             confirmedValue: "",
           });
+        if (explicitTerms)
+          for (const field of ["quantity", "unitPrice"] as const)
+            receipt.reviewChecks.push({
+              scope: "item",
+              itemId: item.id,
+              field,
+              reason: "source",
+              other:
+                "Confirm the count and @ unit price printed immediately above this purchase.",
+              confirmedValue: "",
+            });
         item.note = leadingQuantity
           ? "Leading count read as purchased quantity. Confirm purchased packs against the original; pack contents are separate."
           : quantity
             ? "Check the extracted quantity and line total."
-            : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
+            : explicitTerms
+              ? "Count and @ unit price read from the preceding row. Confirm their product association."
+              : "Purchased quantity not printed or not recognized. Confirm it; pack size is separate.";
         if (printedNegative) {
           item.note =
             "Signed credit line. Confirm this is a returned item, its positive quantity and any coupon or tax reversal.";
@@ -860,7 +927,9 @@ export function parseReceiptWithSources(
         receipt.items.push(item);
         sources[item.id] = documentCredit
           ? [lineIndex, ...refundHeadingSources.slice(0, 3)]
-          : [lineIndex];
+          : explicitTerms
+            ? [lineIndex - 1, lineIndex]
+            : [lineIndex];
       }
       pendingDescription = "";
       pendingSource = undefined;
