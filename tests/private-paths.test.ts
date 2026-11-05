@@ -3,17 +3,63 @@ import { createServer, type ViteDevServer } from "vite";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
 import { privateFileDeny } from "../server/private-paths.mjs";
+import receiptConfig, { receiptEnvironment } from "../vite.config";
 
-const ownedBase = resolve("node_modules/.gather-private-http-tests");
-let root: string, server: ViteDevServer;
+const ownedBase = join(tmpdir(), "gather-private-http-tests");
+let root: string | undefined, server: ViteDevServer | undefined;
 afterEach(async () => {
   await server?.close();
-  if (!root) return;
-  const inside = relative(await realpath(ownedBase), await realpath(root));
+  server = undefined;
+  const ownedRoot = root;
+  root = undefined;
+  if (!ownedRoot) return;
+  const inside = relative(await realpath(ownedBase), await realpath(ownedRoot));
   if (!inside || inside.startsWith("..") || isAbsolute(inside))
     throw new Error("Unsafe private HTTP fixture cleanup");
-  await rm(root, { recursive: true, force: true });
+  await rm(ownedRoot, { recursive: true, force: true });
+});
+
+it("local-only configuration ignores cloud credentials, allowances and client variables", () => {
+  const local = {
+    LOCAL_OCR_PYTHON: "/installed/python",
+    LOCAL_OCR_ENGINE: "paddle-v6",
+    LOCAL_OCR_CACHE_ROOT: "/installed/models",
+    LOCAL_VISION_ENABLED: "0",
+  };
+  const variables = new Proxy(local, {
+    get(target, name) {
+      if (!(name in target)) throw new Error("Unexpected environment read");
+      return target[name as keyof typeof local];
+    },
+    ownKeys() {
+      throw new Error("Environment enumeration is forbidden");
+    },
+  });
+  expect(receiptEnvironment("local-only", "/unused", variables)).toEqual(local);
+});
+
+it("local-only mode skips dotenv files and client env injection without changing ordinary dotenv loading", async () => {
+  await mkdir(ownedBase, { recursive: true });
+  root = await realpath(await mkdtemp(join(ownedBase, "env-")));
+  await writeFile(
+    join(root, ".env.local"),
+    "SYNTHETIC_DOTENV_CONTROL=ordinary-mode-only\nVITE_SYNTHETIC_SECRET=never-expose\nLOCAL_OCR_PYTHON=/dotenv/python\n",
+  );
+  const env = receiptEnvironment("local-only", root, {});
+  expect(Object.values(env).every((value) => value === "")).toBe(true);
+  expect(env).not.toHaveProperty("SYNTHETIC_DOTENV_CONTROL");
+  expect(env).not.toHaveProperty("VITE_SYNTHETIC_SECRET");
+  expect(receiptEnvironment("development", root).SYNTHETIC_DOTENV_CONTROL).toBe(
+    "ordinary-mode-only",
+  );
+  if (typeof receiptConfig !== "function")
+    throw new Error("Expected Vite factory");
+  const config = await receiptConfig({ command: "serve", mode: "local-only" });
+  expect(config.envDir).toBe(false);
+  expect(config.envPrefix).toEqual([]);
+  expect(config.cacheDir).toBe(".vite");
 });
 
 it("serves public files but blocks private data through direct, encoded and absolute development HTTP paths", async () => {
@@ -28,6 +74,7 @@ it("serves public files but blocks private data through direct, encoded and abso
     ".graphify/cache.json",
     ".receipt-reader-state/synthetic-account/offline-grant/1.json",
     ".cache/model.bin",
+    ".vscode/tasks.json",
     "test-results/screenshot.png",
     "playwright-report/index.html",
     ".git/config",

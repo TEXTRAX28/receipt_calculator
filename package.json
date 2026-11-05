@@ -9,6 +9,8 @@
   "scripts": {
     "predev": "npm run prepare:ocr",
     "dev": "vite --host 127.0.0.1",
+    "predev:local": "npm run prepare:ocr",
+    "dev:local": "vite --host 127.0.0.1 --configLoader native --mode local-only",
     "prebuild": "npm run prepare:ocr",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --host 127.0.0.1",

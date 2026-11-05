@@ -16,6 +16,7 @@ export const privateFileDeny = [
   "**/.graphify*",
   "**/.graphify*/**",
   "**/.cache/**",
+  "**/.vscode/**",
   "**/test-results/**",
   "**/playwright-report/**",
 ];

@@ -11,12 +11,31 @@ import { createOpenAiReader } from "./server/openai-reader.mjs";
 import { resolve } from "node:path";
 import { LOCAL_VISION_TIMEOUT_MS } from "./src/lib/vision-plan.mjs";
 
+// A restartable local-only session never loads cloud keys from dotenv or the
+// inherited environment. These settings are trusted server configuration only.
+export function receiptEnvironment(
+  mode: string,
+  directory = process.cwd(),
+  variables: NodeJS.ProcessEnv = process.env,
+) {
+  if (mode !== "local-only") return loadEnv(mode, directory, "");
+  return Object.fromEntries(
+    [
+      "LOCAL_OCR_PYTHON",
+      "LOCAL_OCR_ENGINE",
+      "LOCAL_OCR_CACHE_ROOT",
+      "LOCAL_VISION_ENABLED",
+    ].map((name) => [name, variables[name] || ""]),
+  );
+}
+
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+  const env = receiptEnvironment(mode);
   const api = () => {
     const localReader = createLocalModelReader({
       python: env.LOCAL_OCR_PYTHON || "",
       engine: env.LOCAL_OCR_ENGINE || "paddle-v6",
+      cacheRoot: resolve(env.LOCAL_OCR_CACHE_ROOT || "receipt_training/.cache"),
     });
     const localVision = createLocalVisionReader({
       enabled: env.LOCAL_VISION_ENABLED === "1",
@@ -68,6 +87,9 @@ export default defineConfig(({ mode }) => {
     };
   };
   return {
+    // Keep generated caches in this checkout when dependencies are shared.
+    cacheDir: ".vite",
+    ...(mode === "local-only" ? { envDir: false as const, envPrefix: [] } : {}),
     // Avoid a first-PDF dependency optimization reload discarding selected files.
     optimizeDeps: {
       entries: ["index.html"],

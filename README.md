@@ -30,6 +30,20 @@ npm run preview -- --port 4173
 
 On-device OCR needs no API key, paid service, database or account. Keep the local server running while using the app: an already-loaded page still needs it to download the OCR files. Nothing has been deployed or published.
 
+### Local-only development in VS Code
+
+With dependencies already installed and Node.js 24 LTS (or 22.18+), use:
+
+```sh
+npm run dev:local -- --port 5175
+```
+
+This starts the current source with live updates, prepares the installed browser/PDF assets without downloading models, and disables every cloud reader. It ignores dotenv files and exposes no inherited `VITE_` variables to the browser. Generated Vite caches stay in this checkout's ignored `.vite/` directory. The native config loader requires Node's TypeScript support; ordinary `npm run dev` retains its existing configuration behavior. See [Vite's configuration loader](https://vite.dev/config/) and [environment options](https://vite.dev/config/shared-options.html#envdir).
+
+To reuse an already installed computer reader, set `LOCAL_OCR_PYTHON` to its absolute interpreter path and `LOCAL_OCR_CACHE_ROOT` to the directory containing the verified model files (`receipt_training/.cache` by default) **in the terminal environment**, then run that command. No reinstall or key is needed. This cache setting applies to the computer OCR reader; experimental local vision keeps its separate setup. The computer's native worker still needs sufficient free RAM, and local-only mode does not make its inference run on a phone.
+
+VS Code tasks can supply those non-secret settings through `options.env`; run a configured task using **Terminal → Run Task** and stop it with **Ctrl+C**. See the [VS Code task documentation](https://code.visualstudio.com/docs/debugtest/tasks). Keep this server's printed URL open while scanning. The development server accepts loopback connections only.
+
 ## Optional enhanced on-device reader
 
 After installing dependencies, prepare the pinned public models once:
