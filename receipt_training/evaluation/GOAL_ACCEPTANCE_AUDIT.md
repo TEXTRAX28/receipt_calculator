@@ -34,6 +34,16 @@ native backend bytes are unchanged; this closes protocol/cleanup compatibility,
 not receipt accuracy. Memory guards and protected baseline/worktrees remain
 unchanged. Genuine-camera/physical-device and public-release gaps remain open.
 
+The subsequent [local review preview](PRINTED_TAX_RECOVERY.md#current-local-preview-follow-up)
+serves the committed `181a606` UI with the real cached computer reader and cloud
+readers disabled. A 390px actual upload-to-split test reads the known synthetic
+two-item fixture and finalizes GBP 3.00/3.00 without financial edits; GBP is
+supplied and review simulated. The test browser closes, the native worker
+unloads after idle, and zero jobs remain. The operator preview is intentionally
+left available; its live URL/status are separate runtime observations. This is
+current HTTP/UI compatibility, not new representative or physical-device
+accuracy. See `advanced-local-review-preview-v1.json`.
+
 The separately approved [six-crop OpenAI comparison](OPENAI_SIX_RESULT.md)
 completed six requests once each: all 26 known purchase descriptions, 25 readable
 line prices and three coupon attachments match the frozen partial reference.

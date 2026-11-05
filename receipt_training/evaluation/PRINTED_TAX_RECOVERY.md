@@ -76,3 +76,30 @@ Evidence: advanced-printed-tax-action-v1.json; ignored packets under
 qa-artifacts/printed-tax-action-v1/, printed-tax-action-final-check-v1/ and
 openai-tax-phone-v1/v2/v3/. These packets retain exact sources, inputs, compiled
 artifacts, controller outcomes, DOM-state observations and screenshots.
+
+## Current local preview follow-up
+
+A separate loopback preview now serves the committed `181a606` UI with the real
+cached computer reader. It loads no environment file or provider credential;
+cloud readers and experimental local vision are disabled. Preview logs contain
+request metadata, without receipt contents; normal native temporary-file handling
+still applies. The original 4173 address had
+no listener when checked and was not replaced. The current preview's URL and
+process identity are recorded in ignored `qa-artifacts/local-review-181a606-v1/ready.json`;
+recheck liveness before reusing that address.
+
+One actual upload-to-final-split control passes in a 390px Chrome context using
+the existing non-private synthetic PNG: two purchase rows, quantities 2 and 1,
+line prices 2.50 and 3.50, printed total GBP 6.00 and two GBP 3.00 shares. GBP is
+selected before scanning and source review is simulated; no financial amount
+is edited. The production HTTP API and cached Paddle engine respond directly,
+without mocked extraction responses or cloud requests. This is an engineering
+fixture, not representative receipt accuracy or a physical-phone test.
+
+The test browser closes, while the user review preview intentionally remains
+running. A later scoped process check finds no native Python worker after its
+idle timeout, and the runtime has zero temporary jobs. The initial process query
+also matched its own diagnostic shell; the corrected name-filtered check is the
+authoritative idle observation. Runtime availability is an observation, not a
+permanent service guarantee. The existing one-GiB memory reserve remains active.
+`advanced-local-review-preview-v1.json` records this follow-up separately.
