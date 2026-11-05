@@ -12,16 +12,18 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
-The [current reader diagnostic and prepared public comparison](PUBLIC_CORD_COMPARISON_READY.md)
-reject a prefix-only parser prototype: one extra correct development price comes
-with two false summary products, lowering scoped precision 12/18→13/21. The app
-is unchanged. A six-source public CORD baseline preserves five actual Paddle
-captures plus one raw-input refusal; supplied-IDR matches 10/23 known line prices,
-0/23 quantities and 4/6 totals. Six original-detail OpenAI requests are prepared
-with three passing offline controls and a US$3.17 conservative estimate, but
-fresh upload/spend approval is pending. No real key, request or credit is used.
-The current 1,470-unit/type/build source remains byte-identical; the phone-browser
-check is still held before launch below its unchanged memory guard.
+The [completed six-public-receipt OpenAI comparison](OPENAI_PUBLIC_CORD_RESULT.md)
+uses the unchanged current converter, references and matching. All six approved
+requests return valid drafts with no retries. Compared with the saved Paddle
+baseline, known line amounts improve 10/23→23/23, quantities 0/23→23/23, explicit
+unit prices 0/4→4/4 and supplied-IDR totals 4/6→6/6. All nineteen unknown unit
+prices remain blank. This is scoped partial-reference evidence, not complete
+financial truth: two tax mappings still fail reconciliation and only one draft
+has no deterministic issues with IDR supplied. OpenAI stays an explicit last
+resort and its six-request scope is consumed. The usage-based estimate is about
+US$0.38 at 30-minute cache-write rates (actual billing unverified). Application
+source and the previous 1,470-unit/type/build checks are unchanged. The separate
+[prefix parser diagnostic](PUBLIC_CORD_COMPARISON_READY.md) remains rejected.
 
 The latest [optional-merchant correction](OPTIONAL_MERCHANT.md) removes the need
 to invent a shop name when a crop omits it. The raw name stays blank, display and

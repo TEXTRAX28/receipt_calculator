@@ -1,11 +1,15 @@
 # Advanced OCR investigation — work in progress
 
-Latest diagnostic, 5 November 2026: [public CORD comparison readiness](PUBLIC_CORD_COMPARISON_READY.md).
-A prefix-only prototype is rejected because proposal precision falls despite
-one recovered development price. A current six-source saved-Paddle baseline and
-six original-PNG OpenAI requests are prepared; the US$3.17 conservative-estimate
-comparison awaits fresh approval. Three offline controls pass, with no actual
-provider request, credential load, application change or accuracy gain claimed.
+Latest actual comparison, 5 November 2026:
+[six public CORD OpenAI tests](OPENAI_PUBLIC_CORD_RESULT.md) complete all six
+approved requests with no retries. Against the saved current-Paddle baseline,
+known line amounts improve 10/23→23/23 and quantities 0/23→23/23; totals are
+6/6 and explicit unit prices 4/4, with nineteen unknown unit fields kept blank.
+Tax mappings/review still limit financial acceptance; complete-receipt accuracy
+is unscorable from these partial references. Usage estimates about US$0.38 at
+30-minute cache-write rates; account billing is unverified. OpenAI remains a
+last resort, the approval is consumed and application source/defaults are unchanged.
+The [earlier readiness/diagnostic record](PUBLIC_CORD_COMPARISON_READY.md) is historical.
 
 Current checkpoint, 5 November 2026: the
 [requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md) is authoritative for
