@@ -12,6 +12,17 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The [current reader diagnostic and prepared public comparison](PUBLIC_CORD_COMPARISON_READY.md)
+reject a prefix-only parser prototype: one extra correct development price comes
+with two false summary products, lowering scoped precision 12/18→13/21. The app
+is unchanged. A six-source public CORD baseline preserves five actual Paddle
+captures plus one raw-input refusal; supplied-IDR matches 10/23 known line prices,
+0/23 quantities and 4/6 totals. Six original-detail OpenAI requests are prepared
+with three passing offline controls and a US$3.17 conservative estimate, but
+fresh upload/spend approval is pending. No real key, request or credit is used.
+The current 1,470-unit/type/build source remains byte-identical; the phone-browser
+check is still held before launch below its unchanged memory guard.
+
 The latest [optional-merchant correction](OPTIONAL_MERCHANT.md) removes the need
 to invent a shop name when a crop omits it. The raw name stays blank, display and
 export fallbacks are explicit, independent local-reading policy remains active,

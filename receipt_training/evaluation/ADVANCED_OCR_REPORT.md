@@ -1,5 +1,12 @@
 # Advanced OCR investigation — work in progress
 
+Latest diagnostic, 5 November 2026: [public CORD comparison readiness](PUBLIC_CORD_COMPARISON_READY.md).
+A prefix-only prototype is rejected because proposal precision falls despite
+one recovered development price. A current six-source saved-Paddle baseline and
+six original-PNG OpenAI requests are prepared; the US$3.17 conservative-estimate
+comparison awaits fresh approval. Three offline controls pass, with no actual
+provider request, credential load, application change or accuracy gain claimed.
+
 Current checkpoint, 5 November 2026: the
 [requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md) is authoritative for
 current status. The [capture-warning improvement](CAPTURE_PHOTO_QUALITY.md)
