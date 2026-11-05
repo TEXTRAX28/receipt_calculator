@@ -2194,14 +2194,41 @@ export default function App() {
                               }
                             >
                               <option value="printed">
-                                Use the printed tax amount below
+                                Printed tax amount
                               </option>
-                              <option value="codes">
-                                Use each item’s tax code
-                              </option>
+                              <option value="codes">Item tax codes</option>
                             </select>
                           </Field>
                         )}
+                        {!state.receipt.pricesIncludeTax &&
+                          state.receipt.taxMode === "printed" &&
+                          state.receipt.printedTax.trim() !== "" &&
+                          !state.receipt.adjustments.some(
+                            (adjustment) => adjustment.kind === "tax",
+                          ) && (
+                            <button
+                              type="button"
+                              className="text-button"
+                              disabled={state.receipt.adjustments.length >= 30}
+                              onClick={() =>
+                                editReceipt({
+                                  adjustments: [
+                                    ...state.receipt.adjustments,
+                                    {
+                                      id: uid(),
+                                      label: "Printed tax",
+                                      kind: "tax",
+                                      amount: state.receipt.printedTax,
+                                      allocation: "proportional",
+                                    },
+                                  ],
+                                })
+                              }
+                            >
+                              <Plus size={16} />
+                              Add printed tax
+                            </button>
+                          )}
                         {((!state.receipt.pricesIncludeTax &&
                           state.receipt.taxMode === "codes") ||
                           state.receipt.reviewChecks.some(

@@ -77,3 +77,29 @@ existing cleanup export for local vision.
 Evidence: `advanced-native-job-recovery-v1.json` and ignored raw packets under
 `qa-artifacts/native-job-recovery-v1/`. The earlier original-photo memory stop
 and successful higher-headroom run remain separate historical records.
+
+## Later actual-worker compatibility check, 5 November 2026
+
+With more available RAM, the v4 sandboxed checkerboard attempt started and
+completed transport, marker verification and per-job cleanup in 8.773 seconds.
+Its later disposal could not confirm stream/process closure, so the overall
+attempt failed. A read-only query scoped to that unique runtime subsequently
+found zero matching workers; no unrelated process was stopped. This failure is
+retained, rather than relabelled as success.
+
+A separate v5 normal-context check on the same backend and non-private 8x8 JPEG
+then passes. It makes one actual cached Paddle call, verifies the marker before
+the worker request, leaves zero temporary jobs and confirms the owned worker's
+exit/close events. Extraction/transport takes 5.849 seconds; the full controller
+takes 6.833 seconds. Worker exit code 1 follows intentional termination, while the
+Node check/controller exit 0. Initial/minimum sampled available RAM are
+3,360,190,464 / 3,160,096,768 bytes. The three-GiB startup and one-GiB runtime
+guards are unchanged. All provider credentials are excluded, with no cloud
+request, model download or private photograph read.
+
+This checks actual native protocol/ownership/cleanup compatibility. The fixture
+contains no receipt text, so zero returned words establish no recognition score.
+It does not replace the real owned-process orphan recovery tests or prove a
+race-free OS sandbox. Raw failed/successful evidence is under
+qa-artifacts/native-job-recovery-native-v4/ and native-job-recovery-native-v5/;
+the current printed-tax checkpoint includes their hashes.

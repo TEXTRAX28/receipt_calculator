@@ -151,4 +151,110 @@ for (const width of [320, 390, 1440]) {
     });
     expect(posts).toEqual([]);
   });
+
+  for (const signed of [false, true]) {
+    test(`explicit printed-tax ${signed ? "refund" : "charge"} stays single and preserves amounts at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      const posts: string[] = [];
+      page.on("request", (request) => {
+        if (request.method() === "POST") posts.push(request.url());
+      });
+      await page.route("**/api/**", (route) =>
+        route.fulfill({ json: { configured: false } }),
+      );
+      await page.goto("/");
+      await page.getByRole("button", { name: "Enter manually" }).click();
+      const prefix = signed ? "-" : "";
+      const net = `${prefix}5.00`,
+        tax = `${prefix}0.40`,
+        gross = `${prefix}5.40`;
+      await page
+        .getByLabel("Merchant", { exact: true })
+        .fill("Synthetic tax entry");
+      await page.getByLabel("Printed total", { exact: true }).fill(gross);
+      await page
+        .getByLabel("Subtotal after item discounts (optional)", { exact: true })
+        .fill(net);
+      await page
+        .getByLabel("Item 1 description", { exact: true })
+        .fill("Synthetic item");
+      await page.getByLabel("Item 1 line price", { exact: true }).fill(net);
+      const included = page.getByRole("checkbox", {
+        name: /^Item prices already include tax/,
+      });
+      await included.uncheck();
+      const usePrinted = page.getByLabel(
+        "How should added tax be calculated?",
+        {
+          exact: true,
+        },
+      );
+      await usePrinted.selectOption("printed");
+      const addTax = page.getByRole("button", {
+        name: "Add printed tax",
+        exact: true,
+      });
+      await expect(addTax).toHaveCount(0);
+      const printedTax = page.getByLabel("Printed tax (optional check)", {
+        exact: true,
+      });
+      await printedTax.fill(tax);
+      await usePrinted.selectOption("codes");
+      await expect(addTax).toHaveCount(0);
+      await usePrinted.selectOption("printed");
+      const confirm = page.getByRole("button", {
+        name: "Confirm receipt & add people",
+        exact: true,
+      });
+      await expect(confirm).toBeDisabled();
+      const before = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+      );
+      await addTax.focus();
+      await page.keyboard.press("Enter");
+      await expect(addTax).toHaveCount(0);
+      await expect(
+        page.getByLabel("Adjustment 1 amount", { exact: true }),
+      ).toHaveValue(tax);
+      await expect(confirm).toBeEnabled();
+      const after = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem("gather.receipt.v1")!),
+      );
+      expect(after.receipt.items).toEqual(before.receipt.items);
+      expect(after.receipt.printedTotal).toBe(gross);
+      expect(after.receipt.printedTax).toBe(tax);
+      expect(after.receipt.adjustments).toHaveLength(1);
+      expect(after.receipt.adjustments[0]).toMatchObject({
+        kind: "tax",
+        amount: tax,
+        allocation: "proportional",
+      });
+      await page.reload();
+      await expect(addTax).toHaveCount(0);
+      await expect(
+        page.getByLabel("Adjustment 1 amount", { exact: true }),
+      ).toHaveValue(tax);
+      await included.check();
+      await expect(addTax).toHaveCount(0);
+      await expect(confirm).toBeDisabled();
+      await included.uncheck();
+      await expect(confirm).toBeEnabled();
+      await printedTax.fill(`${prefix}0.60`);
+      await expect(addTax).toHaveCount(0);
+      await expect(
+        page.getByLabel("Adjustment 1 amount", { exact: true }),
+      ).toHaveValue(tax);
+      await expect(confirm).toBeDisabled();
+      await printedTax.fill(tax);
+      await expect(confirm).toBeEnabled();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      expect(posts).toEqual([]);
+    });
+  }
 }

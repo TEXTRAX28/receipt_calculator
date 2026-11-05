@@ -12,6 +12,28 @@ intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
 
+The [printed-tax recovery action](PRINTED_TAX_RECOVERY.md) now lets a user
+explicitly add the already-read printed tax as one adjustment, after selecting
+tax-exclusive printed-amount mode. It preserves signed literal amounts, keeps
+review requirements and prevents a second tax row. The saved restaurant response
+with an empty tax-code name now completes ordinary 320/390px UI correction and
+an exact IDR 24,000/24,000 split without retyping a financial amount; currency and
+a declared missing-merchant placeholder are supplied by the test. These are
+saved-response software flows with simulated review, not new extraction or
+independent human truth. All 1,457 unit cases pass; only two option labels then
+changed, with byte equivalence proved for the remaining source. Final strict
+TypeScript, formatting, isolated compilation and eleven browser cases pass.
+No keys, cloud requests or credits were used for this improvement.
+
+A later actual native checkerboard check also passes in normal local execution:
+owner marker verified, one response, worker closure confirmed and zero jobs
+remaining. The preceding sandboxed attempt completed transport/cleanup but
+failed shutdown confirmation; a scoped liveness query found no matching worker
+before the normal-context follow-up. Both outcomes remain separate. The cached
+native backend bytes are unchanged; this closes protocol/cleanup compatibility,
+not receipt accuracy. Memory guards and protected baseline/worktrees remain
+unchanged. Genuine-camera/physical-device and public-release gaps remain open.
+
 The separately approved [six-crop OpenAI comparison](OPENAI_SIX_RESULT.md)
 completed six requests once each: all 26 known purchase descriptions, 25 readable
 line prices and three coupon attachments match the frozen partial reference.
@@ -22,7 +44,7 @@ first faint Tesco price remains unverified and excluded. Usage estimates are
 $0.27582 ordinary uncached and $0.409725 cache-write sensitivity for the batch;
 actual charges were not inspected. OpenAI stays an explicit last resort, with
 no default or live app allowance change. This six-request approval is consumed.
-The resource-resume native smoke was again held below its unchanged three-GiB
+At that checkpoint, the resource-resume native smoke was held below its three-GiB
 startup gate before any child or inference; the user closed apps, and the test
 tools closed no user apps/tabs. No whole-receipt or public-readiness completion
 is implied by this familiar partial-crop screen.
