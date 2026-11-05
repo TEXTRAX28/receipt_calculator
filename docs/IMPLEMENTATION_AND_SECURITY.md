@@ -1,5 +1,25 @@
 # Implementation and security report
 
+5 November 2026 supplement: new native OCR jobs persist bounded ownership
+metadata before any JPEG. Recovery runs before the next native worker starts,
+and only removes recognized flat jobs after both recorded app/worker processes
+are confirmed absent, with a second check immediately before removal. Signal-zero
+existence probes never terminate processes. Live/reused/unknown PIDs, legacy or
+vision jobs, malformed metadata, job junctions and unexpected contents remain
+untouched. Paths must resolve to direct scan directories under the configured
+runtime root. Recovery is limited to 128 entries and 16 jobs per pass. This is
+application-level recovery in a trusted service-owned directory, not an OS
+sandbox or a guarantee against a malicious same-user filesystem writer.
+
+All 1,457 unit cases across 80 files pass, including 18 new recovery cases and
+an actual process-exit/orphan-worker control. The existing cancellation, failed
+shutdown and memory-reserve controls pass. A native checkerboard compatibility
+smoke was held before starting a child because available memory stayed below
+its three-GiB admission requirement; no current-model inference is claimed for
+this change. See [the recovery report](../receipt_training/evaluation/NATIVE_JOB_RECOVERY.md).
+The separate prior original-photo phone result remains scoped to its recorded
+revision. Neither recognition nor splitting algorithms changed here.
+
 4 November 2026 supplement: OpenAI is available as a manual last-resort reader,
 disabled until an operator supplies both a server-held key and finite persistent
 attempt allowance. The browser never selects it automatically. Each scan requires

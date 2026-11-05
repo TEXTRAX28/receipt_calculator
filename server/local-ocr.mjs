@@ -8,15 +8,8 @@ import {
   readFileSync,
   readSync,
 } from "node:fs";
-import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
-import {
-  dirname,
-  resolve,
-  join,
-  relative,
-  isAbsolute,
-  basename,
-} from "node:path";
+import { mkdir, realpath, writeFile } from "node:fs/promises";
+import { dirname, resolve, join, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { StringDecoder } from "node:string_decoder";
 import { freemem } from "node:os";
@@ -25,6 +18,12 @@ import {
   requestPanelsSchema,
 } from "../src/lib/recognition-schema.mjs";
 import { MAX_AI_BODY_BYTES } from "../src/lib/scan-limits.mjs";
+import {
+  createReceiptJob,
+  recoverReceiptJobs,
+  removeOwnedJob,
+} from "./receipt-jobs.mjs";
+export { removeOwnedJob } from "./receipt-jobs.mjs";
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_OUTPUT = 1024 * 1024;
@@ -117,25 +116,6 @@ export function workerEnvironment() {
     HF_HUB_OFFLINE: "1",
     PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True",
   };
-}
-
-export async function removeOwnedJob(directory, runtimeRoot) {
-  let actual;
-  try {
-    actual = await realpath(directory);
-  } catch (error) {
-    if (error.code === "ENOENT") return;
-    throw error;
-  }
-  const root = await realpath(runtimeRoot);
-  if (dirname(actual) !== root || !/^scan-[\w-]+$/.test(basename(actual)))
-    throw new Error("Refusing cleanup outside the owned receipt directory");
-  await rm(actual, {
-    recursive: true,
-    force: true,
-    maxRetries: 3,
-    retryDelay: 150,
-  });
 }
 
 /** One persistent model, one active job. All paths/configuration are server-owned. */
@@ -259,6 +239,7 @@ export function createLocalModelReader({
     const inside = relative(project, root);
     if (inside.startsWith("..") || isAbsolute(inside)) throw failure();
     if (signal.aborted) throw cancelled();
+    await recoverReceiptJobs(root, { signal });
     requireMemory(STARTUP_MEMORY_BYTES);
     let resolveReady, rejectReady;
     const promise = new Promise((ok, fail) => {
@@ -383,7 +364,11 @@ export function createLocalModelReader({
         await start(combined);
         if (combined.aborted) throw cancelled();
         requireMemory(STARTUP_MEMORY_BYTES);
-        directory = await mkdtemp(join(await realpath(runtimeRoot), "scan-"));
+        directory = await createReceiptJob(
+          runtimeRoot,
+          child?.pid,
+          panels.length,
+        );
         const inputs = [];
         for (const [index, panel] of panels.entries()) {
           if (combined.aborted) throw cancelled();

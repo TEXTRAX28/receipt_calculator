@@ -1,20 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { spawn } from "node:child_process";
+import { readdirSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
   readdir,
+  readFile,
   realpath,
   rm,
   writeFile,
+  symlink,
 } from "node:fs/promises";
 import { resolve, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import {
   createLocalModelReader,
   removeOwnedJob,
+  workerEnvironment,
 } from "../server/local-ocr.mjs";
+import {
+  createReceiptJob,
+  recoverReceiptJobs,
+  receiptProcessExists,
+  JOB_OWNER_FILE,
+} from "../server/receipt-jobs.mjs";
 import { createReceiptApi } from "../server/receipt-api.mjs";
 
 const ownedBase = resolve("qa-artifacts/local-bridge-tests");
@@ -31,6 +42,17 @@ const panels = (tag = "MILK") => [
     ]).toString("base64"),
   },
 ];
+async function jobFixture() {
+  await mkdir(ownedBase, { recursive: true });
+  const root = await mkdtemp(resolve(ownedBase, "runtime-"));
+  roots.push(root);
+  const job = await createReceiptJob(root, process.pid + 1, 1);
+  await writeFile(
+    resolve(job, "1.jpg"),
+    "Synthetic protocol image, not a private receipt",
+  );
+  return { root, job };
+}
 async function reader(
   options: { timeoutMs?: number; availableMemory?: () => number } = {},
 ) {
@@ -162,6 +184,223 @@ describe("bounded local-model process bridge (protocol fixture, no OCR accuracy 
       /Refusing cleanup/,
     );
     expect(await readdir(other)).toContain("keep.txt");
+  });
+});
+
+describe("abandoned native receipt job recovery", () => {
+  it("recovers a marked job only after its app and worker are both confirmed absent", async () => {
+    const { root, job } = await jobFixture();
+    const owner = JSON.parse(
+      await readFile(resolve(job, JOB_OWNER_FILE), "utf8"),
+    );
+    expect(owner).toMatchObject({
+      kind: "gather-native-ocr",
+      ownerPid: process.pid,
+      workerPid: process.pid + 1,
+      panels: 1,
+    });
+    expect(JSON.stringify(owner)).not.toContain("Synthetic");
+    expect(
+      (await recoverReceiptJobs(root, { processExists: () => false })).removed,
+    ).toBe(1);
+    expect(await readdir(root)).toEqual([]);
+  });
+
+  it.each(["parent", "worker", "unknown", "throws"])(
+    "retains a job when %s ownership cannot be ruled out",
+    async (mode) => {
+      const { root, job } = await jobFixture();
+      const probe = (pid: number) => {
+        if (mode === "throws") throw new Error("Process access denied");
+        if (mode === "unknown") return undefined;
+        return mode === "parent"
+          ? pid === process.pid
+          : pid === process.pid + 1;
+      };
+      expect(
+        (await recoverReceiptJobs(root, { processExists: probe })).removed,
+      ).toBe(0);
+      expect(await readFile(resolve(job, "1.jpg"), "utf8")).toContain(
+        "Synthetic",
+      );
+    },
+  );
+
+  it("rechecks process state before removal", async () => {
+    const { root, job } = await jobFixture();
+    let probes = 0;
+    expect(
+      (await recoverReceiptJobs(root, { processExists: () => ++probes > 2 }))
+        .removed,
+    ).toBe(0);
+    expect(await readdir(job)).toContain("1.jpg");
+  });
+
+  it.each([
+    { version: 2 },
+    { ownerPid: 0 },
+    { workerPid: -1 },
+    { job: "scan-another-job" },
+    { extra: "unknown" },
+  ])("retains foreign or malformed ownership %j", async (patch) => {
+    const { root, job } = await jobFixture();
+    const path = resolve(job, JOB_OWNER_FILE);
+    const owner = JSON.parse(await readFile(path, "utf8"));
+    await writeFile(path, JSON.stringify({ ...owner, ...patch }));
+    const probe = vi.fn(() => false);
+    expect(
+      (await recoverReceiptJobs(root, { processExists: probe })).removed,
+    ).toBe(0);
+    expect(probe).not.toHaveBeenCalled();
+    expect(await readdir(job)).toContain("1.jpg");
+  });
+
+  it("leaves legacy unmarked jobs, unknown files and nested directories alone", async () => {
+    const { root, job } = await jobFixture();
+    await mkdir(resolve(root, "scan-legacy"));
+    await writeFile(resolve(root, "scan-legacy", "1.jpg"), "legacy");
+    await writeFile(resolve(job, "keep.txt"), "unknown");
+    expect(
+      (await recoverReceiptJobs(root, { processExists: () => false })).removed,
+    ).toBe(0);
+    await rm(resolve(job, "keep.txt"));
+    await mkdir(resolve(job, "nested"));
+    expect(
+      (await recoverReceiptJobs(root, { processExists: () => false })).removed,
+    ).toBe(0);
+    expect(await readFile(resolve(root, "scan-legacy", "1.jpg"), "utf8")).toBe(
+      "legacy",
+    );
+    expect(await readdir(job)).toContain("1.jpg");
+  });
+
+  it("does not follow job junctions or linked input files", async () => {
+    const { root, job } = await jobFixture();
+    const link = resolve(root, "scan-linked-job");
+    await symlink(job, link, "junction");
+    await expect(removeOwnedJob(link, root)).rejects.toThrow(
+      /Refusing cleanup/,
+    );
+    await symlink(root, resolve(job, "nested-link"), "junction");
+    expect(
+      (await recoverReceiptJobs(root, { processExists: () => false })).removed,
+    ).toBe(0);
+    expect(await readdir(job)).toContain("1.jpg");
+  });
+
+  it("bounds recovery and allows a later pass to continue", async () => {
+    const { root } = await jobFixture();
+    for (let i = 0; i < 19; i++)
+      await createReceiptJob(root, process.pid + 1, 1);
+    const options = { processExists: () => false };
+    expect((await recoverReceiptJobs(root, options)).removed).toBe(16);
+    expect(await readdir(root)).toHaveLength(4);
+    expect((await recoverReceiptJobs(root, options)).removed).toBe(4);
+    expect(await readdir(root)).toEqual([]);
+  });
+
+  it("limits directory inspection and never deletes unrelated entries", async () => {
+    const { root } = await jobFixture();
+    for (let i = 0; i < 130; i++)
+      await writeFile(resolve(root, `keep-${i}`), "unrelated");
+    const result = await recoverReceiptJobs(root, {
+      processExists: () => false,
+    });
+    expect(result.inspected).toBe(128);
+    expect(
+      (await readdir(root)).filter((name) => name.startsWith("keep-")),
+    ).toHaveLength(130);
+  });
+
+  it("honors cancellation before touching abandoned inputs", async () => {
+    const { root, job } = await jobFixture();
+    const control = new AbortController();
+    control.abort();
+    await expect(
+      recoverReceiptJobs(root, {
+        signal: control.signal,
+        processExists: () => false,
+      }),
+    ).rejects.toThrow();
+    expect(await readdir(job)).toContain("1.jpg");
+  });
+
+  it("uses non-terminating existence probes and refuses invalid PIDs", () => {
+    expect(receiptProcessExists(process.pid)).toBe(true);
+    expect(receiptProcessExists(0)).toBeUndefined();
+    expect(receiptProcessExists(-1)).toBeUndefined();
+    expect(receiptProcessExists(NaN)).toBeUndefined();
+  });
+
+  it("retains a real orphan worker's job, then reaps it after both owned processes close", async () => {
+    const { root, job } = await jobFixture();
+    await removeOwnedJob(job, root);
+    const options = {
+      windowsHide: true,
+      env: workerEnvironment(),
+      stdio: ["ignore", "pipe", "ignore"] as ["ignore", "pipe", "ignore"],
+    };
+    const worker = spawn(
+      process.execPath,
+      ["--max-old-space-size=32", "-e", "setInterval(()=>{},1000)"],
+      options,
+    );
+    const workerClosed = new Promise<void>((done) =>
+      worker.once("close", () => done()),
+    );
+    const program = `const {createReceiptJob}=await import(process.argv[1]);const {writeFile}=await import('node:fs/promises');const d=await createReceiptJob(process.argv[2],Number(process.argv[3]),1);await writeFile(d+'/1.jpg','SYNTHETIC');console.log(d);process.exit(23);`;
+    const parent = spawn(
+      process.execPath,
+      [
+        "--max-old-space-size=32",
+        "--input-type=module",
+        "-e",
+        program,
+        pathToFileURL(resolve("server/receipt-jobs.mjs")).href,
+        root,
+        String(worker.pid),
+      ],
+      options,
+    );
+    const parentClosed = new Promise<number | null>((done) =>
+      parent.once("close", done),
+    );
+    let output = "";
+    parent.stdout!.on("data", (chunk) => {
+      output += String(chunk);
+    });
+    try {
+      expect(await parentClosed).toBe(23);
+      expect(output.trim()).toMatch(/scan-/);
+      expect((await recoverReceiptJobs(root)).removed).toBe(0);
+      expect(await readdir(root)).toHaveLength(1);
+      worker.kill();
+      await workerClosed;
+      const model = createLocalModelReader({
+        python: process.execPath,
+        runtimeRoot: root,
+        requireModels: false,
+        availableMemory: () => 4 * 1024 ** 3,
+        workerScript: resolve("tests/fixtures/local-worker.mjs"),
+        spawnWorker: (program, args, spawnOptions) => {
+          expect(readdirSync(root)).toEqual([]);
+          return spawn(
+            program,
+            args.filter((arg) => arg !== "-u"),
+            spawnOptions,
+          );
+        },
+      });
+      readers.push(model);
+      expect((await model.extract(panels())).panels[0].lines[0].text).toBe(
+        "MILK",
+      );
+      expect(await readdir(root)).toEqual([]);
+    } finally {
+      if (parent.exitCode === null) parent.kill();
+      if (worker.exitCode === null) worker.kill();
+      await Promise.all([parentClosed, workerClosed]);
+    }
   });
 });
 

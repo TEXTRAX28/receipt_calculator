@@ -5,6 +5,7 @@ import type { ChildProcess } from "node:child_process";
 import { mkdir, mkdtemp, readdir, realpath, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createLocalModelReader } from "../server/local-ocr.mjs";
+import { JOB_OWNER_FILE } from "../server/receipt-jobs.mjs";
 
 const terminate = vi.hoisted(() => vi.fn());
 // Virtual PIDs cannot reach an OS termination function in these controls.
@@ -275,7 +276,10 @@ describe("persistent OCR memory policy (virtual worker, no accuracy claim)", () 
     expect(returned).toBe(false);
     const jobs = await readdir(root);
     expect(jobs).toHaveLength(1);
-    expect(await readdir(resolve(root, jobs[0]))).toEqual(["1.jpg"]);
+    expect(await readdir(resolve(root, jobs[0]))).toEqual([
+      JOB_OWNER_FILE,
+      "1.jpg",
+    ]);
     available = 4 * GiB;
     worker.finish();
     await failed;
@@ -382,7 +386,10 @@ describe("persistent OCR memory policy (virtual worker, no accuracy claim)", () 
     expect(model.configured).toBe(false);
     const jobs = await readdir(root);
     expect(jobs).toHaveLength(1);
-    expect(await readdir(resolve(root, jobs[0]))).toEqual(["1.jpg"]);
+    expect(await readdir(resolve(root, jobs[0]))).toEqual([
+      JOB_OWNER_FILE,
+      "1.jpg",
+    ]);
     available = 4 * GiB;
     await expect(model.extract(panels)).rejects.toMatchObject({ status: 503 });
     expect(ownWorkers).toHaveLength(1);

@@ -5,6 +5,7 @@ import type { ChildProcess } from "node:child_process";
 import { mkdir, mkdtemp, readdir, realpath, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createLocalModelReader } from "../server/local-ocr.mjs";
+import { JOB_OWNER_FILE } from "../server/receipt-jobs.mjs";
 
 // No native command or real PID is used: both process-launch exports are mocked.
 vi.mock("node:child_process", () => ({
@@ -214,6 +215,9 @@ describe("persistent reader shutdown ownership", () => {
     expect(model.configured).toBe(false);
     const jobs = await readdir(root);
     expect(jobs).toHaveLength(1);
-    expect(await readdir(resolve(root, jobs[0]))).toEqual(["1.jpg"]);
+    expect(await readdir(resolve(root, jobs[0]))).toEqual([
+      JOB_OWNER_FILE,
+      "1.jpg",
+    ]);
   });
 });
