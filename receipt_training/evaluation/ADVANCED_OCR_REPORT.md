@@ -1,5 +1,18 @@
 # Advanced OCR investigation — work in progress
 
+Current checkpoint, 5 November 2026: the
+[requirement acceptance audit](GOAL_ACCEPTANCE_AUDIT.md) is authoritative for
+current status. The [capture-warning improvement](CAPTURE_PHOTO_QUALITY.md)
+passes all 1,461 unit cases, strict TypeScript, compilation and three current
+Chrome checks. Native canvas controls on twelve familiar photos improve blur
+advice 5/12 → 11/12 with no added warnings on originals; this is capture guidance,
+not improved OCR or physical-phone evidence. Normal keyless npm startup now
+passes its complete HTTP check, with the existing Paddle cache and every cloud
+reader disabled. The separately approved [six OpenAI crops](OPENAI_SIX_RESULT.md)
+are complete and their permission consumed; OpenAI remains an explicit last
+resort. Broader financial truth, genuine capture and public-release requirements
+remain open. Historical checkpoints below retain their original scopes/results.
+
 Latest research diagnostic, 4 November 2026:
 [partial free-row ordering](PARTIAL_FREE_ORDER_DIAGNOSTIC.md) traces a skipped
 non-Costco product to unresolved association of a correctly recognized literal

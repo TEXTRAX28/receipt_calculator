@@ -57,6 +57,10 @@ Choose **Enhanced on-device** after uploading your photos. This uses PaddleOCR.j
 
 The reader preserves actual source rectangles, supports the existing photo/section limits, and stops its worker on cancellation, failure or a two-minute deadline. Every draft requires a purchase-list check. Its paired original-fifty comparison improved known-currency line prices from 30/143 to 103/143, but automatic currency, quantities and overlap grouping remain weak. The configured computer-assisted reader remains more accurate. See the [browser comparison](receipt_training/evaluation/BROWSER_PADDLE_COMPARISON.md) and [app integration evidence](receipt_training/evaluation/BROWSER_PADDLE_INTEGRATION.md). Tests cover Chromium at phone-sized widths; physical Android/iOS and Safari performance remain unverified.
 
+## Photo quality guidance
+
+Camera capture and uploaded-photo review can suggest more light, sharper focus or higher resolution. These checks are advisory; they preserve the original pixels and do not prove that products or prices are readable. A local comparison on twelve development photos increased blur warnings from 2/12 to 10/12 deliberately blurred copies, with no added warnings on their unchanged originals. Six sources were reserved before testing the candidate. These are controlled transformations of familiar photos, not physical-phone or OCR-accuracy results; see the [capture-warning study](receipt_training/evaluation/CAPTURE_PHOTO_QUALITY.md).
+
 ## PDF receipts
 
 Upload a PDF alongside supported images. Every PDF page gets a preview and counts toward the twelve-image/page receipt limit. If all selected pages contain usable embedded text, **PDF text** reads it directly on this device; it is selected automatically unless you already chose a reader. No OCR model or cloud request is needed for that path. Scanned pages, documents containing a page without usable text, forms and unsupported text layouts use the existing image readers after local rendering. Applying a crop disables the original text layer so excluded text cannot enter the draft.

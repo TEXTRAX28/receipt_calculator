@@ -38,6 +38,27 @@ export function measurePatch({ data, width, height }: PixelPatch) {
     sum += value;
     squares += value * value;
   }
+  // Suppress one-pixel quantization noise before comparing second and first
+  // derivatives. Preserve the original luminance/contrast statistics above.
+  const horizontal = new Float32Array(gray.length);
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      horizontal[i] =
+        (gray[y * width + Math.max(0, x - 1)] +
+          2 * gray[i] +
+          gray[y * width + Math.min(width - 1, x + 1)]) /
+        4;
+    }
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      gray[i] =
+        (horizontal[Math.max(0, y - 1) * width + x] +
+          2 * horizontal[i] +
+          horizontal[Math.min(height - 1, y + 1) * width + x]) /
+        4;
+    }
   let gradient = 0,
     laplacian = 0;
   for (let y = 1; y < height - 1; y++) {

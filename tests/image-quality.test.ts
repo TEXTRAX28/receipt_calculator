@@ -70,6 +70,46 @@ describe("advisory capture checks on original pixels", () => {
     expect(quality.detailPatches).toBe(0);
   });
 
+  it("does not mistake quantized smooth variation for sharp detail", () => {
+    const width = 160,
+      height = 240,
+      data = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const i = 4 * (y * width + x);
+        const value = Math.round(
+          128 +
+            14 * Math.sin((2 * Math.PI * x) / 64) +
+            14 * Math.sin((2 * Math.PI * y) / 64),
+        );
+        data[i] = data[i + 1] = data[i + 2] = value;
+        data[i + 3] = 255;
+      }
+    const sample = { width, height, data },
+      original = data.slice();
+    expect(measurePatch(sample).blurScore).toBeLessThan(0.3);
+    expect(
+      captureQuality(900, 1600, sample, [sample, sample, sample]).flags,
+    ).toContain("blur");
+    expect(data).toEqual(original);
+  });
+
+  it("keeps the minimum-size patch finite without changing its pixels", () => {
+    const data = new Uint8ClampedArray(3 * 3 * 4);
+    for (let i = 0; i < 9; i++) {
+      data[4 * i] = data[4 * i + 1] = data[4 * i + 2] = i % 2 ? 255 : 0;
+      data[4 * i + 3] = 255;
+    }
+    const original = data.slice(),
+      measured = measurePatch({ width: 3, height: 3, data });
+    for (const value of [measured.mean, measured.deviation, measured.gradient])
+      expect(Number.isFinite(value)).toBe(true);
+    expect(
+      measured.blurScore === null || Number.isFinite(measured.blurScore),
+    ).toBe(true);
+    expect(data).toEqual(original);
+  });
+
   it("warns about dark and low-resolution input without modifying pixels", () => {
     const dark = patch(40, true),
       before = dark.data.slice();

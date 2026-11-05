@@ -1,5 +1,15 @@
 # Local-only VS Code development
 
+**Later verification:** the fresh `qa-artifacts/local-startup-v4/` probe passes
+all HTTP checks on the complete current tested source, including the browser
+OCR worker, filtered client environment, private task-file denial and configured
+Paddle with all clouds off. The unchanged admission guard observed sufficient
+RAM after four waiting samples. No inference, keys, uploads or installs were
+used. The owned command tree was deliberately stopped after verification;
+the operator preview was preserved. Earlier pending/failed observations below
+remain historical, not replacement evidence. See
+[capture and startup verification](CAPTURE_PHOTO_QUALITY.md).
+
 5 November 2026. Base checkpoint: `a0716f1` on
 `feature/advanced-ocr-vision-ai`. This change provides a normal development
 command for the current source; it changes no receipt parser, calculation,
