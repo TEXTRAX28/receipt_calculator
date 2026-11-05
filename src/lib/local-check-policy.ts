@@ -55,6 +55,7 @@ export function localCheckDecision(
         }),
     );
   if (
+    !receipt.merchant.trim() ||
     receipt.items.some((item) => !sources[item.id]?.length) ||
     [...relevant].some((index) => !sourceLines[index]) ||
     regions.some(weak)

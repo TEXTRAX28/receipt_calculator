@@ -13,6 +13,62 @@ import { assign, review, shop } from "./helpers";
 const amounts = (state: ReturnType<typeof shop>) =>
   calculateSplit(state).totals.map((p) => p.total);
 describe("financial and allocation journeys", () => {
+  it("shares an unnamed receipt without inventing merchant metadata", () => {
+    for (const merchant of ["", "   "]) {
+      const s = shop(["10.01"], ["Alice", "Bob"]);
+      s.receipt.merchant = merchant;
+      assign(s, "equal");
+      review(s);
+      const original = structuredClone(s.receipt),
+        result = calculateSplit(s);
+      expect(result.receipt.issues).toEqual([]);
+      expect(result.canFinalize).toBe(true);
+      expect(result.totals.map((person) => person.total)).toEqual([501n, 500n]);
+      expect(s.receipt).toEqual(original);
+    }
+  });
+  it.each([
+    "missing-total",
+    "unit-arithmetic",
+    "currency",
+    "source-check",
+    "unassigned",
+  ] as const)("an unnamed receipt still blocks %s", (kind) => {
+    const s = shop(["10.01"], ["Alice", "Bob"]);
+    s.receipt.merchant = "";
+    assign(s, "equal");
+    if (kind === "missing-total") s.receipt.printedTotal = "";
+    if (kind === "unit-arithmetic") s.receipt.items[0].unitPrice = "9.00";
+    if (kind === "currency") s.receipt.currencyUnresolved = true;
+    if (kind === "source-check")
+      s.receipt.reviewChecks = [
+        {
+          scope: "receipt",
+          field: "items",
+          reason: "source",
+          other: "Compare every purchase with the source.",
+          confirmedValue: "",
+        },
+      ];
+    if (kind === "unassigned") s.receipt.items[0].assignment.participants = [];
+    review(s);
+    const result = calculateSplit(s);
+    expect(result.canFinalize).toBe(false);
+    expect(
+      result.issues.filter((issue) => issue.path !== "merchant").length,
+    ).toBeGreaterThan(0);
+    expect(s.receipt.merchant).toBe("");
+  });
+  it("requires review again after clearing merchant metadata", () => {
+    const s = shop(["10.00"], ["Alice", "Bob"]);
+    assign(s, "equal");
+    review(s);
+    expect(calculateSplit(s).canFinalize).toBe(true);
+    s.receipt.merchant = "";
+    expect(calculateSplit(s).canFinalize).toBe(false);
+    review(s);
+    expect(calculateSplit(s).canFinalize).toBe(true);
+  });
   it("assigns the whole item to one person", () => {
     const s = shop(["12.00"], ["Alice"]);
     assign(s, "equal");

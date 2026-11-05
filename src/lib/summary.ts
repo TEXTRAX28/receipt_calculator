@@ -6,7 +6,7 @@ export function readableSummary(state: AppState): string {
   const f = (n: bigint) => formatReceiptMoney(n, state.receipt);
   const lines = [
     "GATHER · SHARED SHOPPING",
-    state.receipt.merchant,
+    state.receipt.merchant.trim() || "Merchant not supplied",
     state.receipt.date || "Date not supplied",
     `Currency: ${state.receipt.currencyUnresolved ? "Choose currency" : state.receipt.currency}`,
     result.canFinalize ? "Checked split" : "DRAFT — unresolved details remain",

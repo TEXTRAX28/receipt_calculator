@@ -13,6 +13,13 @@ are complete and their permission consumed; OpenAI remains an explicit last
 resort. Broader financial truth, genuine capture and public-release requirements
 remain open. Historical checkpoints below retain their original scopes/results.
 
+The subsequent [optional-merchant correction](OPTIONAL_MERCHANT.md) allows a
+checked receipt to keep an unreadable shop name blank, with explicit display and
+export fallbacks and unchanged financial/source gates. All 1,470 unit cases,
+strict TypeScript, formatting and isolated compilation pass. Its new three-width
+saved-response browser check is held before launch by the unchanged memory guard.
+This is workflow evidence, not improved OCR, new cloud use or completed acceptance.
+
 Latest research diagnostic, 4 November 2026:
 [partial free-row ordering](PARTIAL_FREE_ORDER_DIAGNOSTIC.md) traces a skipped
 non-Costco product to unresolved association of a correctly recognized literal

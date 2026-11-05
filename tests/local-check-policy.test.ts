@@ -30,6 +30,16 @@ const decide = (source: ReturnType<typeof reading>) =>
   );
 
 describe("automatic local comparison uses only first-reading evidence", () => {
+  it("keeps missing merchant metadata as an independent-reading signal even when it is optional for sharing", () => {
+    const source = reading();
+    source.receipt.merchant = "";
+    const original = JSON.stringify(source);
+    expect(calculateReceipt(source.receipt).issues).toEqual([]);
+    const result = decide(source);
+    expect(result.needed).toBe(true);
+    expect(result.reasons).toContain("uncertain-source");
+    expect(JSON.stringify(source)).toBe(original);
+  });
   it("skips the second model for complete, source-supported clear text without editing or verifying it", () => {
     const source = reading();
     const before = JSON.stringify(source);

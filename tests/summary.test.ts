@@ -2,6 +2,17 @@ import { describe, it, expect } from "vitest";
 import { readableSummary } from "../src/lib/summary";
 import { assign, review, shop } from "./helpers";
 describe("explainable export", () => {
+  it("labels an unknown merchant without inserting a name into the receipt", () => {
+    const state = shop(["10.00"], ["Alice", "Bob"]);
+    state.receipt.merchant = "";
+    assign(state, "equal");
+    review(state);
+    const text = readableSummary(state);
+    expect(text.split("\n")[1]).toBe("Merchant not supplied");
+    expect(text).toContain("Checked split");
+    expect(text).toContain("Alice (person 1): £5.00");
+    expect(state.receipt.merchant).toBe("");
+  });
   it("includes quantities, purchase packs, people and exact costs", () => {
     const s = shop(["16.00"]);
     s.receipt.items[0].packSize = "8";

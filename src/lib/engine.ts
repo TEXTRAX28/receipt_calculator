@@ -95,7 +95,6 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       return 0n;
     }
   };
-  if (!receipt.merchant.trim()) issue("merchant", "Enter the merchant name.");
   if (receipt.date) {
     const parsedDate = new Date(receipt.date);
     if (

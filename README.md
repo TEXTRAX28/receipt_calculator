@@ -168,6 +168,8 @@ Purchase quantities and pack contents are separate. A receipt showing `1x` for a
 
 Drafts may be incomplete. Finalization requires a balanced, confirmed receipt, valid positive shares, resolved charges, and complete item or whole-receipt assignments. Changing a financial field requires another review. Removing a person clears their assignments and recalculates remaining shares. A second tab's changes stop this tab from overwriting the stored draft; export your version before reloading.
 
+The merchant name is optional when it is missing or unreadable. Leave it blank rather than inventing a name; the receipt card shows **Unnamed receipt** and the text summary says **Merchant not supplied**. Missing merchant information still prompts an independent local reading when automatic comparison is enabled. Currency, financial validation, source review and assignments must still be resolved before sharing.
+
 ## Tax, discounts and pennies
 
 - For the supplied UK Costco receipt, A means 20% VAT and Z means 0%. `2.00-Z` is a £2 deduction associated with a zero-rated item. `-A` identifies a deduction in the A category. These are merchant-specific codes, not universal retailer rules.

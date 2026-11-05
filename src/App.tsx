@@ -1058,7 +1058,12 @@ export default function App() {
           <ReceiptText size={24} />
           <span>YOUR SHARED SHOP</span>
         </div>
-        <h2>{state.receipt.merchant || "A new adventure"}</h2>
+        <h2>
+          {state.receipt.merchant.trim() ||
+            (state.receipt.items.length
+              ? "Unnamed receipt"
+              : "A new adventure")}
+        </h2>
         <span className="muted">
           {state.receipt.date || "Receipt draft"} ·{" "}
           {state.receipt.currencyUnresolved
@@ -2091,7 +2096,10 @@ export default function App() {
                         </span>
                       </div>
                       <div className="form-grid metadata">
-                        <Field label="Merchant">
+                        <Field
+                          label="Merchant"
+                          hint="Optional. Leave blank if the name is missing or unreadable."
+                        >
                           <input
                             maxLength={100}
                             value={state.receipt.merchant}
