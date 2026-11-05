@@ -1,6 +1,6 @@
 # Receipt-scanner technical checkpoint and acceptance audit
 
-Updated 4 November 2026. This is the current consolidated checkpoint for the
+Updated 5 November 2026. This is the current consolidated checkpoint for the
 twelve-phase objective. [ADVANCED_OCR_REPORT.md](ADVANCED_OCR_REPORT.md) preserves
 the longer investigation history. Historical paragraphs describe their own
 checkpoints; they must not be read as the latest configuration or test count.
@@ -11,6 +11,21 @@ coverage and public-release readiness remain partial. Human source review is
 intentional; unattended financial acceptance is not an extra completion gate.
 This audit records completed work and specific gaps; it does not turn passing
 software tests into receipt-accuracy evidence.
+
+The separately approved [six-crop OpenAI comparison](OPENAI_SIX_RESULT.md)
+completed six requests once each: all 26 known purchase descriptions, 25 readable
+line prices and three coupon attachments match the frozen partial reference.
+Returned currency is correct on only two crops; four are empty. Twelve current
+core replays preserve the literal fields and block every unreviewed draft,
+including missing-quantity/tax errors and cropped-document discrepancies. The
+first faint Tesco price remains unverified and excluded. Usage estimates are
+$0.27582 ordinary uncached and $0.409725 cache-write sensitivity for the batch;
+actual charges were not inspected. OpenAI stays an explicit last resort, with
+no default or live app allowance change. This six-request approval is consumed.
+The resource-resume native smoke was again held below its unchanged three-GiB
+startup gate before any child or inference; the user closed apps, and the test
+tools closed no user apps/tabs. No whole-receipt or public-readiness completion
+is implied by this familiar partial-crop screen.
 
 The [native temporary-job recovery](NATIVE_JOB_RECOVERY.md) closes the specific
 future-job retention gap exposed by the abrupt memory stop: ownership is written
