@@ -46,7 +46,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run preview -- --port 4173",
+    command:
+      "node node_modules/vite/bin/vite.js preview --configLoader native --mode local-only --port 4173",
     env: {
       LOCAL_OCR_PYTHON: "",
       GEMINI_API_KEY: "",

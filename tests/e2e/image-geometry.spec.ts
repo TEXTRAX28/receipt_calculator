@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { test, expect, type Page } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 import { writeFile } from "node:fs/promises";
@@ -92,7 +93,7 @@ async function corner(page: Page, name: string, x: number, y: number) {
   await page.mouse.up();
 }
 
-test("real local correction preserves long receipt ends and requires source review before an exact split", async ({
+test("real local correction and compatibility OCR preserve source review before an exact split", async ({
   page,
 }, info) => {
   test.setTimeout(180000);
@@ -105,6 +106,9 @@ test("real local correction preserves long receipt ends and requires source revi
     "This browser build lacks correction image APIs; original-photo and trimming recovery are tested separately. Perspective correction remains unverified here.",
   );
   const posts: string[] = [];
+  // This case verifies real word-level uncertainty from compatibility OCR.
+  // Paddle's actual detected fragments are exercised in the enhanced-reader cases.
+  await page.route("**/ocr-enhanced/**", (route) => route.abort("failed"));
   page.on("request", (request) => {
     if (request.method() === "POST") posts.push(request.url());
   });
@@ -248,7 +252,7 @@ test("real local correction preserves long receipt ends and requires source revi
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", { name: "View receipt image 1", exact: true })
     .click();
@@ -296,7 +300,7 @@ test("real local correction preserves long receipt ends and requires source revi
   await expect(
     page.getByLabel("Item 2 unit price (optional)", { exact: true }),
   ).toHaveValue("3.00");
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   // These known synthetic values were asserted and compared with the source above.
   // Checking them is explicit simulated human review, never an OCR accuracy gain.
   for (const field of [
@@ -320,7 +324,7 @@ test("real local correction preserves long receipt ends and requires source revi
       exact: true,
     })
     .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page

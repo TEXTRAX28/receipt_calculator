@@ -1,3 +1,4 @@
+import { expectReviewReady } from "./review-assertions";
 import { test, expect, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
@@ -131,7 +132,8 @@ test("phone landscape: receipt editor fits with readable inputs", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeEnabled();
+  );
 });

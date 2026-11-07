@@ -67,7 +67,9 @@ test("real local OCR reads an image without uploading it", async ({
   const uploads: string[] = [];
   page.on("request", (request) => {
     if (
-      !request.url().startsWith("http://127.0.0.1:4173") &&
+      !request
+        .url()
+        .startsWith(new URL(test.info().project.use.baseURL!).origin) &&
       !request.url().startsWith("data:") &&
       !request.url().startsWith("blob:")
     )
@@ -105,6 +107,7 @@ test("missing OCR assets gives a recovery path, not fake extraction", async ({
 }) => {
   test.setTimeout(180000);
   await page.goto("/");
+  await page.route("**/ocr-enhanced/**", (route) => route.abort("failed"));
   await page.route("**/ocr/**", (route) => route.abort("failed"));
   await page
     .getByLabel("Upload receipt images")
@@ -127,6 +130,7 @@ test("repeated submission is disabled and cancellation keeps the receipt image",
   page,
 }) => {
   await page.goto("/");
+  await page.route("**/ocr-enhanced/**", (route) => route.abort("failed"));
   await page.route("**/ocr/worker.min.js", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     await route.continue();

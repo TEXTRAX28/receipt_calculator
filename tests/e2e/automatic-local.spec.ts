@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { writeFile } from "node:fs/promises";
@@ -20,6 +21,7 @@ async function setup(
   failure = false,
   weakTotal = false,
   zeroPurchase = false,
+  localCheckMode = "auto",
 ) {
   const posts: { path: string; body: unknown }[] = [];
   await page.route("**/api/receipts/**", async (route) => {
@@ -27,10 +29,12 @@ async function setup(
     if (path.endsWith("/providers"))
       return route.fulfill({
         json: {
+          localCheckMode,
           localModel: { configured: true, name: "PaddleOCR" },
           localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
         },
       });
+    if (route.request().method() !== "POST") return route.abort();
     const body = route.request().postDataJSON();
     posts.push({ path, body });
     if (path.endsWith("/recognize")) {
@@ -162,8 +166,14 @@ async function setup(
     return route.abort(); // Never silently reach a provider from a mocked protocol case.
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
+    page.getByRole("button", {
+      name: "Assisted scan · This computer",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-pressed", "true");
   const image = await page.evaluate(
     ({ texts, zeroPurchase }) => {
@@ -194,8 +204,11 @@ async function setup(
     mimeType: "image/png",
     buffer: Buffer.from(image, "base64"),
   });
-  const select = page.getByLabel("Local vision comparison", { exact: true });
-  await expect(select).toHaveValue("auto");
+  const select = page.getByRole("button", {
+    name: "Assisted scan · This computer",
+    exact: true,
+  });
+  await expect(select).toHaveAttribute("aria-pressed", "true");
   return {
     posts,
     select,
@@ -284,7 +297,7 @@ test("automatic comparison recovers a missing free item with pending source and 
     .click();
   expect((await readSaved()).receipt).toEqual(before.receipt);
   await coverage(page).check();
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   await writeFile(
     await qaArtifactPath(info, "zero-purchase-review.json"),
     JSON.stringify(
@@ -307,7 +320,7 @@ test("a failed comparison keeps the weak financial source check and highlighted 
   });
   await expect(totalCheck).toBeVisible();
   await coverage(page).check();
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   await expect(totalCheck).not.toBeChecked();
   const before = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
@@ -344,7 +357,7 @@ test("a failed comparison keeps the weak financial source check and highlighted 
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
   expect(after.receipt).toEqual(before.receipt);
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   expect(posts.map((post) => post.path)).toEqual([
     "/api/receipts/recognize",
     "/api/receipts/vision",
@@ -352,7 +365,7 @@ test("a failed comparison keeps the weak financial source check and highlighted 
   expect(before.receipt.printedTotal).toBe("5.50");
 });
 
-test("automatic local check is the phone-safe default and invokes independent vision for a missing quantity (mock protocol)", async ({
+test("configured automatic computer check invokes independent vision for a missing quantity (mock protocol)", async ({
   page,
 }, info) => {
   const { posts, scan, select } = await setup(page, [
@@ -386,7 +399,7 @@ test("automatic local check is the phone-safe default and invokes independent vi
   await expect(
     page.getByText("Both local readings finished.", { exact: false }).first(),
   ).toBeVisible();
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
@@ -420,17 +433,16 @@ test("a clear primary draft skips the second model but cannot be confirmed befor
   await scan.click();
   await expect(coverage(page)).toBeVisible();
   expect(posts.map((post) => post.path)).toEqual(["/api/receipts/recognize"]);
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   await coverage(page).check();
-  await expect(confirm(page)).toBeEnabled();
+  await expectReviewReady(page, confirm(page));
 });
 
 for (const mode of ["off", "always"])
-  test(`the explicit ${mode} choice controls the extra local reader (mock protocol)`, async ({
+  test(`the configured ${mode} policy controls the extra local reader (mock protocol)`, async ({
     page,
   }) => {
-    const { scan, posts, select } = await setup(page);
-    await select.selectOption(mode);
+    const { scan, posts } = await setup(page, clear, false, false, false, mode);
     await scan.click();
     await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(1);
     expect(posts.map((post) => post.path)).toEqual([
@@ -460,10 +472,10 @@ test("a failed automatic comparison preserves negative-line classification separ
   });
   await expect(classification).toBeVisible();
   await coverage(page).check();
-  await expect(confirm(page)).toBeDisabled();
+  await expectReviewBlocked(page, confirm(page));
   await expect(classification).not.toBeChecked();
   await classification.check();
-  await expect(confirm(page)).toBeEnabled();
+  await expectReviewReady(page, confirm(page));
   expect(posts.map((post) => post.path)).toEqual([
     "/api/receipts/recognize",
     "/api/receipts/vision",

@@ -1,3 +1,5 @@
+import { requireAssistedPolicy } from "./assisted-policy";
+import { expectReviewBlocked } from "./review-assertions";
 import { test, expect } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -49,12 +51,8 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "This computer", exact: true })
-    .click();
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+  await requireAssistedPolicy(page, "computer");
+  await requireAssistedPolicy(page, "computer", "always");
   await page
     .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
     .selectOption("IDR");
@@ -257,9 +255,10 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
     .getByRole("dialog", { name: "Receipt source for purchase 1", exact: true })
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -340,12 +339,8 @@ test("real row-first native comparison preserves printed prices and blocks unsup
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "This computer", exact: true })
-    .click();
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+  await requireAssistedPolicy(page, "computer");
+  await requireAssistedPolicy(page, "computer", "always");
   await page
     .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
     .selectOption("IDR");
@@ -446,9 +441,10 @@ test("real row-first native comparison preserves printed prices and blocks unsup
       await page.screenshot({ path: path.join(folder, "phone-review.png") });
     }
   }
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   expect(calculation.issues.length).toBeGreaterThan(0);
   expect(
     await page.evaluate(
@@ -527,13 +523,8 @@ test("real leading-count receipt preserves its row price and source review on a 
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "This computer", exact: true })
-    .click();
-  const comparison = page.getByLabel("Local vision comparison", {
-    exact: true,
-  });
-  if (await comparison.isVisible()) await comparison.selectOption("off");
+  await requireAssistedPolicy(page, "computer");
+  await requireAssistedPolicy(page, "computer", "off");
   await page
     .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
     .selectOption("IDR");
@@ -667,20 +658,18 @@ test("real scanned PDF → installed computer OCR → exact split", async ({
       requests.posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  const comparison = page.getByLabel("Local vision comparison", {
-    exact: true,
-  });
-  if (await comparison.isVisible()) await comparison.selectOption("off");
+  await requireAssistedPolicy(page, "computer", "off");
+  await requireAssistedPolicy(page, "computer", "off");
   const started = Date.now();
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(path.resolve("tests/fixtures/pdfs/scanned-one-page.pdf"));
   await expect(page.locator(".selected-image")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "PDF text", exact: true }),
+    page.getByRole("button", {
+      name: "Read PDF text on this device",
+      exact: true,
+    }),
   ).toHaveCount(0);
   const response = page.waitForResponse(
     (value) =>
@@ -829,9 +818,7 @@ test("real computer reader → review → people → exact split", async ({
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await requireAssistedPolicy(page, "computer", "off");
   const image = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1000;
@@ -956,9 +943,7 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await requireAssistedPolicy(page, "computer", "off");
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(files as string[]);
@@ -1220,12 +1205,8 @@ test("real separate purchase expressions preserve literal unit prices on a phone
       posts.push(new URL(request.url()).pathname);
   });
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "This computer", exact: true })
-    .click();
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+  await requireAssistedPolicy(page, "computer");
+  await requireAssistedPolicy(page, "computer", "always");
   await page
     .getByRole("combobox", { name: "Receipt currency (optional)", exact: true })
     .selectOption("IDR");
@@ -1384,9 +1365,10 @@ test("real separate purchase expressions preserve literal unit prices on a phone
   await source
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

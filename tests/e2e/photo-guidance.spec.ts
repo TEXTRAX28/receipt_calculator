@@ -160,6 +160,9 @@ test("capture advice does not block a chosen reader or replace financial verific
     page.getByRole("status", { name: "Photo checks" }),
   ).toContainText("very dark");
   await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(

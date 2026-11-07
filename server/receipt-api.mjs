@@ -165,7 +165,7 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>, openaiReader?: ReturnType<typeof import("./openai-reader.mjs").createOpenAiReader>}} [options]
+ * @param {{assistedReader?: string, localCheckMode?: string, apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>, openaiReader?: ReturnType<typeof import("./openai-reader.mjs").createOpenAiReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
@@ -180,6 +180,8 @@ export function createReceiptApi({
   veryfiReader,
   azureReader,
   openaiReader = createOpenAiReader(),
+  assistedReader,
+  localCheckMode = "off",
 } = {}) {
   // One local operator grant covers every Gemini key/model in this directory.
   // Rotating a key or restarting the server must not replenish the allowance.
@@ -256,6 +258,19 @@ export function createReceiptApi({
       return send(200, await openaiReader.getStatus());
     if (pathname === "/api/receipts/providers" && req.method === "GET")
       return send(200, {
+        ...([
+          "computer",
+          "gemini",
+          "azure",
+          "veryfi",
+          "vision",
+          "openai",
+        ].includes(assistedReader)
+          ? { assistedReader }
+          : {}),
+        localCheckMode: ["off", "auto", "always"].includes(localCheckMode)
+          ? localCheckMode
+          : "off",
         localModel: {
           configured: !!localReader?.configured,
           name: localReader?.name || "PaddleOCR",

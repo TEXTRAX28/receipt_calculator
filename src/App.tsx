@@ -9,6 +9,13 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
+import {
+  firstReceiptIssue,
+  focusValidationIssue,
+  openValidationDetails,
+  type ValidationIssue,
+} from "./lib/review-validation";
 import {
   ArrowRight,
   ArrowLeft,
@@ -54,15 +61,22 @@ import {
   calculateSplit,
   removePerson,
   type ReceiptResult,
+  type Issue,
 } from "./lib/engine";
-import { formatReceiptMoney } from "./lib/money";
+import { formatReceiptMoney, weight, SCALE } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
 import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
 import { readingBlobs, type ReceiptImage } from "./lib/images";
 import { prepareReceiptFile } from "./lib/receipt-files";
 import { canReadPdfText, readPdfText } from "./lib/pdf-text";
 import { localOcrProvider, type ExtractionProvider } from "./lib/ocr";
-import { enhancedOcrProvider } from "./lib/paddle-browser";
+import { deviceOcrProvider } from "./lib/device-reader";
+import {
+  assistedLabels,
+  chooseAssistedReader,
+  isDeviceReader,
+  type AssistedReader,
+} from "./lib/scanner-policy";
 import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import { extractWithOpenAi, openaiConfiguration } from "./lib/openai";
 import {
@@ -126,12 +140,14 @@ function Field({
   hint,
   error,
   action,
+  path,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
   error?: string;
   action?: ReactNode;
+  path?: string;
 }) {
   const controlId = useId();
   const control = isValidElement(children)
@@ -152,7 +168,10 @@ function Field({
       )
     : children;
   return (
-    <div className="field">
+    <div
+      className={`field${error ? " field-invalid" : ""}`}
+      data-validation-path={path}
+    >
       <label htmlFor={controlId}>{label}</label>
       {action ? (
         <div className="field-control">
@@ -173,26 +192,33 @@ function Field({
 }
 function MoneyInput({
   label,
+  displayLabel,
   value,
   onChange,
   hint,
   error,
   signed = false,
+  path,
+  placeholder = "0.00",
   ...rest
 }: {
   label: string;
+  displayLabel?: string;
   value: string;
   onChange: (v: string) => void;
   hint?: string;
   error?: string;
   required?: boolean;
   signed?: boolean;
+  path?: string;
+  placeholder?: string;
 }) {
   return (
     <Field
-      label={label}
+      label={displayLabel || label}
       hint={hint}
       error={error}
+      path={path}
       action={
         signed ? (
           <button
@@ -221,7 +247,7 @@ function MoneyInput({
         maxLength={40}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="0.00"
+        placeholder={placeholder}
       />
     </Field>
   );
@@ -304,10 +330,10 @@ export default function App() {
     | "veryfi"
     | "azure"
     | "pdf"
-  >("local");
-  const readerChosen = useRef(false);
+  >("enhanced");
   const pdfTextAvailable = canReadPdfText(images);
-  const [localCheckMode, setLocalCheckMode] = useState<LocalCheckMode>("auto");
+  const [localCheckMode, setLocalCheckMode] = useState<LocalCheckMode>("off");
+  const [preferredHelper, setPreferredHelper] = useState<AssistedReader>();
   const [scanCurrency, setScanCurrency] = useState<Receipt["currency"] | "">(
     "",
   );
@@ -316,9 +342,12 @@ export default function App() {
     configured: boolean;
     name: string;
   } | null>(null);
+  const [deviceEngine, setDeviceEngine] = useState<"device" | "enhanced">(
+    "enhanced",
+  );
   const areaReader =
     reader === "enhanced"
-      ? "enhanced"
+      ? deviceEngine
       : reader === "local"
         ? "device"
         : computerConfig?.configured
@@ -352,6 +381,18 @@ export default function App() {
   const [openaiConfig, setOpenaiConfig] = useState<Awaited<
     ReturnType<typeof openaiConfiguration>
   > | null>(null);
+  const assistedReader = chooseAssistedReader(
+    {
+      computer: computerConfig,
+      gemini: aiConfig,
+      azure: azureConfig,
+      veryfi: veryfiConfig,
+      vision: visionConfig,
+      openai: openaiConfig,
+    },
+    preferredHelper,
+  );
+  const privateReader = isDeviceReader(reader);
   const controller = useRef<AbortController | null>(null);
   const [rawText, setRawText] = useState("");
   const [privacy, setPrivacy] = useState(false);
@@ -363,11 +404,74 @@ export default function App() {
   const [sourceItemId, setSourceItemId] = useState<string | null>(null);
   const [sourceCheckKey, setSourceCheckKey] = useState<string | null>(null);
   const [personName, setPersonName] = useState("");
+  const [validation, setValidation] = useState<
+    (ValidationIssue & { step: Step }) | null
+  >(null);
+  const [validationAttempted, setValidationAttempted] = useState<Step | null>(
+    null,
+  );
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const result = useMemo(() => calculateSplit(state), [state]);
   const receiptResult = result.receipt;
+  const receiptError = (path: string) =>
+    validationAttempted === "review"
+      ? receiptResult.issues.find((issue) => issue.path === path)?.message ||
+        (validation?.step === "review" &&
+        validation.path === path &&
+        result.issues.some((issue) => issue.message === validation.message)
+          ? validation.message
+          : undefined)
+      : undefined;
+  const peopleIssues: Issue[] = !state.people.length
+    ? [
+        {
+          path: "people",
+          message: "Add at least one person before sharing the bill.",
+        },
+      ]
+    : state.people.flatMap((person, index) =>
+        person.name.trim()
+          ? []
+          : [
+              {
+                path: `people.${index}.name`,
+                message: `Enter a name for person ${index + 1}.`,
+              },
+            ],
+      );
+  function showValidation(issues: Issue[], step: Step = state.step) {
+    const selected =
+      step === "review"
+        ? firstReceiptIssue(state.receipt, issues)
+        : issues[0]
+          ? { ...issues[0], review: false }
+          : undefined;
+    if (!selected) return;
+    flushSync(() => {
+      setValidationAttempted(step);
+      setValidation({ ...selected, step });
+      if (state.step !== step) setState((value) => ({ ...value, step }));
+    });
+    flushSync(() => openValidationDetails(document, selected.path));
+    if (!focusValidationIssue(document, selected)) setNotice(selected.message);
+  }
+  function continueReview() {
+    const checked = calculateReceipt(state.receipt);
+    if (checked.issues.length) {
+      showValidation(checked.issues, "review");
+      return;
+    }
+    setValidation(null);
+    setValidationAttempted(null);
+    setState((value) => ({
+      ...value,
+      reviewedStamp: receiptStamp(value.receipt),
+      step: "people",
+    }));
+    window.scrollTo(0, 0);
+  }
   const f = (amount: bigint) => formatReceiptMoney(amount, state.receipt);
   const finalized =
     state.finalizedStamp !== "" &&
@@ -414,20 +518,21 @@ export default function App() {
         setVisionConfig(config.localVision || null);
         setVeryfiConfig(config.veryfi || null);
         setAzureConfig(config.azure || null);
-        if (config.localModel.configured && !readerChosen.current)
-          setReader("computer");
+        setPreferredHelper(config.assistedReader);
+        setLocalCheckMode(config.localCheckMode || "off");
       })
       .catch(() => {});
     return () => check.abort();
   }, []);
   useEffect(() => {
-    if (reader !== "gemini") return;
     const check = new AbortController();
     setCheckingAi(true);
     geminiConfiguration(
       AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
     )
-      .then(setAiConfig)
+      .then((config) => {
+        if (!check.signal.aborted) setAiConfig(config);
+      })
       .catch(() => {
         if (!check.signal.aborted) setAiConfig(null);
       })
@@ -435,9 +540,8 @@ export default function App() {
         if (!check.signal.aborted) setCheckingAi(false);
       });
     return () => check.abort();
-  }, [reader]);
+  }, []);
   useEffect(() => {
-    if (reader !== "openai") return;
     const check = new AbortController();
     setCheckingAi(true);
     openaiConfiguration(
@@ -453,14 +557,14 @@ export default function App() {
         if (!check.signal.aborted) setCheckingAi(false);
       });
     return () => check.abort();
-  }, [reader]);
+  }, []);
   useEffect(() => {
     imageRef.current = images;
   }, [images]);
   useEffect(() => {
-    if (reader === "pdf" && !pdfTextAvailable)
-      setReader(computerConfig?.configured ? "computer" : "local");
-  }, [reader, pdfTextAvailable, computerConfig]);
+    if (isDeviceReader(reader))
+      setReader(pdfTextAvailable ? "pdf" : "enhanced");
+  }, [reader, pdfTextAvailable]);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -500,9 +604,12 @@ export default function App() {
     else dialogRef.current?.close();
   }, [privacy, zoomImage, cropTarget, sourceOpen]);
   useEffect(() => {
+    if (validation?.step === state.step) return;
     document.getElementById("screen-title")?.focus({ preventScroll: true });
   }, [state.step]);
   const navigate = (step: Step) => {
+    setValidation(null);
+    setValidationAttempted(null);
     setState((s) => ({ ...s, step }));
     window.scrollTo({ top: 0, behavior: "instant" });
   };
@@ -638,10 +745,10 @@ export default function App() {
             "The prepared receipt exceeds 48 MB. Import fewer pages or smaller images.",
           );
       }
-      if (canReadPdfText([...images, ...prepared]) && !readerChosen.current) {
-        readerChosen.current = true;
-        setReader("pdf");
-      }
+      if (isDeviceReader(reader))
+        setReader(
+          canReadPdfText([...images, ...prepared]) ? "pdf" : "enhanced",
+        );
       setImages((previous) => [...previous, ...prepared]);
       setAiConsented(false);
     } catch (e) {
@@ -880,8 +987,14 @@ export default function App() {
       const output: Awaited<ReturnType<ExtractionProvider["extract"]>> =
         computerOutput ??
         (await (
-          reader === "enhanced" ? enhancedOcrProvider : localOcrProvider
+          reader === "enhanced" ? deviceOcrProvider : localOcrProvider
         ).extract(images, controller.current.signal, setScanStatus));
+      if (reader === "enhanced")
+        setDeviceEngine(
+          output.recognition?.engine.startsWith("paddle-")
+            ? "enhanced"
+            : "device",
+        );
       setRawText(output.text);
       const nativeParsed = parseReceiptWithSources(output, readingContext);
       const {
@@ -933,7 +1046,7 @@ export default function App() {
           field: "items",
           reason: "source",
           other:
-            "Check the complete purchase list, quantities, amounts and overlapping rows against every photo. The enhanced reader is experimental.",
+            "Check the complete purchase list, quantities, amounts and overlapping rows against every photo before confirming.",
           confirmedValue: "",
         });
       replaceReceipt(
@@ -1007,11 +1120,25 @@ export default function App() {
   function finalize() {
     const checked = calculateSplit(state);
     if (!checked.canFinalize) {
-      setNotice(
-        "Some details still need attention. Check the highlighted assignments and receipt total.",
-      );
+      if (checked.receipt.issues.length)
+        showValidation(checked.receipt.issues, "review");
+      else if (peopleIssues.length) showValidation(peopleIssues, "people");
+      else if (state.reviewedStamp !== receiptStamp(state.receipt))
+        showValidation(
+          [
+            {
+              path: "review",
+              message:
+                "Confirm the corrected receipt before finalizing the split.",
+            },
+          ],
+          "review",
+        );
+      else showValidation(checked.issues, "assign");
       return;
     }
+    setValidation(null);
+    setValidationAttempted(null);
     setState((s) => ({ ...s, finalizedStamp: finalStamp(s), step: "summary" }));
     window.scrollTo(0, 0);
   }
@@ -1431,124 +1558,37 @@ export default function App() {
                 <fieldset className="reader-choice" disabled={busy}>
                   <legend>How should we read it?</legend>
                   <div className="reader-buttons">
-                    {pdfTextAvailable && (
-                      <button
-                        type="button"
-                        className={`button ${reader === "pdf" ? "button-primary" : "button-outline"}`}
-                        aria-pressed={reader === "pdf"}
-                        onClick={() => {
-                          readerChosen.current = true;
-                          setReader("pdf");
-                          setAiConsented(false);
-                        }}
-                      >
-                        <FileText size={17} /> PDF text
-                      </button>
-                    )}
                     <button
                       type="button"
-                      className={`button ${reader === "local" ? "button-primary" : "button-outline"}`}
-                      aria-pressed={reader === "local"}
+                      className={`button ${privateReader ? "button-primary" : "button-outline"}`}
+                      aria-pressed={privateReader}
                       onClick={() => {
-                        readerChosen.current = true;
-                        setReader("local");
+                        setReader(pdfTextAvailable ? "pdf" : "enhanced");
                         setAiConsented(false);
                       }}
                     >
-                      <ShieldCheck size={17} />
-                      On-device
+                      <ShieldCheck size={17} /> On-device scan
                     </button>
-                    <button
-                      type="button"
-                      className={`button ${reader === "enhanced" ? "button-primary" : "button-outline"}`}
-                      aria-pressed={reader === "enhanced"}
-                      onClick={() => {
-                        readerChosen.current = true;
-                        setReader("enhanced");
-                        setAiConsented(false);
-                      }}
-                    >
-                      <ShieldCheck size={17} /> Enhanced on-device
-                    </button>
-                    {computerConfig?.configured && (
+                    {(assistedReader || !privateReader) && (
                       <button
                         type="button"
-                        className={`button ${reader === "computer" ? "button-primary" : "button-outline"}`}
-                        aria-pressed={reader === "computer"}
+                        className={`button ${!privateReader ? "button-primary" : "button-outline"}`}
+                        aria-pressed={!privateReader}
                         onClick={() => {
-                          readerChosen.current = true;
-                          setReader("computer");
-                          setAiConsented(false);
+                          if (privateReader && assistedReader) {
+                            setReader(assistedReader);
+                            setAiConsented(false);
+                          }
                         }}
                       >
-                        <ScanLine size={17} /> This computer
-                      </button>
-                    )}
-                    {visionConfig?.configured && (
-                      <button
-                        type="button"
-                        className={`button ${reader === "vision" ? "button-primary" : "button-outline"}`}
-                        aria-pressed={reader === "vision"}
-                        onClick={() => {
-                          readerChosen.current = true;
-                          setReader("vision");
-                          setAiConsented(false);
-                        }}
-                      >
-                        <Sparkles size={17} /> Local vision
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={`button ${reader === "gemini" ? "button-primary" : "button-outline"}`}
-                      aria-pressed={reader === "gemini"}
-                      onClick={() => {
-                        readerChosen.current = true;
-                        setReader("gemini");
-                        setAiConsented(false);
-                      }}
-                    >
-                      <Sparkles size={17} />
-                      Gemini AI
-                    </button>
-                    <button
-                      type="button"
-                      className={`button ${reader === "openai" ? "button-primary" : "button-outline"}`}
-                      aria-pressed={reader === "openai"}
-                      onClick={() => {
-                        readerChosen.current = true;
-                        setReader("openai");
-                        setAiConsented(false);
-                      }}
-                    >
-                      <Sparkles size={17} /> OpenAI last resort
-                    </button>
-                    {(veryfiConfig?.configured || reader === "veryfi") && (
-                      <button
-                        type="button"
-                        className={`button ${reader === "veryfi" ? "button-primary" : "button-outline"}`}
-                        aria-pressed={reader === "veryfi"}
-                        onClick={() => {
-                          readerChosen.current = true;
-                          setReader("veryfi");
-                          setAiConsented(false);
-                        }}
-                      >
-                        <ReceiptText size={17} /> Veryfi OCR
-                      </button>
-                    )}
-                    {(azureConfig?.configured || reader === "azure") && (
-                      <button
-                        type="button"
-                        className={`button ${reader === "azure" ? "button-primary" : "button-outline"}`}
-                        aria-pressed={reader === "azure"}
-                        onClick={() => {
-                          readerChosen.current = true;
-                          setReader("azure");
-                          setAiConsented(false);
-                        }}
-                      >
-                        <ReceiptText size={17} /> Azure receipt OCR
+                        <Sparkles size={17} /> Assisted scan ·{" "}
+                        {
+                          assistedLabels[
+                            (!privateReader
+                              ? reader
+                              : assistedReader) as keyof typeof assistedLabels
+                          ]
+                        }
                       </button>
                     )}
                   </div>
@@ -1560,10 +1600,11 @@ export default function App() {
                     </p>
                   ) : reader === "enhanced" ? (
                     <p className="hint">
-                      Experimental receipt reader. Photos stay on your device.
-                      First use loads about 50 MB of reader files; Wi-Fi is
-                      recommended. Check every quantity, amount and repeated row
-                      before splitting.
+                      Recommended. Free receipt scanning; photos stay on your
+                      device. First use loads about 50 MB of reader files. A
+                      compatibility reader is used if those files or browser
+                      features are unavailable. Check quantities, amounts and
+                      repeated rows before splitting.
                     </p>
                   ) : reader === "computer" ? (
                     <div>
@@ -1573,39 +1614,13 @@ export default function App() {
                         quantities, amounts and overlapping rows against the
                         originals.
                       </p>
-                      {visionConfig?.configured && (
-                        <div className="comparison-choice">
-                          <Field label="Local vision comparison">
-                            <select
-                              value={localCheckMode}
-                              disabled={busy}
-                              onChange={(event) =>
-                                setLocalCheckMode(
-                                  event.target.value as LocalCheckMode,
-                                )
-                              }
-                            >
-                              <option value="auto">
-                                When details need a check
-                              </option>
-                              <option value="always">Every scan</option>
-                              <option value="off">Skip extra check</option>
-                            </select>
-                          </Field>
-                          <p className="hint">
-                            Checks unclear or incomplete drafts independently on
-                            this computer and marks disagreements. Long receipts
-                            are read in sections and can take several minutes.
-                          </p>
-                        </div>
-                      )}
                     </div>
                   ) : reader === "pdf" ? (
                     <p className="hint">
                       Reads selectable text from every PDF page on this device.
                       Check the previews for purchases stored as images or
-                      missing text. Choose an image reader if the text layer is
-                      incomplete.
+                      missing text. If a page is incomplete, upload its photo to
+                      scan the image instead.
                     </p>
                   ) : reader === "vision" ? (
                     <p className="hint">
@@ -2098,6 +2113,8 @@ export default function App() {
                       <div className="form-grid metadata">
                         <Field
                           label="Merchant"
+                          path="merchant"
+                          error={receiptError("merchant")}
                           hint="Optional. Leave blank if the name is missing or unreadable."
                         >
                           <input
@@ -2108,7 +2125,11 @@ export default function App() {
                             }
                           />
                         </Field>
-                        <Field label="Receipt date (optional)">
+                        <Field
+                          label="Receipt date (optional)"
+                          path="date"
+                          error={receiptError("date")}
+                        >
                           <input
                             type="date"
                             value={state.receipt.date}
@@ -2119,10 +2140,12 @@ export default function App() {
                         </Field>
                         <Field
                           label="Currency"
+                          path="currency"
                           error={
-                            state.receipt.currencyUnresolved
+                            receiptError("currency") ||
+                            (state.receipt.currencyUnresolved
                               ? "Choose the currency printed on your receipt."
-                              : undefined
+                              : undefined)
                           }
                         >
                           <select
@@ -2148,6 +2171,11 @@ export default function App() {
                         </Field>
                         <MoneyInput
                           label="Printed total"
+                          path="printedTotal"
+                          error={
+                            receiptError("printedTotal") ||
+                            receiptError("total")
+                          }
                           signed
                           value={state.receipt.printedTotal}
                           onChange={(printedTotal) =>
@@ -2156,24 +2184,63 @@ export default function App() {
                         />
                         <MoneyInput
                           label="Subtotal after item discounts (optional)"
+                          path="subtotal"
+                          error={receiptError("subtotal")}
                           signed
                           value={state.receipt.subtotal}
                           onChange={(subtotal) => editReceipt({ subtotal })}
                         />
                         <MoneyInput
                           label="Printed tax (optional check)"
+                          path="printedTax"
+                          error={receiptError("printedTax")}
+                          placeholder="Leave blank if not printed"
                           signed
                           value={state.receipt.printedTax}
                           onChange={(printedTax) => editReceipt({ printedTax })}
                           hint="A check against the receipt. When prices exclude tax, add tax using codes or a tax adjustment below."
                         />
                       </div>
+                      {(state.receipt.taxRegistrationNumber ||
+                        state.receipt.printedTaxRate) && (
+                        <aside
+                          className="tax-registration"
+                          aria-label="Printed tax details"
+                        >
+                          {state.receipt.taxRegistrationNumber && (
+                            <p>
+                              Tax registration:{" "}
+                              <strong>
+                                {state.receipt.taxRegistrationNumber}
+                              </strong>
+                              . This identifies the business; it is not a tax
+                              amount.
+                            </p>
+                          )}
+                          {state.receipt.printedTaxRate && (
+                            <p>
+                              Printed tax rate:{" "}
+                              <strong>{state.receipt.printedTaxRate}%</strong>.
+                            </p>
+                          )}
+                          {!state.receipt.printedTax && (
+                            <p>
+                              No separate tax amount was identified. Check the
+                              receipt; leave Printed tax blank if no amount is
+                              shown.
+                            </p>
+                          )}
+                        </aside>
+                      )}
                       <p className="hint">
                         Changing currency changes precision; it does not convert
                         prices.
                       </p>
                       <div className="tax-options">
-                        <label className="check-row">
+                        <label
+                          className="check-row"
+                          data-validation-path="pricesIncludeTax"
+                        >
                           <input
                             type="checkbox"
                             checked={state.receipt.pricesIncludeTax}
@@ -2189,10 +2256,19 @@ export default function App() {
                               Included tax is recorded for information. Extra
                               tax stays at zero.
                             </small>
+                            {receiptError("pricesIncludeTax") && (
+                              <small className="field-error" role="alert">
+                                {receiptError("pricesIncludeTax")}
+                              </small>
+                            )}
                           </span>
                         </label>
                         {!state.receipt.pricesIncludeTax && (
-                          <Field label="How should added tax be calculated?">
+                          <Field
+                            label="How should added tax be calculated?"
+                            path="taxMode"
+                            error={receiptError("taxMode")}
+                          >
                             <select
                               value={state.receipt.taxMode}
                               onChange={(e) =>
@@ -2244,7 +2320,15 @@ export default function App() {
                               check.scope === "receipt" &&
                               check.field === "taxCodes",
                           )) && (
-                          <div className="tax-code-box">
+                          <div
+                            className="tax-code-box"
+                            data-validation-path="taxCodes"
+                          >
+                            {receiptError("taxCodes") && (
+                              <p className="field-error" role="alert">
+                                {receiptError("taxCodes")}
+                              </p>
+                            )}
                             <p>
                               <strong>Use the legend on your receipt.</strong>{" "}
                               Match the printed code and rate. Codes vary by
@@ -2253,7 +2337,11 @@ export default function App() {
                             </p>
                             {state.receipt.taxCodes.map((code, index) => (
                               <div className="tax-code-row" key={index}>
-                                <Field label={`Tax code ${index + 1}`}>
+                                <Field
+                                  label={`Tax code ${index + 1}`}
+                                  path={`taxCodes.${index}.code`}
+                                  error={receiptError(`taxCodes.${index}.code`)}
+                                >
                                   <input
                                     value={code.code}
                                     maxLength={12}
@@ -2274,6 +2362,8 @@ export default function App() {
                                 </Field>
                                 <MoneyInput
                                   label={`Rate % for code ${index + 1}`}
+                                  path={`taxCodes.${index}.rate`}
+                                  error={receiptError(`taxCodes.${index}.rate`)}
                                   value={code.rate}
                                   onChange={(rate) =>
                                     editReceipt({
@@ -2334,17 +2424,20 @@ export default function App() {
                         <button
                           className="button button-outline"
                           onClick={() =>
-                            editReceipt({
-                              items: state.receipt.items.map((i) =>
-                                i.quantity
-                                  ? i
-                                  : {
-                                      ...i,
-                                      quantity: "1",
-                                      note: "Purchased quantity set to one by you. Confirm against receipt.",
-                                    },
+                            setState((value) => ({
+                              ...value,
+                              receipt: value.receipt.items.reduce(
+                                (receipt, item) =>
+                                  item.quantity
+                                    ? receipt
+                                    : applyItemEdit(receipt, item.id, {
+                                        quantity: "1",
+                                        note: "Purchased quantity set to one by you. Confirm against receipt.",
+                                      }),
+                                value.receipt,
                               ),
-                            })
+                              finalizedStamp: "",
+                            }))
                           }
                         >
                           Confirm all missing purchased quantities as 1
@@ -2361,6 +2454,11 @@ export default function App() {
                           item={item}
                           index={index}
                           receipt={state.receipt}
+                          issues={
+                            validationAttempted === "review"
+                              ? receiptResult.issues
+                              : []
+                          }
                           cost={receiptResult.items[index]?.total ?? 0n}
                           evidence={
                             scanEvidence?.receiptId === state.receipt.id
@@ -2384,6 +2482,7 @@ export default function App() {
                       ))}
                       <button
                         className="text-button add-line"
+                        data-validation-path="items"
                         disabled={state.receipt.items.length >= 300}
                         onClick={() =>
                           editReceipt({
@@ -2409,7 +2508,11 @@ export default function App() {
                       </p>
                       {state.receipt.adjustments.map((a, index) => (
                         <div className="adjustment-row" key={a.id}>
-                          <Field label={`Adjustment ${index + 1} label`}>
+                          <Field
+                            label={`Adjustment ${index + 1} label`}
+                            path={`adjustments.${a.id}.label`}
+                            error={receiptError(`adjustments.${a.id}.label`)}
+                          >
                             <input
                               value={a.label}
                               maxLength={100}
@@ -2425,7 +2528,11 @@ export default function App() {
                               }
                             />
                           </Field>
-                          <Field label={`Adjustment ${index + 1} type`}>
+                          <Field
+                            label={`Adjustment ${index + 1} type`}
+                            path={`adjustments.${a.id}.kind`}
+                            error={receiptError(`adjustments.${a.id}.kind`)}
+                          >
                             <select
                               value={a.kind}
                               onChange={(e) =>
@@ -2459,6 +2566,8 @@ export default function App() {
                           </Field>
                           <MoneyInput
                             label={`Adjustment ${index + 1} amount`}
+                            path={`adjustments.${a.id}`}
+                            error={receiptError(`adjustments.${a.id}`)}
                             signed
                             value={a.amount}
                             onChange={(amount) =>
@@ -2469,7 +2578,13 @@ export default function App() {
                               })
                             }
                           />
-                          <Field label={`Adjustment ${index + 1} allocation`}>
+                          <Field
+                            label={`Adjustment ${index + 1} allocation`}
+                            path={`adjustments.${a.id}.allocation`}
+                            error={receiptError(
+                              `adjustments.${a.id}.allocation`,
+                            )}
+                          >
                             <select
                               disabled={a.kind === "discount"}
                               value={
@@ -2528,6 +2643,7 @@ export default function App() {
                                 <>
                                   <Field
                                     label={`Adjustment ${index + 1} included tax rate (%)`}
+                                    path={`adjustments.${a.id}.includedTaxRate`}
                                     hint="Use the fee’s printed rate and keep its full amount. A printed tax adjustment must be the full tax total, including this fee."
                                     error={
                                       receiptResult.issues.find(
@@ -2586,6 +2702,7 @@ export default function App() {
                       ))}
                       <button
                         className="text-button"
+                        data-validation-path="adjustments"
                         disabled={state.receipt.adjustments.length >= 30}
                         onClick={() =>
                           editReceipt({
@@ -2664,15 +2781,8 @@ export default function App() {
                       </button>
                       <button
                         className="button button-primary"
-                        disabled={!!receiptResult.issues.length}
-                        onClick={() => {
-                          setState((s) => ({
-                            ...s,
-                            reviewedStamp: receiptStamp(s.receipt),
-                            step: "people",
-                          }));
-                          window.scrollTo(0, 0);
-                        }}
+                        data-validation-path="review"
+                        onClick={continueReview}
                       >
                         Confirm receipt & add people
                         <ArrowRight size={17} />
@@ -2690,7 +2800,16 @@ export default function App() {
                       Names stay on this device. No invites or accounts needed.
                     </p>
                     <form onSubmit={addPerson} className="add-person">
-                      <Field label="Person’s name">
+                      <Field
+                        label="Person’s name"
+                        path="people"
+                        error={
+                          validationAttempted === "people" &&
+                          !state.people.length
+                            ? peopleIssues[0]?.message
+                            : undefined
+                        }
+                      >
                         <input
                           maxLength={50}
                           autoComplete="off"
@@ -2722,7 +2841,18 @@ export default function App() {
                       {state.people.map((person, i) => (
                         <div className="person-row" key={person.id}>
                           <Avatar name={person.name} index={i} />
-                          <Field label={`Person ${i + 1} name`}>
+                          <Field
+                            label={`Person ${i + 1} name`}
+                            path={`people.${i}.name`}
+                            error={
+                              validationAttempted === "people"
+                                ? peopleIssues.find(
+                                    (issue) =>
+                                      issue.path === `people.${i}.name`,
+                                  )?.message
+                                : undefined
+                            }
+                          >
                             <input
                               maxLength={50}
                               value={person.name}
@@ -2770,11 +2900,11 @@ export default function App() {
                       </button>
                       <button
                         className="button button-primary"
-                        disabled={
-                          !state.people.length ||
-                          state.people.some((p) => !p.name.trim())
+                        onClick={() =>
+                          peopleIssues.length
+                            ? showValidation(peopleIssues, "people")
+                            : navigate("assign")
                         }
-                        onClick={() => navigate("assign")}
                       >
                         Let’s share it
                         <ArrowRight size={17} />
@@ -2966,7 +3096,6 @@ export default function App() {
                       </button>
                       <button
                         className="button button-primary"
-                        disabled={!result.canFinalize}
                         onClick={finalize}
                       >
                         Finalize split
@@ -3548,6 +3677,7 @@ function ItemEditor({
   evidence,
   onViewSource,
   onConfirm,
+  issues,
 }: {
   item: Item;
   index: number;
@@ -3558,11 +3688,16 @@ function ItemEditor({
   evidence?: ItemEvidence;
   onViewSource?: () => void;
   onConfirm: (key: string, confirmed: boolean) => void;
+  issues: Issue[];
 }) {
   const checks = receipt.reviewChecks.filter(
     (check) => check.scope === "item" && check.itemId === item.id,
   );
   const fieldError = (field: string) => {
+    const invalid = issues.find(
+      (issue) => issue.path === `items.${index}.${field}`,
+    );
+    if (invalid) return invalid.message;
     const check = checks.find(
       (check) => check.field === field && checkIsPending(receipt, check),
     );
@@ -3575,9 +3710,16 @@ function ItemEditor({
       checks.some((check) => checkIsPending(receipt, check)),
   );
   return (
-    <div className="item-editor" data-testid={`review-item-${index}`}>
+    <div
+      className="item-editor"
+      data-testid={`review-item-${index}`}
+      data-validation-item={index}
+    >
       <div className="item-editor-top">
-        <div className="item-name-input">
+        <div
+          className="item-name-input"
+          data-validation-path={`items.${index}.description`}
+        >
           <span className="item-number">{index + 1}</span>
           <label className="visually-hidden" htmlFor={`description-${item.id}`}>
             Item {index + 1} description
@@ -3588,11 +3730,26 @@ function ItemEditor({
             maxLength={180}
             placeholder="Item description"
             aria-invalid={Boolean(fieldError("description"))}
+            aria-describedby={
+              fieldError("description")
+                ? `description-error-${item.id}`
+                : undefined
+            }
             onChange={(e) => onChange({ description: e.target.value })}
           />
+          {fieldError("description") && (
+            <small
+              id={`description-error-${item.id}`}
+              className="field-error"
+              role="alert"
+            >
+              {fieldError("description")}
+            </small>
+          )}
         </div>
         <MoneyInput
           label={`Item ${index + 1} line price`}
+          path={`items.${index}.lineTotal`}
           value={item.lineTotal}
           error={fieldError("lineTotal")}
           onChange={(lineTotal) => onChange({ lineTotal })}
@@ -3608,6 +3765,24 @@ function ItemEditor({
         >
           <ChevronDown className={expanded ? "rotated" : ""} size={18} />
         </button>
+      </div>
+      <div className="item-quantity-row">
+        <MoneyInput
+          label={`Item ${index + 1} purchased quantity`}
+          displayLabel="Purchased qty"
+          path={`items.${index}.quantity`}
+          value={item.quantity}
+          placeholder="Check count"
+          error={fieldError("quantity")}
+          onChange={(quantity) => onChange({ quantity })}
+        />
+        {item.unitPrice && (
+          <p className="hint">
+            {item.quantity || "?"} × {item.unitPrice}{" "}
+            {receipt.currencyUnresolved ? "" : receipt.currency} each
+            {item.unitPriceDerived ? " · calculated" : ""}
+          </p>
+        )}
       </div>
       {item.note && (
         <p className="item-note">
@@ -3640,19 +3815,15 @@ function ItemEditor({
         <div className="item-detail-fields">
           <div className="form-grid">
             <MoneyInput
-              label={`Item ${index + 1} purchased quantity`}
-              value={item.quantity}
-              error={fieldError("quantity")}
-              onChange={(quantity) => onChange({ quantity })}
-            />
-            <MoneyInput
               label={`Item ${index + 1} unit price (optional)`}
+              path={`items.${index}.unitPrice`}
               value={item.unitPrice}
               error={fieldError("unitPrice")}
               onChange={(unitPrice) => onChange({ unitPrice })}
             />
             <MoneyInput
               label={`Item ${index + 1} discount`}
+              path={`items.${index}.discount`}
               value={item.discount}
               error={fieldError("discount")}
               onChange={(discount) => onChange({ discount })}
@@ -3661,6 +3832,7 @@ function ItemEditor({
               checks.some((check) => check.field === "taxCode")) && (
               <Field
                 label={`Item ${index + 1} tax code`}
+                path={`items.${index}.taxCode`}
                 error={fieldError("taxCode")}
               >
                 <select
@@ -3717,6 +3889,38 @@ function AssignmentControls({
   onItemChange?: (change: Partial<Item>) => void;
 }) {
   const status = assignmentWeights(assignment, state.people, item);
+  const errorId = useId();
+  const invalidPerson =
+    assignment.mode === "equal"
+      ? undefined
+      : assignment.participants.find((id) => {
+          try {
+            const value = weight(assignment.values[id] || "");
+            return (
+              value <= 0n ||
+              (assignment.mode === "quantity" &&
+                item?.unitKind === "whole" &&
+                value % SCALE !== 0n)
+            );
+          } catch {
+            return true;
+          }
+        });
+  let invalidPack = false;
+  if (
+    assignment.mode === "quantity" &&
+    item &&
+    assignment.participants.length &&
+    !invalidPerson
+  ) {
+    try {
+      const pack = weight(item.packSize);
+      invalidPack =
+        pack <= 0n || (item.unitKind === "whole" && pack % SCALE !== 0n);
+    } catch {
+      invalidPack = true;
+    }
+  }
   function toggle(id: string) {
     const selected = assignment.participants.includes(id);
     onChange({
@@ -3734,7 +3938,10 @@ function AssignmentControls({
     });
   }
   return (
-    <div className="assignment-controls">
+    <div
+      className="assignment-controls"
+      data-validation-path={item ? `assignment.${item.id}` : "whole"}
+    >
       <div className="assignment-method">
         <Field label="Split method">
           <select
@@ -3773,6 +3980,7 @@ function AssignmentControls({
           <MoneyInput
             label="Units per purchased pack"
             value={item.packSize}
+            error={invalidPack ? status.issue : undefined}
             onChange={(packSize) => onItemChange?.({ packSize })}
             hint={`${item.quantity || "?"} purchased packs × units per pack = available units. Confirm the pack size yourself.`}
           />
@@ -3816,6 +4024,10 @@ function AssignmentControls({
             <input
               type="checkbox"
               checked={assignment.participants.includes(person.id)}
+              aria-invalid={status.status === "unassigned"}
+              aria-describedby={
+                status.status === "unassigned" ? errorId : undefined
+              }
               onChange={() => toggle(person.id)}
               aria-label={displayName(person.name, i)}
             />
@@ -3836,6 +4048,12 @@ function AssignmentControls({
                   key={person.id}
                   label={`${assignment.mode === "quantity" ? "Units" : assignment.mode === "percent" ? "Percent" : "Weight"} for ${displayName(person.name, i)}`}
                   value={assignment.values[person.id] || ""}
+                  error={
+                    invalidPack ||
+                    (invalidPerson && invalidPerson !== person.id)
+                      ? undefined
+                      : status.issue
+                  }
                   onChange={(value) =>
                     onChange({
                       ...assignment,
@@ -3848,7 +4066,7 @@ function AssignmentControls({
         </div>
       )}
       {status.issue && (
-        <p className="allocation-error" role="status">
+        <p className="allocation-error" role="status" id={errorId}>
           {status.issue}
         </p>
       )}

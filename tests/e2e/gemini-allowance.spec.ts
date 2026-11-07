@@ -67,7 +67,7 @@ async function backend(page: Page, enabled: boolean) {
     },
   };
 }
-async function upload(page: Page) {
+async function upload(page: Page, assisted = true) {
   await page.goto("/");
   const png = await page.evaluate(() => {
     const c = document.createElement("canvas");
@@ -87,32 +87,33 @@ async function upload(page: Page) {
     mimeType: "image/png",
     buffer: Buffer.from(png, "base64"),
   });
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
+  if (assisted)
+    await page
+      .getByRole("button", { name: "Assisted scan · Gemini", exact: true })
+      .click();
 }
 
-test("a Gemini key without a server allowance keeps scanning disabled", async ({
+test("a Gemini key without a server allowance leaves only the private scan flow", async ({
   page,
 }, info) => {
   const fixture = await backend(page, false);
   try {
-    await upload(page);
+    await upload(page, false);
     await expect(
-      page.getByText(
-        "Gemini needs a server API key and a scan allowance before scanning.",
-      ),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Assisted scan · Gemini", exact: true }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("button", {
         name: "Read receipt with Gemini",
         exact: true,
       }),
-    ).toBeDisabled();
-    await page
-      .getByText("Connect Gemini on this computer", { exact: true })
-      .click();
+    ).toHaveCount(0);
     await expect(
-      page.getByText("GEMINI_REQUEST_LIMIT", { exact: true }),
-    ).toBeVisible();
+      page.getByRole("button", {
+        name: "Read receipt on this device",
+        exact: true,
+      }),
+    ).toBeEnabled();
     await expect(page.locator(".selected-image")).toHaveCount(1);
     expect(fixture.calls()).toBe(0);
     expect(
@@ -181,7 +182,9 @@ test("Gemini quota failure keeps photos and refreshes the spent server allowance
         `gemini-allowance-exhausted-${info.project.name}.png`,
       ),
     });
-    await page.getByRole("button", { name: "On-device", exact: true }).click();
+    await page
+      .getByRole("button", { name: "On-device scan", exact: true })
+      .click();
     await expect(page.locator(".selected-image")).toHaveCount(1);
     expect(
       await page.evaluate(

@@ -8,9 +8,11 @@ import type { ExtractionProvider } from "./ocr";
 import type { PaddleRequest, PaddleReply } from "./paddle.worker";
 
 const unavailable =
-  "Enhanced reader files are unavailable. Try the basic on-device reader or manual entry.";
+  "Enhanced reader files are unavailable. You can still enter or correct the receipt manually.";
 const failed =
-  "The enhanced reader could not read this receipt. Try the basic reader, fewer photos or manual entry.";
+  "The receipt reader could not read this image. Try a clearer crop, fewer photos or manual entry.";
+/** No image has been recognised. The combined device flow may use its local fallback. */
+export class EnhancedReaderUnavailableError extends Error {}
 export const enhancedOcrProvider: ExtractionProvider = {
   name: "Enhanced on-device OCR",
   async extract(images, signal, progress) {
@@ -31,10 +33,11 @@ export const enhancedOcrProvider: ExtractionProvider = {
       typeof OffscreenCanvas !== "function" ||
       typeof createImageBitmap !== "function"
     )
-      throw new Error(
+      throw new EnhancedReaderUnavailableError(
         "The enhanced reader is not supported in this browser. Choose On-device or enter the receipt manually.",
       );
     let ownedWorker: Worker | undefined;
+    let recognitionStarted = false;
     let stopped = false,
       nextId = 0;
     let waiting:
@@ -49,13 +52,16 @@ export const enhancedOcrProvider: ExtractionProvider = {
     const failure = new Promise<never>((_, reject) => {
       rejectFailure = reject;
     });
-    const stop = (message: string) => {
+    const stop = (message: string, unavailableBeforeReading = false) => {
+      const error = unavailableBeforeReading
+        ? new EnhancedReaderUnavailableError(message)
+        : new Error(message);
       stopped = true;
       fetching.abort();
       ownedWorker?.terminate();
-      waiting?.reject(new Error(message));
+      waiting?.reject(error);
       waiting = undefined;
-      rejectFailure(new Error(message));
+      rejectFailure(error);
     };
     const cancelled = () =>
       stop("Scan cancelled. Your photos and draft are still available.");
@@ -63,7 +69,7 @@ export const enhancedOcrProvider: ExtractionProvider = {
     const deadline = setTimeout(
       () =>
         stop(
-          "Scanning took longer than 120 seconds. Try fewer photos or the basic reader.",
+          "Scanning took longer than 120 seconds. Try fewer photos, a clearer crop or manual entry.",
         ),
       120000,
     );
@@ -92,7 +98,10 @@ export const enhancedOcrProvider: ExtractionProvider = {
                 new URL(`/ocr-enhanced/${file.file}`, location.origin),
                 {
                   method: "HEAD",
-                  signal: fetching.signal,
+                  signal: AbortSignal.any([
+                    fetching.signal,
+                    AbortSignal.timeout(6000),
+                  ]),
                   credentials: "omit",
                   redirect: "error",
                 },
@@ -105,10 +114,10 @@ export const enhancedOcrProvider: ExtractionProvider = {
                 (file.file.endsWith(".mjs") && !/javascript/i.test(type)) ||
                 (length !== null && Number(length) !== file.bytes)
               )
-                throw new Error(unavailable);
+                throw new EnhancedReaderUnavailableError(unavailable);
             }),
           ).catch(() => {
-            throw new Error(unavailable);
+            throw new EnhancedReaderUnavailableError(unavailable);
           });
           if (stopped) throw new Error("Scan stopped.");
           ownedWorker = new Worker(
@@ -119,7 +128,8 @@ export const enhancedOcrProvider: ExtractionProvider = {
             "error",
             () =>
               stop(
-                "The enhanced reader stopped unexpectedly. Try the basic reader or manual entry.",
+                "The receipt reader stopped unexpectedly. Try fewer photos or manual entry.",
+                !recognitionStarted,
               ),
             { once: true },
           );
@@ -134,7 +144,8 @@ export const enhancedOcrProvider: ExtractionProvider = {
                 typeof reply.ok !== "boolean"
               ) {
                 stop(
-                  "The enhanced reader returned an invalid response. Try the basic reader.",
+                  "The receipt reader returned an invalid response. Try manual entry.",
+                  !recognitionStarted,
                 );
                 return;
               }
@@ -145,6 +156,7 @@ export const enhancedOcrProvider: ExtractionProvider = {
             },
           );
           await send({ type: "init" });
+          recognitionStarted = true;
           const panels: SourceRecognition["panels"] = [];
           for (const [photo, image] of images.entries()) {
             const blobs = readingBlobs(image);
@@ -180,6 +192,11 @@ export const enhancedOcrProvider: ExtractionProvider = {
             recognition,
             warnings: [
               ...assembled.warnings,
+              ...(images.some((image) => readingBlobs(image).length > 1)
+                ? [
+                    "A tall photo was read in overlapping detail sections. Check for missing or repeated purchases where sections meet. Available source views retain overlapping readings.",
+                  ]
+                : []),
               "This experimental reader prepared a draft. Check every purchase, quantity, discount, amount and overlapping row against the photos.",
             ],
             rawSections: panels.map((panel) => ({
@@ -191,8 +208,10 @@ export const enhancedOcrProvider: ExtractionProvider = {
         })(),
       ]);
     } catch (error) {
-      if (stopped || (error instanceof Error && error.message === unavailable))
+      if (stopped || error instanceof EnhancedReaderUnavailableError)
         throw error;
+      if (!recognitionStarted && !signal.aborted)
+        throw new EnhancedReaderUnavailableError(failed);
       throw new Error(failed);
     } finally {
       clearTimeout(deadline);

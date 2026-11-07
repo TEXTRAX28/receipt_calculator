@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -65,7 +66,9 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
-  await page.getByRole("button", { name: "Veryfi OCR", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Veryfi", exact: true })
+    .click();
   const scan = page.getByRole("button", {
     name: "Read receipt with Veryfi",
     exact: true,
@@ -114,7 +117,7 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   for (const field of [
     "purchase list",
     "receipt adjustments",
@@ -126,12 +129,12 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
         exact: true,
       })
       .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await expect(page.locator(".grand-total strong")).toHaveText("£5.50");
   await page.reload();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await page.getByLabel("Item 1 line price", { exact: true }).fill("5.49");
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page.getByLabel("Item 1 line price", { exact: true }).fill("5.50");
   await page
     .getByRole("checkbox", {
@@ -139,7 +142,7 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
       exact: true,
     })
     .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page
@@ -185,7 +188,9 @@ test("changing photos or providers resets Veryfi consent; a failed last attempt 
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles([file, { ...file, name: "footer.png" }]);
-  await page.getByRole("button", { name: "Veryfi OCR", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Veryfi", exact: true })
+    .click();
   const consent = page.getByRole("checkbox", {
     name: consentName,
     exact: true,
@@ -201,8 +206,12 @@ test("changing photos or providers resets Veryfi consent; a failed last attempt 
   await expect(consent).not.toBeChecked();
   await expect(scan).toBeDisabled();
   await consent.check();
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
-  await page.getByRole("button", { name: "Veryfi OCR", exact: true }).click();
+  await page
+    .getByRole("button", { name: "On-device scan", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Veryfi", exact: true })
+    .click();
   await expect(consent).not.toBeChecked();
   await consent.check();
   await scan.click();
@@ -230,6 +239,6 @@ test("credentials without an app allowance do not expose a usable Veryfi reader"
   await configure(page, 0);
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Veryfi OCR", exact: true }),
+    page.getByRole("button", { name: "Assisted scan · Veryfi", exact: true }),
   ).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { test, expect } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
@@ -102,12 +103,13 @@ test("native tall-receipt source evidence reaches the last reading section", asy
       exact: true,
     }),
   ).toBeVisible();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   for (const [item, section] of [
     [1, /section 1$/],
     [40, /section [2-9]\d*$/],

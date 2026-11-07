@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
@@ -43,10 +44,9 @@ async function configureMockGemini(page: Page) {
   );
 }
 
-test("Gemini setup is honest when no key is configured and sends no photos", async ({
+test("an unconfigured external reader leaves only private scanning and sends no photos", async ({
   page,
 }, info) => {
-  await page.goto("/");
   await page.route("**/api/receipts/config", (route) =>
     route.fulfill({
       json: {
@@ -56,6 +56,7 @@ test("Gemini setup is honest when no key is configured and sends no photos", asy
       },
     }),
   );
+  await page.goto("/");
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
@@ -63,29 +64,17 @@ test("Gemini setup is honest when no key is configured and sends no photos", asy
   page.on("request", (request) => {
     if (request.method() === "POST") uploads++;
   });
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
-  await expect(
-    page.getByText(
-      "Gemini needs a server API key and a scan allowance before scanning.",
-    ),
-  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Read receipt with Gemini" }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await expect(page.locator(".selected-image")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "Gemini AI", exact: true }),
-  ).toBeEnabled();
+    page.getByRole("button", { name: "Assisted scan · Gemini", exact: true }),
+  ).toHaveCount(0);
   await mkdir("qa-artifacts", { recursive: true });
   await page
     .locator(".reader-choice")
     .screenshot({ path: `qa-artifacts/${info.project.name}-gemini-setup.png` });
-  await page
-    .getByText("Connect Gemini on this computer", { exact: true })
-    .click();
-  await expect(
-    page.getByText("GEMINI_API_KEY=", { exact: true }),
-  ).toBeVisible();
   expect(uploads).toBe(0);
   expect(
     (
@@ -94,7 +83,9 @@ test("Gemini setup is honest when no key is configured and sends no photos", asy
         .analyze()
     ).violations,
   ).toEqual([]);
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
+  await page
+    .getByRole("button", { name: "On-device scan", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Read receipt on this device" }),
   ).toBeEnabled();
@@ -139,7 +130,9 @@ test("ordered photos → explicit Gemini consent → structured review → exact
   await page
     .getByRole("button", { name: "Move image 1 later", exact: true })
     .click();
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Gemini", exact: true })
+    .click();
   const scan = page.getByRole("button", {
     name: "Read receipt with Gemini",
     exact: true,
@@ -216,7 +209,9 @@ test("twelve photos are accepted, a thirteenth is rejected, and consent resets a
     })),
   );
   await expect(page.locator(".selected-image")).toHaveCount(12);
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Gemini", exact: true })
+    .click();
   const consent = page.getByRole("checkbox", {
     name: "Send these receipt photos to Google Gemini for this scan",
   });
@@ -253,7 +248,9 @@ test("Gemini quota failure keeps photos and offers the on-device reader (mock pr
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Gemini", exact: true })
+    .click();
   await page
     .getByRole("checkbox", {
       name: "Send these receipt photos to Google Gemini for this scan",
@@ -264,7 +261,9 @@ test("Gemini quota failure keeps photos and offers the on-device reader (mock pr
   await expect(
     page.getByRole("button", { name: "Preview image 1" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
+  await page
+    .getByRole("button", { name: "On-device scan", exact: true })
+    .click();
   await expect(
     page.getByRole("button", { name: "Read receipt on this device" }),
   ).toBeEnabled();
@@ -307,7 +306,8 @@ test("a tall photograph creates readable overlapping panels and real OCR reaches
       exact: true,
     }),
   ).toBeVisible();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
 });

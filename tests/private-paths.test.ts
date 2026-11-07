@@ -27,6 +27,8 @@ it("local-only configuration ignores cloud credentials, allowances and client va
     LOCAL_OCR_ENGINE: "paddle-v6",
     LOCAL_OCR_CACHE_ROOT: "/installed/models",
     LOCAL_VISION_ENABLED: "0",
+    RECEIPT_ASSISTED_READER: "computer",
+    LOCAL_OCR_CHECK_MODE: "off",
   };
   const variables = new Proxy(local, {
     get(target, name) {

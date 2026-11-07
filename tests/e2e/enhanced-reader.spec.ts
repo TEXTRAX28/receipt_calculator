@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { resolve } from "node:path";
 import { writeFile } from "node:fs/promises";
@@ -18,11 +19,11 @@ async function upload(page: Page, requireSupport = true) {
     .getByLabel("Upload receipt images")
     .setInputFiles(resolve("tests/fixtures/paddle-synthetic.png"));
   await page
-    .getByRole("button", { name: "Enhanced on-device", exact: true })
+    .getByRole("button", { name: "On-device scan", exact: true })
     .click();
 }
 
-test("unsupported enhanced reader keeps the photo and basic OCR works without enhanced downloads", async ({
+test("unsupported device reader falls back locally in one scan without enhanced downloads", async ({
   page,
 }, info) => {
   test.setTimeout(180000);
@@ -46,20 +47,16 @@ test("unsupported enhanced reader keeps the photo and basic OCR works without en
   await page
     .getByRole("button", { name: "Read receipt on this device", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText(
-    "not supported in this browser",
+  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
+    "6.00",
+    { timeout: 130000 },
   );
-  await expect(page.locator(".selected-image")).toHaveCount(1);
   expect(assets).toEqual([]);
   expect(workers).toEqual([]);
   await page.screenshot({
     path: await qaArtifactPath(info, "unsupported-enhanced.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Read receipt on this device", exact: true })
-    .click();
   await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
     "6.00",
     { timeout: 130000 },
@@ -101,7 +98,7 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
       url = new URL(request.url());
     if (
       (!["data:", "blob:"].includes(url.protocol) &&
-        url.origin !== "http://127.0.0.1:4173") ||
+        url.origin !== new URL(test.info().project.use.baseURL!).origin) ||
       !["GET", "HEAD"].includes(request.method())
     )
       return route.abort();
@@ -123,7 +120,7 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
     const url = new URL(request.url());
     if (
       !["data:", "blob:"].includes(url.protocol) &&
-      url.origin !== "http://127.0.0.1:4173"
+      url.origin !== new URL(test.info().project.use.baseURL!).origin
     )
       external.push(url.origin);
     if (!["GET", "HEAD"].includes(request.method())) writes.push(url.pathname);
@@ -175,14 +172,18 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
   ).toHaveValue("6.00");
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(2);
   await expect(
-    page.locator("p").filter({ hasText: /enhanced reader is experimental/ }),
+    page.locator("p").filter({
+      hasText:
+        /Check the complete purchase list, quantities, amounts and overlapping rows/,
+    }),
   ).toBeVisible();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   await expect.poll(() => closed).toBe(1);
   expect(workers).toHaveLength(1);
   expect(external).toEqual([]);
@@ -313,7 +314,7 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
   );
 });
 
-test("missing enhanced assets preserve images and leave the basic reader available", async ({
+test("missing enhanced assets use compatibility OCR without asking for another scan choice", async ({
   page,
 }) => {
   await upload(page);
@@ -327,17 +328,16 @@ test("missing enhanced assets preserve images and leave the basic reader availab
   await page
     .getByRole("button", { name: "Read receipt on this device", exact: true })
     .click();
+  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
+    "6.00",
+    { timeout: 130000 },
+  );
   await expect(
-    page.getByText(/Enhanced reader files are unavailable/),
+    page.getByText(/The compatibility reader prepared this draft/),
   ).toBeVisible();
-  await expect(page.locator(".selected-image")).toHaveCount(1);
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
   await expect(
-    page.getByRole("button", {
-      name: "Read receipt on this device",
-      exact: true,
-    }),
-  ).toBeEnabled();
+    page.getByRole("button", { name: "View original receipt image 1" }),
+  ).toBeVisible();
 });
 
 test("enhanced area errors and cancellation preserve the draft and do not switch to a configured computer", async ({
@@ -355,7 +355,7 @@ test("enhanced area errors and cancellation preserve the draft and do not switch
       return route.abort();
     }
     if (
-      url.origin !== "http://127.0.0.1:4173" &&
+      url.origin !== new URL(test.info().project.use.baseURL!).origin &&
       !["data:", "blob:"].includes(url.protocol)
     )
       return route.abort();

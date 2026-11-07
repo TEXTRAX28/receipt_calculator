@@ -1,3 +1,5 @@
+import { requireAssistedPolicy } from "./assisted-policy";
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { costcoDemo } from "../../src/lib/demo";
@@ -58,7 +60,7 @@ test("real local vision reads a synthetic receipt and supports an exact checked 
     mimeType: "image/png",
     buffer: Buffer.from(image, "base64"),
   });
-  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  await requireAssistedPolicy(page, "vision");
   const started = Date.now();
   const nativeResponse = page.waitForResponse(
     (response) =>
@@ -113,7 +115,7 @@ test("real local vision reads a synthetic receipt and supports an exact checked 
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page
@@ -198,7 +200,7 @@ test("real local vision reads three ordered overlapping synthetic sections", asy
       buffer: Buffer.from(data, "base64"),
     })),
   );
-  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  await requireAssistedPolicy(page, "vision");
   const response = page.waitForResponse((result) =>
     result.url().endsWith("/api/receipts/vision"),
   );
@@ -249,9 +251,10 @@ test("real local vision reads three ordered overlapping synthetic sections", asy
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("8.75");
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeEnabled();
+  );
 });
 
 test("real local vision preserves the supplied Costco diagnostic and its validation outcome", async ({
@@ -284,7 +287,7 @@ test("real local vision preserves the supplied Costco diagnostic and its validat
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(files as string[]);
-  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  await requireAssistedPolicy(page, "vision");
   const response = page.waitForResponse((result) =>
     result.url().endsWith("/api/receipts/vision"),
   );
@@ -344,7 +347,7 @@ test("real local vision preserves the supplied Costco diagnostic and its validat
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  if (calculated!.issues.length) await expect(confirm).toBeDisabled();
-  else await expect(confirm).toBeEnabled();
+  if (calculated!.issues.length) await expectReviewBlocked(page, confirm);
+  else await expectReviewReady(page, confirm);
   // A passed protocol diagnostic is not a passed accuracy benchmark. Its discrepancies are retained above.
 });

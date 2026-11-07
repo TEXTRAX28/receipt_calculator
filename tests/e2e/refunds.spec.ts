@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -50,12 +51,13 @@ test("phone refund controls → exact credit shares → honest export and privat
   await page
     .getByLabel("Item 1 unit price (optional)", { exact: true })
     .fill("10.00");
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeEnabled();
+  );
   await mkdir("qa-artifacts", { recursive: true });
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -146,12 +148,13 @@ test("mixed text purchases and returns require a shared-charge choice and keep i
     .fill("Shared fee");
   await page.getByLabel("Adjustment 1 amount", { exact: true }).fill("2.00");
   await page.getByLabel("Printed total", { exact: true }).fill("7.00");
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   await expect(
     page.getByText(/This receipt mixes purchases and returns/).first(),
   ).toBeVisible();

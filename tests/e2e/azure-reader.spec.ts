@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { createServer } from "node:http";
@@ -178,7 +179,7 @@ test("Azure consent, source highlights and exact split through real local HTTP w
       .getByLabel("Upload receipt images")
       .setInputFiles(await picture(page));
     await page
-      .getByRole("button", { name: "Azure receipt OCR", exact: true })
+      .getByRole("button", { name: "Assisted scan · Azure", exact: true })
       .click();
     const scan = page.getByRole("button", {
       name: "Read receipt with Azure",
@@ -247,7 +248,7 @@ test("Azure consent, source highlights and exact split through real local HTTP w
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     for (const field of [
       "purchase list",
       "receipt adjustments",
@@ -259,7 +260,7 @@ test("Azure consent, source highlights and exact split through real local HTTP w
           exact: true,
         })
         .check();
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     await confirm.click();
     for (const name of ["Alice", "Bob"]) {
       await page
@@ -298,7 +299,7 @@ test("Azure consent resets with photo order and reader changes; provider failure
       .getByLabel("Upload receipt images")
       .setInputFiles([file, { ...file, name: "footer.png" }]);
     await page
-      .getByRole("button", { name: "Azure receipt OCR", exact: true })
+      .getByRole("button", { name: "Assisted scan · Azure", exact: true })
       .click();
     const consent = page.getByRole("checkbox", {
       name: consentName,
@@ -314,9 +315,11 @@ test("Azure consent resets with photo order and reader changes; provider failure
       .click();
     await expect(consent).not.toBeChecked();
     await consent.check();
-    await page.getByRole("button", { name: "On-device", exact: true }).click();
     await page
-      .getByRole("button", { name: "Azure receipt OCR", exact: true })
+      .getByRole("button", { name: "On-device scan", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Assisted scan · Azure", exact: true })
       .click();
     await expect(consent).not.toBeChecked();
     await consent.check();
@@ -348,7 +351,7 @@ test("Azure credentials without a section allowance stay unavailable", async ({
     // Absence also holds before configuration loads; wait before closing the API.
     expect(await (await providers).finished()).toBeNull();
     await expect(
-      page.getByRole("button", { name: "Azure receipt OCR", exact: true }),
+      page.getByRole("button", { name: "Assisted scan · Azure", exact: true }),
     ).toHaveCount(0);
     expect(fixture.calls).toEqual([]);
   } finally {
@@ -381,7 +384,7 @@ test("Azure source-owned quantity reaches review through real local HTTP and req
       buffer: Buffer.from(png, "base64"),
     });
     await page
-      .getByRole("button", { name: "Azure receipt OCR", exact: true })
+      .getByRole("button", { name: "Assisted scan · Azure", exact: true })
       .click();
     await page
       .getByRole("checkbox", { name: consentName, exact: true })
@@ -416,7 +419,7 @@ test("Azure source-owned quantity reaches review through real local HTTP and req
           exact: true,
         })
         .check();
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     await page
       .getByRole("button", { name: "View source for item 1", exact: true })
       .click();
@@ -445,7 +448,7 @@ test("Azure source-owned quantity reaches review through real local HTTP and req
     await dialog
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

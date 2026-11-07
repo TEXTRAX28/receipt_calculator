@@ -1,3 +1,5 @@
+import { requireAssistedPolicy } from "./assisted-policy";
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { test, expect } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -43,12 +45,8 @@ test("real independent readers → original two-photo review → exact checked s
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(files as string[]);
-  await page
-    .getByRole("button", { name: "This computer", exact: true })
-    .click();
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+  await requireAssistedPolicy(page, "computer");
+  await requireAssistedPolicy(page, "computer", "always");
   const nativeResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/receipts/vision") &&
@@ -108,7 +106,7 @@ test("real independent readers → original two-photo review → exact checked s
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 4", exact: true })
     .click();
@@ -139,7 +137,7 @@ test("real independent readers → original two-photo review → exact checked s
     .getByRole("checkbox")
     .all())
     if (await checkbox.isEnabled()) await checkbox.check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob", "Charlie"]) {
     await page
@@ -288,7 +286,7 @@ test("real four-section local vision completes bounded batches and retains actua
       buffer: Buffer.from(image, "base64"),
     })),
   );
-  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  await requireAssistedPolicy(page, "vision");
   const response = page.waitForResponse(
     (result) => result.url().endsWith("/api/receipts/vision-batches"),
     { timeout: 400000 },
@@ -394,9 +392,10 @@ test("real four-section local vision completes bounded batches and retains actua
   expect(
     state.receipt.items.filter((item) => /chicken/i.test(item.description)),
   ).toHaveLength(2);
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   expect(external).toEqual([]);
   expect(posts).toEqual([
     "/api/receipts/recognize",
@@ -411,7 +410,7 @@ test("real four-section local vision completes bounded batches and retains actua
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob", "Charlie"]) {
     await page

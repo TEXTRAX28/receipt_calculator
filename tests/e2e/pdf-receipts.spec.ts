@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -11,7 +12,7 @@ async function setup(page: Page, computer = false) {
     if (
       url.protocol === "data:" ||
       (["http:", "blob:"].includes(url.protocol) &&
-        url.origin === "http://127.0.0.1:4173")
+        url.origin === new URL(test.info().project.use.baseURL!).origin)
     )
       return route.continue();
     requests.external.push(url.origin);
@@ -36,6 +37,13 @@ async function setup(page: Page, computer = false) {
     }),
   );
   await page.goto("/");
+  if (computer)
+    await page
+      .getByRole("button", {
+        name: "Assisted scan · This computer",
+        exact: true,
+      })
+      .click();
   return requests;
 }
 
@@ -133,7 +141,7 @@ test("real PDF text → original row areas → checked three-person split, witho
     .setInputFiles(fixture("digital-two-page.pdf"));
   await expect(page.locator(".selected-image")).toHaveCount(2);
   await expect(
-    page.getByRole("button", { name: "PDF text", exact: true }),
+    page.getByRole("button", { name: "On-device scan", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({
     path: await qaArtifactPath(info, `pdf-upload-${info.project.name}.png`),
@@ -172,7 +180,7 @@ test("real PDF text → original row areas → checked three-person split, witho
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 2", exact: true })
     .click();
@@ -187,7 +195,7 @@ test("real PDF text → original row areas → checked three-person split, witho
       exact: true,
     })
     .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await page.screenshot({
     path: await qaArtifactPath(info, `pdf-review-${info.project.name}.png`),
     fullPage: true,
@@ -254,7 +262,7 @@ test("a long digital PDF retains all sixty purchases and uses its full-page sour
     .getByLabel("Upload receipt images")
     .setInputFiles(fixture("long-digital.pdf"));
   await expect(
-    page.getByRole("button", { name: "PDF text", exact: true }),
+    page.getByRole("button", { name: "On-device scan", exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Read PDF text on this device", exact: true })
@@ -329,7 +337,10 @@ for (const name of ["scanned-one-page.pdf", "mixed-two-page.pdf"])
     await page.getByLabel("Upload receipt images").setInputFiles(fixture(name));
     await expect(page.locator(".selected-image")).toHaveCount(count);
     await expect(
-      page.getByRole("button", { name: "PDF text", exact: true }),
+      page.getByRole("button", {
+        name: "Read PDF text on this device",
+        exact: true,
+      }),
     ).toHaveCount(0);
     await page
       .getByRole("button", {
@@ -387,10 +398,13 @@ test("rotated PDF writing keeps its preview and offers image readers", async ({
     .setInputFiles(fixture("rotated-page.pdf"));
   await expect(page.locator(".selected-image")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "PDF text", exact: true }),
+    page.getByRole("button", {
+      name: "Read PDF text on this device",
+      exact: true,
+    }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "On-device", exact: true }),
+    page.getByRole("button", { name: "On-device scan", exact: true }),
   ).toBeVisible();
   expect(requests).toEqual({ posts: [], external: [] });
 });

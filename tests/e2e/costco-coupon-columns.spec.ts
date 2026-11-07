@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { couponColumnFixture } from "../fixtures/costco-coupon-columns";
@@ -13,10 +14,12 @@ test("joined and fragmented coupons retain their original source regions and req
     if (path.endsWith("/providers"))
       return route.fulfill({
         json: {
+          localCheckMode: "always",
           localModel: { configured: true, name: "PaddleOCR" },
           localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
         },
       });
+    if (route.request().method() !== "POST") return route.abort();
     const body = route.request().postDataJSON();
     posts.push({ path, body });
     if (path.endsWith("/recognize")) {
@@ -30,8 +33,14 @@ test("joined and fragmented coupons retain their original source regions and req
     return route.abort();
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
+    page.getByRole("button", {
+      name: "Assisted scan · This computer",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-pressed", "true");
   const image = await page.evaluate((panel) => {
     const canvas = document.createElement("canvas");
@@ -160,12 +169,13 @@ test("joined and fragmented coupons retain their original source regions and req
       (check: { confirmedValue: string }) => check.confirmedValue === "",
     ),
   ).toBe(true);
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   await writeFile(
     await qaArtifactPath(info, "coupon-column-review.json"),
     JSON.stringify(

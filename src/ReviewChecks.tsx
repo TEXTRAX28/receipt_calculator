@@ -112,6 +112,11 @@ export default function ReviewChecks({
           <label className="check-row verification-confirm">
             <input
               type="checkbox"
+              data-review-path={
+                check.scope === "item"
+                  ? `items.${receipt.items.findIndex((item) => item.id === check.itemId)}.${check.field}`
+                  : check.field
+              }
               checked={!checkIsPending(receipt, check)}
               disabled={!checkIsApplicable(receipt, check)}
               onChange={(event) =>

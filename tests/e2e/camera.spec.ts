@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile, writeFile } from "node:fs/promises";
@@ -161,7 +162,7 @@ async function camera(
       url = new URL(request.url());
     if (
       !["data:", "blob:"].includes(url.protocol) &&
-      url.origin !== "http://127.0.0.1:4173"
+      url.origin !== new URL(test.info().project.use.baseURL!).origin
     ) {
       external.push(url.origin);
       return route.abort();
@@ -580,7 +581,7 @@ test("captured synthetic photo reaches real enhanced OCR and exact equal split",
     page.getByAltText("Receipt preview 1", { exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Enhanced on-device", exact: true })
+    .getByRole("button", { name: "On-device scan", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Read receipt on this device", exact: true })
@@ -605,12 +606,13 @@ test("captured synthetic photo reaches real enhanced OCR and exact equal split",
     unitPrice: "3.50",
     lineTotal: "3.50",
   });
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   for (const check of await page
     .locator(".verification-checks")
     .getByRole("checkbox")

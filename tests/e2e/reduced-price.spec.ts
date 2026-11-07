@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
@@ -37,7 +38,7 @@ test("reduced-price products preserve missing money and require source checks be
   // The blank required price blocks through arithmetic validation; its source
   // check becomes applicable only after a value has been entered.
   await expect(checks).toHaveCount(1);
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -56,23 +57,23 @@ test("reduced-price products preserve missing money and require source checks be
   await price(1).fill("0.50");
   await expect(checks).toHaveCount(2);
   // A balanced total alone cannot bypass either product/price association check.
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await checks.nth(0).check();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await checks.nth(1).check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await page.reload();
   await expect(price(1)).toHaveValue("0.50");
   await expect(checks.nth(0)).toBeChecked();
   await expect(checks.nth(1)).toBeChecked();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await price(2).fill("0.54");
   // Explicit human edits record a correction; arithmetic still rejects the
   // one-penny mismatch independently of that verification stamp.
   await expect(checks.nth(1)).toBeChecked();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await price(2).fill("0.55");
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await checks.nth(1).uncheck();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
 });

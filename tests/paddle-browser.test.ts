@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { enhancedOcrProvider } from "../src/lib/paddle-browser";
+import {
+  enhancedOcrProvider,
+  EnhancedReaderUnavailableError,
+} from "../src/lib/paddle-browser";
 import { recognitionSchema } from "../src/lib/recognition-schema.mjs";
 import { PHOTO_SEPARATOR } from "../src/lib/parser";
 import fixture from "./fixtures/paddle-synthetic.json";
@@ -69,6 +72,18 @@ afterEach(() => {
 });
 
 describe("bounded enhanced browser provider", () => {
+  it("allows local compatibility fallback after initialization fails, before reading any image", async () => {
+    mocks.create.mockRejectedValue(new Error("Synthetic unavailable runtime"));
+    await expect(
+      enhancedOcrProvider.extract(
+        [image],
+        new AbortController().signal,
+        vi.fn(),
+      ),
+    ).rejects.toBeInstanceOf(EnhancedReaderUnavailableError);
+    expect(mocks.predict).not.toHaveBeenCalled();
+    expect(mocks.terminate).toHaveBeenCalled();
+  });
   it.each(["OffscreenCanvas", "createImageBitmap"])(
     "rejects a browser without %s before fetching assets or starting a worker",
     async (capability) => {

@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 // Opt-in local-only development receipt. No cloud requests or financial edits.
 import { test, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
@@ -49,7 +50,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
     const r = route.request(),
       url = new URL(r.url());
     if (
-      url.origin !== "http://127.0.0.1:4173" &&
+      url.origin !== new URL(test.info().project.use.baseURL!).origin &&
       !["data:", "blob:"].includes(url.protocol)
     ) {
       external.push(url.origin);
@@ -167,7 +168,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
     }
   }
   await page
-    .getByRole("button", { name: "Enhanced on-device", exact: true })
+    .getByRole("button", { name: "On-device scan", exact: true })
     .click();
   await expect(page.locator(".selected-image")).toHaveCount(2);
   const start = Date.now();
@@ -268,12 +269,13 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
         c.scope === "receipt" && c.field === "items" && !c.confirmedValue,
     ),
   ).toBe(true);
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   await expect.poll(() => closed).toBe(cropPhotos ? 3 : 1);
   expect(workers).toHaveLength(cropPhotos ? 3 : 1);
   expect(external).toEqual([]);
@@ -395,12 +397,13 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();
   }
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   expect(workers).toHaveLength(cropPhotos ? 3 : 4);
   expect(closed).toBe(cropPhotos ? 3 : 4);
   expect(workers.filter((url) => /paddle\.worker/.test(url))).toHaveLength(

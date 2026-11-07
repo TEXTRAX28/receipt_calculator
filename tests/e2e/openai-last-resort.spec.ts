@@ -95,11 +95,26 @@ async function setup(page: Page, enabled: boolean, succeeds = false) {
   });
   await expect(page.locator(".selected-image")).toHaveCount(1);
   expect(calls).toBe(0);
+  if (!enabled) {
+    await expect(
+      page.getByRole("button", {
+        name: "Assisted scan · OpenAI credits · last resort",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    return { calls: () => calls };
+  }
   await expect(
-    page.getByRole("button", { name: "OpenAI last resort", exact: true }),
+    page.getByRole("button", {
+      name: "Assisted scan · OpenAI credits · last resort",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-pressed", "false");
   await page
-    .getByRole("button", { name: "OpenAI last resort", exact: true })
+    .getByRole("button", {
+      name: "Assisted scan · OpenAI credits · last resort",
+      exact: true,
+    })
     .click();
   return { calls: () => calls };
 }
@@ -113,12 +128,12 @@ test("OpenAI stays disabled without an allowance and never selects itself", asyn
       name: "Read receipt with OpenAI credits",
       exact: true,
     }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("checkbox", {
       name: /^Send these receipt sections to OpenAI/,
     }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   expect(fixture.calls()).toBe(0);
   expect(
     await page.evaluate(
@@ -159,7 +174,9 @@ test("credit consent is required; failure preserves photos and refreshes the use
       `openai-last-resort-failure-${info.project.name}.png`,
     ),
   });
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
+  await page
+    .getByRole("button", { name: "On-device scan", exact: true })
+    .click();
   await expect(page.locator(".selected-image")).toHaveCount(1);
   expect(fixture.calls()).toBe(1);
 });

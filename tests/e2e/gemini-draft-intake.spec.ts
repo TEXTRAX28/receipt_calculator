@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
@@ -73,7 +74,9 @@ test("Gemini grouped amounts stay editable but cannot be shared until corrected 
     mimeType: "image/png",
     buffer: Buffer.from(png, "base64"),
   });
-  await page.getByRole("button", { name: "Gemini AI", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Gemini", exact: true })
+    .click();
   await page
     .getByRole("checkbox", {
       name: "Send these receipt photos to Google Gemini for this scan",
@@ -94,13 +97,13 @@ test("Gemini grouped amounts stay editable but cannot be shared until corrected 
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page.getByLabel("Currency", { exact: true }).selectOption("GBP");
   // Selecting currency and checking the source cannot turn invalid money into a payable value.
   const checks = page.getByRole("checkbox", { name: /^I checked/ });
   await expect(checks).toHaveCount(4);
   for (const check of await checks.all()) await check.check();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   for (const input of [line, unit, total, subtotal])
     await expect(input).toHaveValue("1,000");
   expect(
@@ -113,11 +116,11 @@ test("Gemini grouped amounts stay editable but cannot be shared until corrected 
     fullPage: true,
   });
   for (const input of [line, unit, total]) await input.fill("1000");
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   // Existing review behavior treats a manual field edit as checking that value.
   // Every invalid amount still needs correction, including the optional subtotal.
   await subtotal.fill("1000");
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page.getByRole("textbox", { name: "Person’s name" }).fill(name);

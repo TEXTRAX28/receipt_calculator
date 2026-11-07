@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { reducedPriceFixture } from "../fixtures/reduced-price-role";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -14,6 +15,8 @@ test("a selling price mistaken for a discount needs both source checks before sp
   await page.route("**/api/receipts/providers", (route) =>
     route.fulfill({
       json: {
+        assistedReader: "computer",
+        localCheckMode: "always",
         localModel: { configured: true, name: "PaddleOCR" },
         localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
       },
@@ -31,6 +34,9 @@ test("a selling price mistaken for a discount needs both source checks before sp
     return route.fulfill({ json: { receipt: raw } });
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   const png = await page.evaluate((panel) => {
     const canvas = document.createElement("canvas");
     canvas.width = panel.width;
@@ -55,9 +61,7 @@ test("a selling price mistaken for a discount needs both source checks before sp
     mimeType: "image/png",
     buffer: Buffer.from(png, "base64"),
   });
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+
   await page
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
@@ -74,7 +78,7 @@ test("a selling price mistaken for a discount needs both source checks before sp
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 1", exact: true })
     .click();
@@ -97,7 +101,7 @@ test("a selling price mistaken for a discount needs both source checks before sp
   });
   await expect(discount).not.toBeChecked();
   await dialog.getByRole("button", { name: "Back to receipt" }).click();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -113,7 +117,7 @@ test("a selling price mistaken for a discount needs both source checks before sp
       exact: true,
     })
     .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page.getByRole("textbox", { name: "Person’s name" }).fill(name);

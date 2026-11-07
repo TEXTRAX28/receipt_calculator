@@ -93,7 +93,7 @@ test("separate browser contexts do not see each other’s receipt data", async (
   const isolated = await browser.newContext();
   try {
     const other = await isolated.newPage();
-    await other.goto("http://127.0.0.1:4173/");
+    await other.goto(String(test.info().project.use.baseURL));
     await expect(
       other.getByRole("heading", { name: "Big shop. Little maths." }),
     ).toBeVisible();
@@ -154,7 +154,7 @@ test("a second tab cannot silently overwrite an open draft", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Try the Costco demo" }).click();
   const other = await context.newPage();
-  await other.goto("http://127.0.0.1:4173/");
+  await other.goto(String(test.info().project.use.baseURL));
   await other
     .getByRole("textbox", { name: "Merchant", exact: true })
     .fill("Other tab shop");

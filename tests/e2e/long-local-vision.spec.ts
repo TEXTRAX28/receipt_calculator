@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import { planVisionBatches } from "../../src/lib/vision-plan.mjs";
 import {
@@ -20,6 +21,8 @@ async function setup(page: Page, count = 4, standalone = false) {
   await page.route("**/api/receipts/providers", (route) =>
     route.fulfill({
       json: {
+        assistedReader: standalone ? "vision" : "computer",
+        localCheckMode: "always",
         localModel: { configured: true, name: "PaddleOCR" },
         localVision: {
           configured: true,
@@ -86,14 +89,14 @@ async function setup(page: Page, count = 4, standalone = false) {
       buffer: Buffer.from(image, "base64"),
     })),
   );
-  if (standalone)
-    await page
-      .getByRole("button", { name: "Local vision", exact: true })
-      .click();
-  else
-    await page
-      .getByLabel("Local vision comparison", { exact: true })
-      .selectOption("always");
+  await page
+    .getByRole("button", {
+      name: standalone
+        ? "Assisted scan · Local vision"
+        : "Assisted scan · This computer",
+      exact: true,
+    })
+    .click();
   return page.getByRole("button", {
     name: standalone
       ? "Read receipt with local vision"
@@ -170,7 +173,7 @@ for (const count of [4, 12])
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     if (count === 4) {
       const positions: string[] = [];
       for (const index of [4, 5]) {
@@ -205,7 +208,7 @@ for (const count of [4, 12])
       .getByRole("checkbox")
       .all())
       if (await checkbox.isEnabled()) await checkbox.check();
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     await confirm.click();
     for (const name of ["Alice", "Bob"]) {
       await page
@@ -269,14 +272,14 @@ test("an unsupported tax table remains editable when prices include tax", async 
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("checkbox", {
       name: "I checked purchase list against the original",
       exact: true,
     })
     .check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
 });
 
 test("a stopped long-receipt stream keeps the first draft explicitly unverified and retains every photo", async ({
@@ -294,9 +297,10 @@ test("a stopped long-receipt stream keeps the first draft explicitly unverified 
   );
   await (await setup(page)).click();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(6);
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   await expect(
     page.getByText(/extra comparison could not/i).first(),
   ).toBeVisible();

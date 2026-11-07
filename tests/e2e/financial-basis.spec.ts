@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -38,6 +39,8 @@ for (const scenario of [
     await page.route("**/api/receipts/providers", (route) =>
       route.fulfill({
         json: {
+          assistedReader: "computer",
+          localCheckMode: "always",
           localModel: { configured: true, name: "PaddleOCR" },
           localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
         },
@@ -122,6 +125,12 @@ for (const scenario of [
       });
     });
     await page.goto("/");
+    await page
+      .getByRole("button", {
+        name: "Assisted scan · This computer",
+        exact: true,
+      })
+      .click();
     const fixture = await page.evaluate(
       ({ texts, splitRow, slanted }) => {
         const canvas = document.createElement("canvas");
@@ -210,9 +219,7 @@ for (const scenario of [
       mimeType: "image/png",
       buffer: Buffer.from(fixture.png, "base64"),
     });
-    await page
-      .getByLabel("Local vision comparison", { exact: true })
-      .selectOption("always");
+
     await page
       .getByRole("button", {
         name: "Read receipt on this computer",
@@ -223,7 +230,7 @@ for (const scenario of [
       name: "Confirm receipt & add people",
       exact: true,
     });
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     const fields =
       scenario === "roles"
         ? [
@@ -244,7 +251,7 @@ for (const scenario of [
                     : []),
             ];
     for (const field of fields) {
-      await expect(confirm).toBeDisabled();
+      await expectReviewBlocked(page, confirm);
       await page
         .getByRole("button", { name: `View source for ${field}`, exact: true })
         .click();
@@ -322,7 +329,7 @@ for (const scenario of [
     if (scenario === "slanted-columns") {
       // DUE is not supported by the primary total parser. Financial role
       // recovery must not silently confirm the separate model total.
-      await expect(confirm).toBeDisabled();
+      await expectReviewBlocked(page, confirm);
       await expect(
         page.getByLabel("Printed total", { exact: true }),
       ).toHaveValue("21.00");
@@ -345,7 +352,7 @@ for (const scenario of [
       ),
       contentType: "application/json",
     });
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       expect(

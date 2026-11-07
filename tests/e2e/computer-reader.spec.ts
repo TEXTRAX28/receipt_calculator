@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -12,6 +13,9 @@ async function configure(page: Page) {
 }
 async function openPurchaseSource(page: Page) {
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
@@ -101,8 +105,14 @@ test("configured computer reader fits phones and produces an editable balanced d
       cloud.push(request.url());
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
+    page.getByRole("button", {
+      name: "Assisted scan · This computer",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-pressed", "true");
   await mkdir("qa-artifacts", { recursive: true });
   for (const width of [320, 390]) {
@@ -113,7 +123,7 @@ test("configured computer reader fits phones and produces an editable balanced d
       ),
     ).toBe(true);
     const button = page.getByRole("button", {
-      name: "This computer",
+      name: "Assisted scan · This computer",
       exact: true,
     });
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -147,7 +157,7 @@ test("configured computer reader fits phones and produces an editable balanced d
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {
     await page
@@ -184,6 +194,9 @@ test("computer failure preserves photos and offers an explicit on-device fallbac
   );
   await page.goto("/");
   await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
+  await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
   await page
@@ -195,7 +208,9 @@ test("computer failure preserves photos and offers an explicit on-device fallbac
     ),
   ).toBeVisible();
   await expect(page.locator(".selected-image")).toHaveCount(1);
-  await page.getByRole("button", { name: "On-device", exact: true }).click();
+  await page
+    .getByRole("button", { name: "On-device scan", exact: true })
+    .click();
   await expect(
     page.getByRole("button", {
       name: "Read receipt on this device",
@@ -216,6 +231,9 @@ test("source rows support phone review, edits, keyboard return and private refre
     await route.fulfill({ json: result });
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page));
@@ -308,9 +326,10 @@ test("source rows support phone review, edits, keyboard return and private refre
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("2.50");
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   const saved = await page.evaluate(() =>
     localStorage.getItem("gather.receipt.v1")!,
   );
@@ -467,12 +486,13 @@ test("a selected purchase area is reread locally, preserves the draft and fits p
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
-  ).toBeDisabled();
+  );
   await expect(
     page
       .getByTestId("review-item-1")
@@ -608,6 +628,9 @@ test("a balanced bare negative row needs a classification check with literal sou
   );
   await page.goto("/");
   await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
+  await page
     .getByLabel("Upload receipt images")
     .setInputFiles(await picture(page, texts));
   await page
@@ -621,7 +644,7 @@ test("a balanced bare negative row needs a classification check with literal sou
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", {
       name: "View source for receipt adjustments",
@@ -663,5 +686,5 @@ test("a balanced bare negative row needs a classification check with literal sou
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
 });

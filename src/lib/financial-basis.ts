@@ -2,17 +2,21 @@ import type { Currency } from "./model";
 import { money } from "./money";
 import { printedAmount } from "./printed-amount";
 import type { EvidenceLine, SourceRecognition } from "./receipt-layout";
+import { findTaxRegistrations, isTaxRegistrationLine } from "./receipt-roles";
 
 const labels = [
   ["subtotal", /^(?:sub[-\s]?total|subttl)\b/i],
   [
     "tax",
-    /^(?:(?:sales\s+|restaurant\s+)?tax|vat|gst|hst|pst|pb1|pajak\s+restoran)\b/i,
+    /^(?:(?:sales\s+|restaurant\s+)?tax|vat|gst|hst|pst|pb1|pajak\s+restoran)(?:\s+amount)?\b/i,
   ],
   ["fee", /^(?:service(?:\s+charge)?|svc\s+(?:chrg|chg)|fee)\b/i],
   ["discount", /^(?:discount|disc)\b/i],
   ["rounding", /^rounding\b/i],
-  ["total", /^(?:grand\s+total|total|amount\s+due|balance\s+due|due)\b/i],
+  [
+    "total",
+    /^(?:grand\s+total|total(?:\s+to\s+pay)?|amount\s+due|balance\s+due|due)\b/i,
+  ],
 ] as const;
 const compact = (text: string) => text.replace(/\s/g, "");
 const financialText = (text: string) => text.replace(/^(?:\*+\s+)+/u, "");
@@ -21,6 +25,7 @@ const informationalTotal =
 const amountOnly = /^[-−]?\d[\d., ]*-?$/;
 function headingRole(text: string) {
   text = financialText(text);
+  if (isTaxRegistrationLine(text)) return undefined;
   return labels.find(([, pattern]) => {
     const prefix = text.match(pattern);
     return (
@@ -36,8 +41,9 @@ type FinancialEntry = {
 };
 
 /** Printed roles and tokens only; no confidence or arithmetic is inferred here. */
-export function matchFinancialSummaryRow(text: string) {
+export function matchFinancialSummaryRow(text: string, currency?: Currency) {
   text = financialText(text);
+  if (isTaxRegistrationLine(text, currency)) return null;
   const role = labels.find(([, pattern]) => pattern.test(text));
   if (!role) return null;
   const prefix = text.match(role[1])![0];
@@ -313,10 +319,18 @@ export function readFinancialSummary(
   recognition: SourceRecognition,
   currency: Currency,
 ) {
+  const registrations = findTaxRegistrations(
+    lines.map((line) => line?.text || ""),
+    currency,
+  );
   const rows = financialEntries(lines, recognition).map(
     ({ line, sourceIndices, wordsVerified }) => {
-      if (!line) return null;
-      const row = matchFinancialSummaryRow(line.text);
+      if (
+        !line ||
+        sourceIndices.some((index) => registrations.indices.has(index))
+      )
+        return null;
+      const row = matchFinancialSummaryRow(line.text, currency);
       if (!row || (!wordsVerified && !strongWords(line, recognition)))
         return null;
       try {

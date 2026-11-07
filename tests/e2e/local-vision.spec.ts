@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -8,6 +9,7 @@ async function configure(page: Page) {
   await page.route("**/api/receipts/providers", (route) =>
     route.fulfill({
       json: {
+        assistedReader: "vision",
         localModel: { configured: true, name: "PaddleOCR" },
         localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
       },
@@ -44,7 +46,9 @@ async function start(page: Page, count = 1) {
       name: `protocol-${index + 1}.png`,
     })),
   );
-  await page.getByRole("button", { name: "Local vision", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Assisted scan · Local vision", exact: true })
+    .click();
   return page.getByRole("button", {
     name: "Read receipt with local vision",
     exact: true,
@@ -124,9 +128,10 @@ test("a chosen currency fills review details without changing model requests or 
   await expect(
     page.getByText(/Receipt currency supplied by you: IDR/),
   ).toBeVisible();
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
 });
 
 test("local vision → structured review → exact split uses only the local endpoint (mock protocol)", async ({
@@ -158,7 +163,7 @@ test("local vision → structured review → exact split uses only the local end
       ),
     ).toBe(true);
     const choice = page.getByRole("button", {
-      name: "Local vision",
+      name: "Assisted scan · Local vision",
       exact: true,
     });
     expect((await choice.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -244,7 +249,7 @@ test("unknown tax inclusion needs a specific source check even with a balanced t
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("5.50");
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   const checked = page.getByRole("checkbox", {
     name: "I checked whether item prices include tax against the original",
     exact: true,
@@ -255,18 +260,18 @@ test("unknown tax inclusion needs a specific source check even with a balanced t
     fullPage: true,
   });
   await checked.check();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await page.reload();
   await expect(checked).toBeChecked();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await checked.uncheck();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("checkbox", { name: /Item prices already include tax/ })
     .uncheck();
   // An explicit human correction supplies a new reading of this field.
   await expect(checked).toBeChecked();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
 });
 
 test("local vision refuses excess prepared sections before uploading and retains all photos", async ({
@@ -324,10 +329,13 @@ test("a schema-valid local vision draft with incorrect arithmetic cannot be conf
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("176.79");
-  await expect(
+  await expectReviewBlocked(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   await expect(
-    page.getByText(/Calculated total .* differs from the printed total/),
+    page.locator(".field-error").filter({
+      hasText: /Calculated total .* differs from the printed total/,
+    }),
   ).toBeVisible();
 });

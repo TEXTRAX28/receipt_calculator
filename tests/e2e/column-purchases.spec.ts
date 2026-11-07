@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { qaArtifactPath } from "./qa-artifacts";
 
@@ -22,6 +23,8 @@ test("overlapping source rows → pending column checks → exact shared bill (s
   await page.route("**/api/receipts/providers", (route) =>
     route.fulfill({
       json: {
+        assistedReader: "computer",
+        localCheckMode: "always",
         localModel: { configured: true, name: "PaddleOCR" },
         localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
       },
@@ -89,6 +92,9 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     }),
   );
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   const fixture = await page.evaluate((texts) => {
     const canvas = document.createElement("canvas");
     canvas.width = 700;
@@ -125,9 +131,7 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     mimeType: "image/png",
     buffer: Buffer.from(fixture.png, "base64"),
   });
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+
   await page
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
@@ -135,7 +139,7 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("1.00");
@@ -164,9 +168,9 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     await dialog
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();
-    if (item === 1) await expect(confirm).toBeDisabled();
+    if (item === 1) await expectReviewBlocked(page, confirm);
   }
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
     expect(

@@ -446,6 +446,7 @@ describe("local recognition shares the receipt API security boundary", () => {
     expect(
       await (await fetch(`${base}/api/receipts/providers`)).json(),
     ).toEqual({
+      localCheckMode: "off",
       localModel: { configured: false, name: "PaddleOCR" },
       localVision: {
         configured: false,

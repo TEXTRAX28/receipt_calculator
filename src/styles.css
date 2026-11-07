@@ -2349,8 +2349,62 @@ dialog::backdrop {
   color: var(--danger);
   overflow-wrap: anywhere;
 }
-input[aria-invalid="true"] {
+.field-error {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
   border-color: var(--danger);
+}
+.validation-target {
+  outline: 3px solid var(--danger);
+  outline-offset: 5px;
+  border-radius: 8px;
+}
+[data-validation-path],
+[data-review-path] {
+  scroll-margin-block: 100px;
+}
+.item-quantity-row {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  padding: 12px 0 2px 24px;
+}
+.item-quantity-row > .field {
+  flex: 0 1 120px;
+  min-width: 90px;
+}
+.item-quantity-row > .hint {
+  flex: 1;
+  padding-bottom: 10px;
+  margin: 0;
+}
+.item-quantity-row input {
+  min-height: 44px;
+  font-size: 16px;
+}
+.item-name-input:has(.field-error) {
+  flex-wrap: wrap;
+}
+.item-name-input:has(.field-error) > input {
+  flex: 1;
+  min-width: 0;
+}
+.item-name-input > .field-error {
+  flex-basis: 100%;
+}
+.tax-registration {
+  padding: 12px 16px;
+  background: var(--canvas);
+  border-radius: 10px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.tax-registration p {
+  margin: 4px 0;
 }
 .fatal {
   max-width: 650px;

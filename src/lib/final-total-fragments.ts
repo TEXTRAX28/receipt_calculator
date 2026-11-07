@@ -4,7 +4,7 @@ import type { EvidenceLine } from "./receipt-layout";
 
 // Bare TOTAL can be a pre-tax amount followed by tax and GRAND TOTAL.
 export const finalTotalHeading = (text: string) =>
-  /^(?:total(?:\s*\(\s*incl(?:uding)?\.?\s+(?:vat|tax)\s*\)|\s+refund)|grand\s+total|amount\s+(?:due|refunded)|balance\s+due|refund\s+total)\s*:?[\s]*$/i.test(
+  /^(?:total(?:\s*\(\s*incl(?:uding)?\.?\s+(?:vat|tax)\s*\)|\s+refund|\s+to\s+pay)|grand\s+total|amount\s+(?:due|refunded)|balance\s+due|refund\s+total)\s*:?[\s]*$/i.test(
     text.replace(/^[*\s]+/u, ""),
   );
 

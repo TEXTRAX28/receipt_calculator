@@ -25,6 +25,8 @@ export function receiptEnvironment(
       "LOCAL_OCR_ENGINE",
       "LOCAL_OCR_CACHE_ROOT",
       "LOCAL_VISION_ENABLED",
+      "RECEIPT_ASSISTED_READER",
+      "LOCAL_OCR_CHECK_MODE",
     ].map((name) => [name, variables[name] || ""]),
   );
 }
@@ -45,6 +47,8 @@ export default defineConfig(({ mode }) => {
       localReader,
       localVision,
       handler: createReceiptApi({
+        assistedReader: env.RECEIPT_ASSISTED_READER || undefined,
+        localCheckMode: env.LOCAL_OCR_CHECK_MODE || "off",
         apiKey: env.GEMINI_API_KEY || "",
         model: env.GEMINI_MODEL || undefined,
         geminiAllowance: {

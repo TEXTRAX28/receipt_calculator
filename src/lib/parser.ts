@@ -18,6 +18,11 @@ import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
 import { readOcrInvoice } from "./ocr-invoice";
+import {
+  countedPurchaseRows,
+  findTaxRegistrations,
+  printedTaxRate,
+} from "./receipt-roles";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -39,10 +44,12 @@ const valuesIn = (line: string) =>
 // OCR sometimes reads the opening parenthesis as C. Accept only the complete
 // tax-total heading with its closing parenthesis; never repair amount tokens.
 const totalHeading = (line: string) =>
-  line.replace(
-    /^([^\p{L}\p{N}]*TOTAL)C(?=(?:INCL|EXCL)\s+(?:VAT|TAX)\s*[)）])/iu,
-    "$1(",
-  );
+  line
+    .replace(/^([^\p{L}\p{N}]*TOTAL)\s+TO\s+PAY\b/iu, "$1")
+    .replace(
+      /^([^\p{L}\p{N}]*TOTAL)C(?=(?:INCL|EXCL)\s+(?:VAT|TAX)\s*[)）])/iu,
+      "$1(",
+    );
 export const isFinalTotal = (line: string) =>
   /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|(?:total(?:\s+refund)?|refund total|amount refunded)\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[-−]?\s*[£$€]?\s*[-−]?\s*\d)/i.test(
     totalHeading(line),
@@ -77,9 +84,37 @@ export function parseReceiptWithSources(
   const { text } = extractionOutputSchema.parse(
     typeof output === "string" ? { text: output } : output,
   );
+  const metadataLines = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const registrations = findTaxRegistrations(
+    metadataLines,
+    selected?.currency as Currency | undefined,
+  );
+  const rates = [
+    ...new Set(
+      metadataLines
+        .filter((_, index) => !registrations.indices.has(index))
+        .map(printedTaxRate)
+        .filter((value): value is string => value !== null),
+    ),
+  ];
+  const taxMetadata = {
+    taxRegistrationNumber:
+      registrations.values.length === 1 ? registrations.values[0] : "",
+    printedTaxRate: rates.length === 1 ? rates[0] : "",
+  };
   const invoice = readOcrInvoice(output, text, selected);
-  if (invoice) return invoice;
+  if (invoice)
+    return { ...invoice, receipt: { ...invoice.receipt, ...taxMetadata } };
   const receipt = newReceipt();
+  Object.assign(receipt, taxMetadata);
+  if (registrations.values.length > 1)
+    receipt.warnings.push(
+      "Different tax registration identifiers were read. Check whether these photos belong to the same bill.",
+    );
   const sources: Record<string, number[]> = {};
   const columnSources: Record<string, ColumnSource> = {};
   const fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {};
@@ -216,8 +251,12 @@ export function parseReceiptWithSources(
   >();
   let inSummary = false;
   for (const [lineIndex, line] of lines.entries()) {
+    if (registrations.indices.has(lineIndex)) continue;
     if (line === PHOTO_SEPARATOR) inSummary = false;
-    let financial = matchFinancialSummaryRow(line);
+    let financial = matchFinancialSummaryRow(
+      line,
+      currencyIdentified ? receipt.currency : undefined,
+    );
     // A purchased service can be named simply "Service" or "Fee". Only the
     // subtotal section establishes those otherwise ambiguous words as charges.
     if (
@@ -398,6 +437,11 @@ export function parseReceiptWithSources(
     PHOTO_SEPARATOR,
     (line, index) => isFinalTotal(line) || financialRows.has(index),
   );
+  const counted = countedPurchaseRows(
+    lines,
+    currencyIdentified ? receipt.currency : undefined,
+    PHOTO_SEPARATOR,
+  );
   const separateTitles = new Set(
     [...separate.rows.values()].map((row) => row.titleIndex),
   );
@@ -424,6 +468,14 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
+    if (
+      registrations.indices.has(lineIndex) ||
+      counted.headings.has(lineIndex)
+    ) {
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     if (isItemCountLine(line)) {
       if (!fieldSources.items)
         receipt.reviewChecks.push({
@@ -445,6 +497,43 @@ export function parseReceiptWithSources(
     )
       itemSectionEnded = true;
     if (itemSectionEnded) continue;
+    const countedRow = counted.rows.get(lineIndex);
+    if (countedRow) {
+      const item = newItem();
+      item.description = countedRow.description.slice(0, 180);
+      item.quantity = countedRow.quantity;
+      item.unitPrice = countedRow.unitPrice
+        ? normalize(countedRow.unitPrice)
+        : "";
+      item.unitPriceDerived = countedRow.calculatedUnitPrice;
+      item.lineTotal = normalize(countedRow.lineTotal);
+      item.taxCode = countedRow.taxCode;
+      if (countedRow.repairedQuantity)
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field: "quantity",
+          reason: "recovered",
+          other:
+            "The quantity column and neighbouring numeric counts suggest 1 where OCR read I, l or |. Check that character against the receipt.",
+          confirmedValue: "",
+        });
+      if (countedRow.inconsistentUnitPrice)
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field: "unitPrice",
+          reason: "source",
+          other:
+            "The printed quantity, unit price and total disagree. The original values were kept; check the row.",
+          confirmedValue: "",
+        });
+      receipt.items.push(item);
+      sources[item.id] = [lineIndex];
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
     if (!observedRow && columns.titles.has(lineIndex)) continue;
     const column = !observedRow && columns.rows.get(lineIndex);
     if (column) {

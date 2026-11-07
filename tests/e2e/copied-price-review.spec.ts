@@ -1,3 +1,4 @@
+import { expectReviewBlocked } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { comparedRecognition } from "../fixtures/compared-receipt";
@@ -31,6 +32,8 @@ test("a copied price with a name disagreement stays linked to source and unconfi
     if (url.pathname === "/api/receipts/providers")
       return route.fulfill({
         json: {
+          assistedReader: "computer",
+          localCheckMode: "always",
           localModel: { configured: true, name: "PaddleOCR" },
           localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
         },
@@ -81,6 +84,9 @@ test("a copied price with a name disagreement stays linked to source and unconfi
     return route.continue();
   });
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   const image = await page.evaluate((texts) => {
     const canvas = document.createElement("canvas");
     canvas.width = 700;
@@ -100,9 +106,7 @@ test("a copied price with a name disagreement stays linked to source and unconfi
     mimeType: "image/png",
     buffer: Buffer.from(image, "base64"),
   });
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+
   await page
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
@@ -133,7 +137,7 @@ test("a copied price with a name disagreement stays linked to source and unconfi
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 1", exact: true })
     .click();
@@ -170,7 +174,7 @@ test("a copied price with a name disagreement stays linked to source and unconfi
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   expect(
     (await readState()).receipt.reviewChecks.find(
       (check) => check.field === "lineTotal",

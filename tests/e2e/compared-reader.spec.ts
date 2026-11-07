@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
@@ -11,14 +12,22 @@ async function start(page: Page, count = 1) {
   await page.route("**/api/receipts/providers", (route) =>
     route.fulfill({
       json: {
+        assistedReader: "computer",
+        localCheckMode: "always",
         localModel: { configured: true, name: "PaddleOCR" },
         localVision: { configured: true, name: "Qwen3-VL 4B", maxPanels: 3 },
       },
     }),
   );
   await page.goto("/");
+  await page
+    .getByRole("button", { name: "Assisted scan · This computer", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "This computer", exact: true }),
+    page.getByRole("button", {
+      name: "Assisted scan · This computer",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-pressed", "true");
   const image = await page.evaluate((rows) => {
     const canvas = document.createElement("canvas");
@@ -40,9 +49,7 @@ async function start(page: Page, count = 1) {
       buffer: Buffer.from(image, "base64"),
     })),
   );
-  await page
-    .getByLabel("Local vision comparison", { exact: true })
-    .selectOption("always");
+
   return page.getByRole("button", {
     name: "Read receipt on this computer",
     exact: true,
@@ -82,7 +89,7 @@ test("independent local readings recover source-proven coupons and require speci
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 discount", exact: true }),
   ).toHaveValue("2.00");
@@ -103,7 +110,7 @@ test("independent local readings recover source-proven coupons and require speci
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await page
     .getByRole("button", {
       name: "View source for receipt adjustments",
@@ -134,13 +141,13 @@ test("independent local readings recover source-proven coupons and require speci
   await adjustmentDialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   const checked = page.getByRole("checkbox", {
     name: "I checked item discount against the original",
     exact: true,
   });
   await checked.uncheck();
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await checked.check();
   await mkdir("qa-artifacts", { recursive: true });
   for (const width of [320, 375, 390, 667]) {
@@ -250,7 +257,7 @@ test("a balanced but disagreed price remains blocked until each disputed value i
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expect(confirm).toBeDisabled();
+  await expectReviewBlocked(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("3.50");
@@ -268,9 +275,9 @@ test("a balanced but disagreed price remains blocked until each disputed value i
       .getByRole("textbox", { name: `Item ${index} line price`, exact: true })
       .fill(price);
   }
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await page.reload();
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await expect(
     page.getByRole("button", { name: /View source for item/ }),
   ).toHaveCount(0);
@@ -316,9 +323,10 @@ for (const count of [1, 4])
     await expect(
       page.getByText(/extra comparison could not/i).first(),
     ).toBeVisible();
-    await expect(
+    await expectReviewBlocked(
+      page,
       page.getByRole("button", { name: "Confirm receipt & add people" }),
-    ).toBeDisabled();
+    );
     await expect(
       page.getByRole("checkbox", {
         name: "I checked purchase list against the original",

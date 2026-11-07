@@ -1,3 +1,4 @@
+import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
 import { expect, test } from "@playwright/test";
 
 for (const width of [320, 390, 1440]) {
@@ -64,7 +65,7 @@ for (const width of [320, 390, 1440]) {
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     await expect(page.locator(".summary-rows").first()).toContainText("£29.89");
 
     const included = page.getByRole("checkbox", {
@@ -76,10 +77,10 @@ for (const width of [320, 390, 1440]) {
       exact: true,
     });
     await expect(rate).toHaveAttribute("aria-invalid", "true");
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     await rate.fill("20");
     await expect(rate).not.toHaveAttribute("aria-invalid", "true");
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     await expect(page.locator(".summary-rows").first()).toContainText("£29.06");
     await expect(page.locator(".summary-rows").first()).toContainText(
       "Tax already in fees (included above)",
@@ -93,10 +94,10 @@ for (const width of [320, 390, 1440]) {
       .selectOption("fee");
     await expect(included).not.toBeChecked();
     await expect(rate).toHaveCount(0);
-    await expect(confirm).toBeDisabled();
+    await expectReviewBlocked(page, confirm);
     await included.check();
     await rate.fill("20");
-    await expect(confirm).toBeEnabled();
+    await expectReviewReady(page, confirm);
     await page.reload();
     await expect(included).toBeChecked();
     await expect(rate).toHaveValue("20");
@@ -208,7 +209,7 @@ for (const width of [320, 390, 1440]) {
         name: "Confirm receipt & add people",
         exact: true,
       });
-      await expect(confirm).toBeDisabled();
+      await expectReviewBlocked(page, confirm);
       const before = await page.evaluate(() =>
         JSON.parse(localStorage.getItem("gather.receipt.v1")!),
       );
@@ -218,7 +219,7 @@ for (const width of [320, 390, 1440]) {
       await expect(
         page.getByLabel("Adjustment 1 amount", { exact: true }),
       ).toHaveValue(tax);
-      await expect(confirm).toBeEnabled();
+      await expectReviewReady(page, confirm);
       const after = await page.evaluate(() =>
         JSON.parse(localStorage.getItem("gather.receipt.v1")!),
       );
@@ -238,17 +239,17 @@ for (const width of [320, 390, 1440]) {
       ).toHaveValue(tax);
       await included.check();
       await expect(addTax).toHaveCount(0);
-      await expect(confirm).toBeDisabled();
+      await expectReviewBlocked(page, confirm);
       await included.uncheck();
-      await expect(confirm).toBeEnabled();
+      await expectReviewReady(page, confirm);
       await printedTax.fill(`${prefix}0.60`);
       await expect(addTax).toHaveCount(0);
       await expect(
         page.getByLabel("Adjustment 1 amount", { exact: true }),
       ).toHaveValue(tax);
-      await expect(confirm).toBeDisabled();
+      await expectReviewBlocked(page, confirm);
       await printedTax.fill(tax);
-      await expect(confirm).toBeEnabled();
+      await expectReviewReady(page, confirm);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

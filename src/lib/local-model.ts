@@ -9,6 +9,10 @@ import { veryfiStatusSchema } from "./veryfi-schema.mjs";
 import { azureStatusSchema } from "./azure-schema.mjs";
 
 const capabilities = z.object({
+  assistedReader: z
+    .enum(["computer", "gemini", "azure", "veryfi", "vision", "openai"])
+    .optional(),
+  localCheckMode: z.enum(["auto", "always", "off"]).optional(),
   veryfi: veryfiStatusSchema.optional(),
   azure: azureStatusSchema.optional(),
   localModel: z.object({
