@@ -44,6 +44,20 @@ To reuse an already installed computer reader, set `LOCAL_OCR_PYTHON` to its abs
 
 VS Code tasks can supply those non-secret settings through `options.env`; run a configured task using **Terminal → Run Task** and stop it with **Ctrl+C**. See the [VS Code task documentation](https://code.visualstudio.com/docs/debugtest/tasks). Keep this server's printed URL open while scanning. The development server accepts loopback connections only.
 
+### Private iPhone or Android preview
+
+With the existing dependencies installed and Node.js 24 LTS (or 22.18+), run this from the project folder in VS Code:
+
+```sh
+npm run preview:phone
+```
+
+This builds the current app without loading dotenv or cloud keys, selects the PC's private Wi-Fi address (or a physical Ethernet address when Wi-Fi is unavailable), and prints the phone URL, certificate download URL and a local access-code file path. Keep the terminal open and the PC awake. The phone and selected PC connection must be on the same local network; managed networks such as accommodation Wi-Fi can separate wired and wireless devices. To select a connected interface explicitly, use `npm run preview:phone -- --host PRIVATE_IP`.
+
+On iPhone, open the certificate URL **directly in Safari**, allow the profile download, and install the named Gather test certificate under **Settings → General → VPN & Device Management**. Enable that certificate under **General → About → Certificate Trust Settings**, then open the HTTPS app URL. Open the printed access-code file **on the PC**, enter its code on the phone, and choose **Open Gather**. See [Apple's test-certificate instructions](https://developer.apple.com/library/archive/qa/qa1948/_index.html). A wrong code displays an inline error; signing in opens the app rather than downloading a `pair` file.
+
+This preview runs receipt reading on the phone; computer and cloud readers are disabled. It serves only the built app, requires an access code, and retains the normal development server's loopback restrictions. It changes no firewall or system trust settings. Local keys, the code and the one-day certificate stay in ignored `.receipt-reader-state/phone-preview/`; they are never committed. OpenSSL must be installed (Git for Windows includes it). The static preview needs at least 2 GiB available RAM, stops below a 1 GiB reserve or after eight hours, and can be stopped with **Ctrl+C**. Remove its certificate profile from the phone after testing. This is a local development tool; public deployment and complete mobile OCR verification remain separate work.
+
 ## Optional enhanced on-device reader
 
 After installing dependencies, prepare the pinned public models once:

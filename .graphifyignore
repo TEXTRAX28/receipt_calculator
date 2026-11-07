@@ -13,3 +13,7 @@ private-receipts/
 # Agent instructions and this index's maintenance script are not app source.
 AGENTS.md
 scripts/update-graph.py
+# Keep the source index bounded; tests still describe these static data fixtures.
+tests/fixtures/ai-receipt.ts
+tests/fixtures/azure-quantities.ts
+tests/fixtures/financial-columns.ts
