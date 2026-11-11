@@ -1,5 +1,5 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 import { aiCostcoDraft } from "../fixtures/ai-receipt";
@@ -161,7 +161,7 @@ test("ordered photos → explicit Gemini consent → structured review → exact
   });
   await scan.click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible();
   expect(packets).toHaveLength(1);
   expect(packets[0].consent).toBe(true);
@@ -282,11 +282,12 @@ test("a tall photograph creates readable overlapping panels and real OCR reaches
     .getByRole("button", { name: "Read receipt on this device" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("40.00");
+  await page.locator(".review-notes > summary").click();
   await expect(
     page.getByText("A tall photo was read in overlapping detail sections.", {
       exact: false,
@@ -305,8 +306,8 @@ test("a tall photograph creates readable overlapping panels and real OCR reaches
       name: "I checked purchase list against the original",
       exact: true,
     }),
-  ).toBeVisible();
-  await expectReviewBlocked(
+  ).toHaveCount(0);
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );

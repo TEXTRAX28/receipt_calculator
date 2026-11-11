@@ -1,10 +1,10 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { writeFile } from "node:fs/promises";
 import { couponColumnFixture } from "../fixtures/costco-coupon-columns";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("joined and fragmented coupons retain their original source regions and required review (mock protocol)", async ({
+test("joined and fragmented coupons retain original source regions and reading notes (mock protocol)", async ({
   page,
 }, info) => {
   const sample = couponColumnFixture();
@@ -108,7 +108,7 @@ test("joined and fragmented coupons retain their original source regions and req
         name: "I checked item discount against the original",
         exact: true,
       }),
-    ).not.toBeChecked();
+    ).toHaveCount(0);
     for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       expect(
@@ -137,12 +137,12 @@ test("joined and fragmented coupons retain their original source regions and req
     name: "Receipt source for purchase 1",
     exact: true,
   });
-  await firstSource
-    .getByRole("checkbox", {
+  await expect(
+    firstSource.getByRole("checkbox", {
       name: "I checked item discount against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await firstSource
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
@@ -161,7 +161,7 @@ test("joined and fragmented coupons retain their original source regions and req
   expect(secondChecks.length).toBeGreaterThan(0);
   expect(
     firstChecks.every(
-      (check: { confirmedValue: string }) => !!check.confirmedValue,
+      (check: { confirmedValue: string }) => check.confirmedValue === "",
     ),
   ).toBe(true);
   expect(
@@ -169,7 +169,7 @@ test("joined and fragmented coupons retain their original source regions and req
       (check: { confirmedValue: string }) => check.confirmedValue === "",
     ),
   ).toBe(true);
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",

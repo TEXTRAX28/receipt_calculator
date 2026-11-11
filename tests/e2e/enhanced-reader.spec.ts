@@ -1,5 +1,5 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { test, expect, type Page, type Route } from "./editor-fixture";
 import { resolve } from "node:path";
 import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -151,9 +151,7 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
     .poll(
       async () => {
         if (
-          await page
-            .getByRole("heading", { name: "A quick check, then we share." })
-            .isVisible()
+          await page.getByRole("heading", { name: "Your receipt." }).isVisible()
         )
           return "review";
         const alerts = await page.getByRole("alert").allTextContents();
@@ -165,7 +163,7 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
     )
     .not.toBe("working");
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 1000 });
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
@@ -176,8 +174,8 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
       hasText:
         /Check the complete purchase list, quantities, amounts and overlapping rows/,
     }),
-  ).toBeVisible();
-  await expectReviewBlocked(
+  ).toBeAttached();
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
@@ -251,12 +249,10 @@ test("enhanced reader performs actual private browser OCR with the page CSP unch
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
   // The fixed synthetic image explicitly prints this complete financial vector.
-  // These clicks exercise review controls; they are not independent human truth.
-  for (const checkbox of await page
-    .locator(".verification-checks")
-    .getByRole("checkbox")
-    .all())
-    if (await checkbox.isEnabled()) await checkbox.check();
+  // Receipt acceptance is one action, not an independent OCR accuracy result.
+  await expect(page.getByRole("checkbox", { name: /^I checked/ })).toHaveCount(
+    0,
+  );
   await page
     .getByRole("button", { name: "Confirm receipt & add people", exact: true })
     .click();
@@ -332,6 +328,7 @@ test("missing enhanced assets use compatibility OCR without asking for another s
     "6.00",
     { timeout: 130000 },
   );
+  await page.locator(".review-notes > summary").click();
   await expect(
     page.getByText(/The compatibility reader prepared this draft/),
   ).toBeVisible();

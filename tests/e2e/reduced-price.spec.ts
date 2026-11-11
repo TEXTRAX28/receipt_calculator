@@ -1,8 +1,8 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("reduced-price products preserve missing money and require source checks before sharing", async ({
+test("reduced-price products preserve missing money and require valid amounts before sharing", async ({
   page,
 }, info) => {
   // Synthetic text; the later 0.50 is explicit human correction, not OCR recovery.
@@ -35,10 +35,9 @@ test("reduced-price products preserve missing money and require source checks be
   }
   await expect(price(1)).toHaveValue("");
   await expect(price(2)).toHaveValue("0.55");
-  // The blank required price blocks through arithmetic validation; its source
-  // check becomes applicable only after a value has been entered.
-  await expect(checks).toHaveCount(1);
-  await expectReviewBlocked(page, confirm);
+  // The blank required price blocks through arithmetic validation.
+  await expect(checks).toHaveCount(0);
+  await expectReviewAttention(page, confirm);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -55,25 +54,25 @@ test("reduced-price products preserve missing money and require source checks be
     })
     .click();
   await price(1).fill("0.50");
-  await expect(checks).toHaveCount(2);
-  // A balanced total alone cannot bypass either product/price association check.
-  await expectReviewBlocked(page, confirm);
-  await checks.nth(0).check();
-  await expectReviewBlocked(page, confirm);
-  await checks.nth(1).check();
+  await expect(checks).toHaveCount(0);
+  // Once corrected, the whole receipt can be accepted without source checkboxes.
+  await expectReviewReady(page, confirm);
+  await expect(checks.nth(0)).toHaveCount(0);
+  await expectReviewReady(page, confirm);
+  await expect(checks.nth(1)).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await page.reload();
   await expect(price(1)).toHaveValue("0.50");
-  await expect(checks.nth(0)).toBeChecked();
-  await expect(checks.nth(1)).toBeChecked();
+  await expect(checks.nth(0)).toHaveCount(0);
+  await expect(checks.nth(1)).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await price(2).fill("0.54");
   // Explicit human edits record a correction; arithmetic still rejects the
   // one-penny mismatch independently of that verification stamp.
-  await expect(checks.nth(1)).toBeChecked();
-  await expectReviewBlocked(page, confirm);
+  await expect(checks.nth(1)).toHaveCount(0);
+  await expectReviewAttention(page, confirm);
   await price(2).fill("0.55");
   await expectReviewReady(page, confirm);
-  await checks.nth(1).uncheck();
-  await expectReviewBlocked(page, confirm);
+  await expect(checks.nth(1)).toHaveCount(0);
+  await expectReviewReady(page, confirm);
 });

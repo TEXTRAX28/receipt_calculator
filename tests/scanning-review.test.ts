@@ -187,20 +187,22 @@ describe("quantity columns and exact unit prices", () => {
     );
     expect(receipt.items[0].quantity).toBe("");
   });
-  it("keeps a contradictory printed unit price instead of replacing it with a balancing value", () => {
+  it("preserves a contradictory observed unit while calculating an exact unit from a balanced receipt", () => {
     const receipt = parseReceiptText(
       "GBP\nQty Dish Amount\n2 Ramen 18.50 37.20\nTotal 37.20",
     );
     expect(receipt.items[0]).toMatchObject({
       quantity: "2",
-      unitPrice: "18.50",
+      unitPrice: "18.60",
+      observedUnitPrice: "18.50",
+      unitPriceDerived: true,
       lineTotal: "37.20",
     });
     expect(
-      calculateReceipt(receipt).issues.some(
+      calculateReceipt(receipt, { readingNotes: "advisory" }).issues.some(
         (issue) => issue.path === "items.0.unitPrice",
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
   it("does not round an unprinted unit price when division is not exact", () => {
     const receipt = parseReceiptText(

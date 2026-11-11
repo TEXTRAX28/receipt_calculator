@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 
 // Synthetic transcription exercises the real parser and form, not OCR accuracy.
@@ -87,14 +87,13 @@ test("restaurant quantities, tax metadata and correction-to-finalization journey
   await expect(page.getByTestId("review-item-6")).toContainText(
     "5.50 GBP each",
   );
-  await confirm(page).click();
   const recovered = page.getByTestId("review-item-0").getByRole("checkbox", {
     name: "I checked purchased quantity against the original",
     exact: true,
   });
-  await expect(recovered).toBeFocused();
+  await expect(recovered).toHaveCount(0);
   await withinViewport(page);
-  await recovered.check();
+  await expect(recovered).toHaveCount(0);
   await confirm(page).click();
   await page
     .getByRole("button", { name: "Let’s share it", exact: true })

@@ -1,9 +1,9 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { reducedPriceFixture } from "../fixtures/reduced-price-role";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("a selling price mistaken for a discount needs both source checks before splitting (synthetic protocol)", async ({
+test("a selling price mistaken for a discount retains grouped source evidence before splitting (synthetic protocol)", async ({
   page,
 }, info) => {
   const { raw, recognition } = reducedPriceFixture();
@@ -78,7 +78,7 @@ test("a selling price mistaken for a discount needs both source checks before sp
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 1", exact: true })
     .click();
@@ -89,19 +89,19 @@ test("a selling price mistaken for a discount needs both source checks before sp
   await expect(dialog.getByTestId("source-region")).toHaveCount(2);
   await expect(
     dialog.getByText("Printed reduced selling price: 0.50", { exact: true }),
-  ).toHaveCount(2);
+  ).toHaveCount(1);
   const checks = dialog.getByRole("checkbox", {
     name: /^I checked (?!item discount)/,
   });
-  for (const check of await checks.all()) await check.check();
-  // Leave the discount check pending even if its input is now zero.
+  await expect(checks).toHaveCount(0);
+  // Source notes remain advisory even when the discount input is zero.
   const discount = dialog.getByRole("checkbox", {
     name: "I checked item discount against the original",
     exact: true,
   });
-  await expect(discount).not.toBeChecked();
+  await expect(discount).toHaveCount(0);
   await dialog.getByRole("button", { name: "Back to receipt" }).click();
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -111,12 +111,12 @@ test("a selling price mistaken for a discount needs both source checks before sp
     path: await qaArtifactPath(info, `reduced-role-${info.project.name}.png`),
     fullPage: true,
   });
-  await page
-    .getByRole("checkbox", {
+  await expect(
+    page.getByRole("checkbox", {
       name: "I checked item discount against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {

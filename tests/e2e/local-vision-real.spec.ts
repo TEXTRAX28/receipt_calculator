@@ -1,6 +1,6 @@
 import { requireAssistedPolicy } from "./assisted-policy";
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { test, expect } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { test, expect } from "./editor-fixture";
 import { mkdir, writeFile } from "node:fs/promises";
 import { costcoDemo } from "../../src/lib/demo";
 import { receiptFromAi } from "../../src/lib/gemini";
@@ -74,7 +74,7 @@ test("real local vision reads a synthetic receipt and supports an exact checked 
     })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   const elapsedMs = Date.now() - started;
   const nativeResult = await (await nativeResponse).json();
@@ -347,7 +347,7 @@ test("real local vision preserves the supplied Costco diagnostic and its validat
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  if (calculated!.issues.length) await expectReviewBlocked(page, confirm);
+  if (calculated!.issues.length) await expectReviewAttention(page, confirm);
   else await expectReviewReady(page, confirm);
   // A passed protocol diagnostic is not a passed accuracy benchmark. Its discrepancies are retained above.
 });

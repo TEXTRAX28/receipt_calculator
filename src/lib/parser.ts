@@ -18,6 +18,7 @@ import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
 import { readOcrInvoice } from "./ocr-invoice";
+import { reconcileObservedUnits } from "./receipt-reconciliation";
 import {
   countedPurchaseRows,
   findTaxRegistrations,
@@ -507,7 +508,10 @@ export function parseReceiptWithSources(
         : "";
       item.unitPriceDerived = countedRow.calculatedUnitPrice;
       item.lineTotal = normalize(countedRow.lineTotal);
-      item.taxCode = countedRow.taxCode;
+      item.taxCode =
+        receipt.taxCodes.length || isCostco ? countedRow.taxCode : "";
+      if (countedRow.taxCode && !item.taxCode)
+        item.observedPriceSuffix = countedRow.taxCode;
       if (countedRow.repairedQuantity)
         receipt.reviewChecks.push({
           scope: "item",
@@ -957,7 +961,9 @@ export function parseReceiptWithSources(
             ? normalize(explicitTerms[2])
             : "";
         item.lineTotal = amount;
-        item.taxCode = generic[3] || "";
+        item.taxCode =
+          isCostco || receipt.taxCodes.length ? generic[3] || "" : "";
+        if (generic[3] && !item.taxCode) item.observedPriceSuffix = generic[3];
         if (leadingQuantity)
           receipt.reviewChecks.push({
             scope: "item",
@@ -1086,7 +1092,7 @@ export function parseReceiptWithSources(
         ]),
       ];
   return {
-    receipt: receiptSchema.parse(receipt),
+    receipt: receiptSchema.parse(reconcileObservedUnits(receipt)),
     sources,
     columnSources,
     fieldSources,

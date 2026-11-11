@@ -1,5 +1,5 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { writeFile } from "node:fs/promises";
 import { comparedRecognition } from "../fixtures/compared-receipt";
 import { appSchema } from "../../src/lib/model";
@@ -137,7 +137,7 @@ test("a copied price with a name disagreement stays linked to source and unconfi
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 1", exact: true })
     .click();
@@ -165,21 +165,21 @@ test("a copied price with a name disagreement stays linked to source and unconfi
   }
   const picture = await qaArtifactPath(info, "source-review.png");
   await page.screenshot({ path: picture });
-  await dialog
-    .getByRole("checkbox", {
+  await expect(
+    dialog.getByRole("checkbox", {
       name: "I checked line price against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   expect(
     (await readState()).receipt.reviewChecks.find(
       (check) => check.field === "lineTotal",
     )?.confirmedValue,
-  ).not.toBe("");
+  ).toBe("");
   expect(posts).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
@@ -192,7 +192,7 @@ test("a copied price with a name disagreement stays linked to source and unconfi
         external,
         errors,
         sourceScreenshot: picture,
-        priceCheckedExplicitlyAndOtherChecksStillBlock: true,
+        originalReviewFlagsPreservedWithoutCheckboxGate: true,
       },
       null,
       2,

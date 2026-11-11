@@ -1,8 +1,8 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { qaArtifactPath } from "./qa-artifacts";
 
-test("overlapping source rows → pending column checks → exact shared bill (synthetic readers)", async ({
+test("overlapping source rows → optional column notes → exact shared bill (synthetic readers)", async ({
   page,
 }, info) => {
   const texts = [
@@ -139,7 +139,7 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("1.00");
@@ -159,7 +159,7 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     });
     await expect(dialog.getByTestId("source-region")).toHaveCount(1);
     const checks = dialog.getByRole("checkbox");
-    await expect(checks).toHaveCount(4);
+    await expect(checks).toHaveCount(0);
     if (item === 1)
       await dialog.screenshot({
         path: await qaArtifactPath(info, "column-source.png"),
@@ -168,7 +168,7 @@ test("overlapping source rows → pending column checks → exact shared bill (s
     await dialog
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();
-    if (item === 1) await expectReviewBlocked(page, confirm);
+    if (item === 1) await expectReviewAttention(page, confirm);
   }
   await expectReviewReady(page, confirm);
   for (const width of [320, 390]) {

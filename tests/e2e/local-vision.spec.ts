@@ -1,6 +1,6 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 import { aiCostcoDraft } from "../fixtures/ai-receipt";
@@ -125,10 +125,11 @@ test("a chosen currency fills review details without changing model requests or 
   ).toHaveValue("IDR");
   // The line amount is visible; unit price is in collapsed purchase details.
   await expect(page.locator('input[value="7.000"]')).toHaveValue("7.000");
+  await page.locator(".review-notes > summary").click();
   await expect(
     page.getByText(/Receipt currency supplied by you: IDR/),
   ).toBeVisible();
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -184,6 +185,7 @@ test("local vision → structured review → exact split uses only the local end
   ).toEqual([]);
   await scan.click();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(18);
+  await page.locator(".review-notes > summary").click();
   await expect(
     page.getByText(/Local vision prepared this draft/),
   ).toBeVisible();
@@ -249,28 +251,28 @@ test("unknown tax inclusion needs a specific source check even with a balanced t
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("5.50");
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   const checked = page.getByRole("checkbox", {
     name: "I checked whether item prices include tax against the original",
     exact: true,
   });
-  await expect(checked).not.toBeChecked();
+  await expect(checked).toHaveCount(0);
   await page.screenshot({
     path: await qaArtifactPath(info, `unknown-tax-${info.project.name}.png`),
     fullPage: true,
   });
-  await checked.check();
+  await expect(checked).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await page.reload();
-  await expect(checked).toBeChecked();
+  await expect(checked).toHaveCount(0);
   await expectReviewReady(page, confirm);
-  await checked.uncheck();
-  await expectReviewBlocked(page, confirm);
+  await expect(checked).toHaveCount(0);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("checkbox", { name: /Item prices already include tax/ })
     .uncheck();
   // An explicit human correction supplies a new reading of this field.
-  await expect(checked).toBeChecked();
+  await expect(checked).toHaveCount(0);
   await expectReviewReady(page, confirm);
 });
 
@@ -329,7 +331,7 @@ test("a schema-valid local vision draft with incorrect arithmetic cannot be conf
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("176.79");
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import { qaArtifactPath } from "./qa-artifacts";
 
 // UI protocol only. Browser routes never contact OpenAI or use a real key.

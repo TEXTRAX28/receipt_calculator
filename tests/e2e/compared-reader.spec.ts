@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 import {
@@ -56,7 +56,7 @@ async function start(page: Page, count = 1) {
   });
 }
 
-test("independent local readings recover source-proven coupons and require specific human checks before splitting (mock protocol)", async ({
+test("independent local readings recover source-proven coupons and retain evidence for receipt-level review (mock protocol)", async ({
   page,
 }, info) => {
   const uploads: string[] = [];
@@ -89,7 +89,7 @@ test("independent local readings recover source-proven coupons and require speci
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 discount", exact: true }),
   ).toHaveValue("2.00");
@@ -101,16 +101,21 @@ test("independent local readings recover source-proven coupons and require speci
     exact: true,
   });
   await expect(dialog.getByTestId("source-region")).toHaveCount(4);
-  await dialog
-    .getByRole("checkbox", {
+  await expect(
+    dialog.getByRole("checkbox", {
       name: "I checked item discount against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
+  await page
+    .locator(
+      '.reader-notes:has(button[aria-label="View source for receipt adjustments"]) > summary',
+    )
+    .click();
   await page
     .getByRole("button", {
       name: "View source for receipt adjustments",
@@ -132,12 +137,12 @@ test("independent local readings recover source-proven coupons and require speci
     adjustmentDialog.getByText("Executive Reward: 0.32", { exact: true }),
   ).toBeVisible();
   await expect(adjustmentDialog.getByTestId("source-region")).toHaveCount(3);
-  await adjustmentDialog
-    .getByRole("checkbox", {
+  await expect(
+    adjustmentDialog.getByRole("checkbox", {
       name: "I checked receipt adjustments against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await adjustmentDialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
@@ -146,9 +151,9 @@ test("independent local readings recover source-proven coupons and require speci
     name: "I checked item discount against the original",
     exact: true,
   });
-  await checked.uncheck();
-  await expectReviewBlocked(page, confirm);
-  await checked.check();
+  await expect(checked).toHaveCount(0);
+  await expectReviewAttention(page, confirm);
+  await expect(checked).toHaveCount(0);
   await mkdir("qa-artifacts", { recursive: true });
   for (const width of [320, 375, 390, 667]) {
     await page.setViewportSize({ width, height: width === 667 ? 375 : 900 });
@@ -158,12 +163,15 @@ test("independent local readings recover source-proven coupons and require speci
       ),
     ).toBe(true);
     expect(
-      (await checked.locator("..").boundingBox())!.height,
+      (await page
+        .getByTestId("digital-item-0")
+        .locator(".receipt-item-edit")
+        .boundingBox())!.height,
     ).toBeGreaterThanOrEqual(44);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page
-    .locator(".verification-checks")
+    .getByRole("region", { name: "Digital receipt", exact: true })
     .last()
     .screenshot({
       path: `qa-artifacts/compared-review-${info.project.name}.png`,
@@ -199,7 +207,7 @@ test("independent local readings recover source-proven coupons and require speci
   expect(uploads).toEqual(["/api/receipts/recognize", "/api/receipts/vision"]);
 });
 
-test("a balanced but disagreed price remains blocked until each disputed value is corrected; refresh keeps review state and drops photo data", async ({
+test("a balanced price disagreement retains optional notes; edits and refresh keep the draft and drop photo data", async ({
   page,
 }) => {
   const rows = [
@@ -257,7 +265,7 @@ test("a balanced but disagreed price remains blocked until each disputed value i
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
   ).toHaveValue("3.50");
@@ -289,7 +297,7 @@ test("a balanced but disagreed price remains blocked until each disputed value i
 });
 
 for (const count of [1, 4])
-  test(`an ${count === 1 ? "unavailable" : "oversized"} extra reading preserves the successful first draft with an explicit incomplete-review gate`, async ({
+  test(`an ${count === 1 ? "unavailable" : "oversized"} extra reading preserves the successful first draft with an explicit incomplete-reading note`, async ({
     page,
   }) => {
     const uploads: string[] = [];
@@ -323,7 +331,7 @@ for (const count of [1, 4])
     await expect(
       page.getByText(/extra comparison could not/i).first(),
     ).toBeVisible();
-    await expectReviewBlocked(
+    await expectReviewAttention(
       page,
       page.getByRole("button", { name: "Confirm receipt & add people" }),
     );
@@ -332,7 +340,7 @@ for (const count of [1, 4])
         name: "I checked purchase list against the original",
         exact: true,
       }),
-    ).not.toBeChecked();
+    ).toHaveCount(0);
     expect(uploads).toEqual(
       count === 1
         ? ["/api/receipts/recognize", "/api/receipts/vision"]
@@ -370,6 +378,6 @@ test("cancelling the independent second read retains the photos and never accept
   await expect(scan).toBeEnabled();
   await expect(page.locator(".selected-image")).toHaveCount(1);
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toHaveCount(0);
 });

@@ -1,11 +1,9 @@
-import { useId } from "react";
 import type { Receipt, ReviewCheck } from "./lib/model";
 import {
-  checkIsApplicable,
   checkIsPending,
-  reviewFieldLabels,
-  reviewKey,
   reviewMessage,
+  reviewKey,
+  reviewFieldLabels,
 } from "./lib/review-checks";
 
 const adjustmentKinds = {
@@ -17,77 +15,65 @@ const adjustmentKinds = {
   rounding: "Rounding",
 };
 
-function currentValue(receipt: Receipt, check: ReviewCheck) {
-  if (check.scope === "item")
-    return (
-      receipt.items.find((item) => item.id === check.itemId)?.[check.field] ||
-      "Left blank"
-    );
-  if (check.field === "items") return `${receipt.items.length} purchase rows`;
-  if (check.field === "taxCodes")
-    return (
-      receipt.taxCodes
-        .map((entry) => `${entry.code}: ${entry.rate || "unknown"}%`)
-        .join("; ") || "No code rates"
-    );
-  if (check.field === "adjustments")
-    return (
-      receipt.adjustments
-        .map(
-          (entry) =>
-            `${entry.label}: ${entry.amount} (${adjustmentKinds[entry.kind]}; ${entry.kind === "discount" || entry.allocation === "proportional" ? "by item cost" : "equally per person"}${entry.includedTaxRate !== undefined ? `; includes tax at ${entry.includedTaxRate || "unknown"}%` : ""})`,
-        )
-        .join("; ") || "No receipt adjustments"
-    );
-  if (check.field === "pricesIncludeTax")
-    return receipt.pricesIncludeTax
-      ? "Item prices include tax"
-      : "Tax is added to item prices";
-  return receipt[check.field] || "Left blank";
-}
-
+/** Reading uncertainty is advisory; Continue accepts the receipt as a whole. */
 export default function ReviewChecks({
   receipt,
   checks,
-  onConfirm,
   onViewSource,
   canViewSource,
+  open = false,
 }: {
   receipt: Receipt;
   checks: ReviewCheck[];
-  onConfirm: (key: string, confirmed: boolean) => void;
   onViewSource?: (check: ReviewCheck) => void;
   canViewSource?: (check: ReviewCheck) => boolean;
+  open?: boolean;
 }) {
-  const sectionId = useId();
-  if (!checks.length) return null;
-  const remaining = checks.filter((check) =>
+  const grouped = new Map<string, ReviewCheck>();
+  for (const check of checks.filter((check) =>
     checkIsPending(receipt, check),
-  ).length;
+  )) {
+    const key =
+      check.scope === "item"
+        ? `item:${check.itemId}:${check.reason}`
+        : reviewKey(check);
+    const previous = grouped.get(key);
+    if (!previous) grouped.set(key, check);
+    else if (check.details?.length)
+      grouped.set(key, {
+        ...previous,
+        details: [
+          ...new Map(
+            [...(previous.details || []), ...check.details].map((detail) => [
+              JSON.stringify(detail),
+              detail,
+            ]),
+          ).values(),
+        ],
+      });
+  }
+  const notes = [...grouped.values()];
+  if (!notes.length) return null;
   return (
-    <section className="verification-checks" aria-labelledby={sectionId}>
-      <h3 id={sectionId}>
-        {remaining
-          ? `${remaining} ${remaining === 1 ? "value needs" : "values need"} a check`
-          : "No pending value checks"}
-      </h3>
+    <details className="reader-notes" open={open}>
+      <summary>Reading notes</summary>
       <p className="hint">
-        Compare these values with the original. Editing a value also records
-        your correction. Source photos are not saved after a refresh.
+        These notes explain the automatic reading. Use the receipt fields to
+        correct anything that looks wrong.
       </p>
-      {checks.map((check) => (
-        <div
-          className={`verification-check ${checkIsPending(receipt, check) ? "pending" : "checked"}`}
-          key={reviewKey(check)}
-        >
-          <strong>{reviewFieldLabels[check.field]}</strong>
-          <p>{reviewMessage(check)}</p>
-          <p className="verification-current">
-            Current draft: <b>{currentValue(receipt, check)}</b>
-          </p>
-          {check.details && (
-            <>
-              <p className="hint">Source comparison:</p>
+      <ul>
+        {notes.map((check) => (
+          <li key={reviewKey(check)}>
+            <p>
+              {check.scope === "item" && check.reason === "source"
+                ? "Some text in this row was unclear. You can compare it with the original photo."
+                : check.scope === "receipt" &&
+                    check.field === "pricesIncludeTax" &&
+                    check.reason === "source"
+                  ? "Tax uses only the amounts or code rates in the receipt details. A registration number does not add tax."
+                  : reviewMessage(check)}
+            </p>
+            {check.details && (
               <ul>
                 {check.details.map((detail, index) => (
                   <li key={index}>
@@ -95,40 +81,36 @@ export default function ReviewChecks({
                   </li>
                 ))}
               </ul>
-            </>
-          )}
-          {onViewSource && canViewSource?.(check) && (
-            <button
-              className="button button-outline"
-              onClick={(event) => {
-                event.currentTarget.focus();
-                onViewSource(check);
-              }}
-              aria-label={`View source for ${reviewFieldLabels[check.field]}`}
-            >
-              View on receipt
-            </button>
-          )}
-          <label className="check-row verification-confirm">
-            <input
-              type="checkbox"
-              data-review-path={
-                check.scope === "item"
-                  ? `items.${receipt.items.findIndex((item) => item.id === check.itemId)}.${check.field}`
-                  : check.field
-              }
-              checked={!checkIsPending(receipt, check)}
-              disabled={!checkIsApplicable(receipt, check)}
-              onChange={(event) =>
-                onConfirm(reviewKey(check), event.target.checked)
-              }
-            />
-            {checkIsApplicable(receipt, check)
-              ? `I checked ${reviewFieldLabels[check.field]} against the original`
-              : "This optional value is not used"}
-          </label>
-        </div>
-      ))}
-    </section>
+            )}
+            {check.scope === "receipt" && check.field === "adjustments" && (
+              <ul>
+                {receipt.adjustments.map((row) => (
+                  <li key={row.id}>
+                    {row.label}: {row.amount} ({adjustmentKinds[row.kind]};{" "}
+                    {row.kind === "discount" ||
+                    row.allocation === "proportional"
+                      ? "by item cost"
+                      : "equally per person"}
+                    {row.includedTaxRate !== undefined
+                      ? `; includes tax at ${row.includedTaxRate || "unknown"}%`
+                      : ""}
+                    )
+                  </li>
+                ))}
+              </ul>
+            )}
+            {onViewSource && canViewSource?.(check) && (
+              <button
+                className="text-button"
+                aria-label={`View source for ${reviewFieldLabels[check.field]}`}
+                onClick={() => onViewSource(check)}
+              >
+                View on receipt
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

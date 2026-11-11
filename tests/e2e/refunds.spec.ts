@@ -1,6 +1,6 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -148,7 +148,7 @@ test("mixed text purchases and returns require a shared-charge choice and keep i
     .fill("Shared fee");
   await page.getByLabel("Adjustment 1 amount", { exact: true }).fill("2.00");
   await page.getByLabel("Printed total", { exact: true }).fill("7.00");
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
@@ -269,15 +269,11 @@ test("actual on-device OCR preserves a synthetic returned product and its negati
     .getByRole("dialog")
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  // Explicit source review of the known synthetic refund, including its tax convention.
-  // No financial edit or automatic-verification claim is introduced here.
-  let humanSourceChecks = 0;
-  for (const check of await page
-    .getByRole("checkbox", { name: /^I checked .+ against the original$/ })
-    .all()) {
-    await check.check();
-    humanSourceChecks++;
-  }
+  // The known synthetic refund is accepted as a whole without individual confirmations.
+  const humanSourceChecks = 0;
+  await expect(
+    page.getByRole("checkbox", { name: /^I checked .+ against the original$/ }),
+  ).toHaveCount(0);
   await addPeople(page, ["Alice", "Bob"]);
   for (const checkbox of await page
     .getByTestId("assignment-item-0")

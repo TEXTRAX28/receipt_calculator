@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { mkdtemp, rm } from "node:fs/promises";

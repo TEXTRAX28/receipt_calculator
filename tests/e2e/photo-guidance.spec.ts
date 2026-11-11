@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 
@@ -166,7 +166,7 @@ test("capture advice does not block a chosen reader or replace financial verific
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),

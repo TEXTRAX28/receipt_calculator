@@ -1,6 +1,6 @@
 import { requireAssistedPolicy } from "./assisted-policy";
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { test, expect } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { test, expect } from "./editor-fixture";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -58,7 +58,7 @@ test("real independent readers → original two-photo review → exact checked s
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 260000 });
   const elapsedMs = Date.now() - started;
   const state = appSchema.parse(
@@ -106,7 +106,7 @@ test("real independent readers → original two-photo review → exact checked s
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 4", exact: true })
     .click();
@@ -125,18 +125,16 @@ test("real independent readers → original two-photo review → exact checked s
     ),
   ).toBe(true);
   await page
-    .locator(".verification-checks")
+    .getByRole("region", { name: "Digital receipt", exact: true })
     .last()
     .screenshot({
       path: await qaArtifactPath(info, "independent-real-costco-review.png"),
     });
   // The test's image-checked development reference verifies the financial vector above.
-  // These clicks exercise mandatory review; they do not assert that model agreement proves correctness.
-  for (const checkbox of await page
-    .locator(".verification-checks")
-    .getByRole("checkbox")
-    .all())
-    if (await checkbox.isEnabled()) await checkbox.check();
+  // Receipt-level acceptance does not assert that model agreement proves correctness.
+  await expect(page.getByRole("checkbox", { name: /^I checked/ })).toHaveCount(
+    0,
+  );
   await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob", "Charlie"]) {
@@ -299,7 +297,7 @@ test("real four-section local vision completes bounded batches and retains actua
     })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 400000 });
   const elapsedMs = Date.now() - started;
   const state = appSchema.parse(
@@ -392,7 +390,7 @@ test("real four-section local vision completes bounded batches and retains actua
   expect(
     state.receipt.items.filter((item) => /chicken/i.test(item.description)),
   ).toHaveLength(2);
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -401,11 +399,9 @@ test("real four-section local vision completes bounded batches and retains actua
     "/api/receipts/recognize",
     "/api/receipts/vision-batches",
   ]);
-  for (const checkbox of await page
-    .locator(".verification-checks")
-    .getByRole("checkbox")
-    .all())
-    if (await checkbox.isEnabled()) await checkbox.check();
+  await expect(page.getByRole("checkbox", { name: /^I checked/ })).toHaveCount(
+    0,
+  );
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
     exact: true,

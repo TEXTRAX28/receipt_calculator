@@ -1,6 +1,6 @@
-import { expectReviewBlocked } from "./review-assertions";
+import { expectReviewAttention } from "./review-assertions";
 // Opt-in local-only development receipt. No cloud requests or financial edits.
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./editor-fixture";
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -179,9 +179,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
     .poll(
       async () => {
         if (
-          await page
-            .getByRole("heading", { name: "A quick check, then we share." })
-            .isVisible()
+          await page.getByRole("heading", { name: "Your receipt." }).isVisible()
         )
           return "review";
         return (await page.getByRole("alert").allTextContents()).some((text) =>
@@ -194,7 +192,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
     )
     .not.toBe("working");
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 1000 });
   const elapsed_ms = Date.now() - start;
   await expect(
@@ -269,7 +267,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
         c.scope === "receipt" && c.field === "items" && !c.confirmedValue,
     ),
   ).toBe(true);
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
@@ -397,7 +395,7 @@ test(`${cropPhotos ? "cropped" : "original"} two-photo UK receipt through the en
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();
   }
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",

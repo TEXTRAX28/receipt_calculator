@@ -92,11 +92,9 @@ import {
   applyItemEdit,
   applyReceiptEdit,
   checkIsPending,
-  confirmReviewCheck,
   receiptFieldStamp,
   reviewFieldLabels,
   reviewKey,
-  reviewMessage,
 } from "./lib/review-checks";
 import {
   MAX_RECEIPT_IMAGES,
@@ -108,6 +106,12 @@ import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
 import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
+import ReceiptSnapshot from "./ReceiptSnapshot";
+import {
+  reconcileObservedUnits,
+  prepareSavedReceiptReview,
+} from "./lib/receipt-reconciliation";
+import { rereadUncertainNames } from "./lib/name-reread";
 import PhotoGuidance from "./PhotoGuidance";
 import ReceiptPhotos from "./ReceiptPhotos";
 import ReceiptCamera from "./ReceiptCamera";
@@ -300,7 +304,8 @@ function SectionIntro({
 export default function App() {
   const initial = useMemo(() => {
     try {
-      return loadDraft(localStorage);
+      const draft = loadDraft(localStorage);
+      return { ...draft, state: prepareSavedReceiptReview(draft.state) };
     } catch {
       return {
         state: newState(),
@@ -413,7 +418,10 @@ export default function App() {
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const result = useMemo(() => calculateSplit(state), [state]);
+  const result = useMemo(
+    () => calculateSplit(state, { readingNotes: "advisory" }),
+    [state],
+  );
   const receiptResult = result.receipt;
   const receiptError = (path: string) =>
     validationAttempted === "review"
@@ -458,7 +466,9 @@ export default function App() {
     if (!focusValidationIssue(document, selected)) setNotice(selected.message);
   }
   function continueReview() {
-    const checked = calculateReceipt(state.receipt);
+    const checked = calculateReceipt(state.receipt, {
+      readingNotes: "advisory",
+    });
     if (checked.issues.length) {
       showValidation(checked.issues, "review");
       return;
@@ -616,19 +626,13 @@ export default function App() {
   const editReceipt = (change: Partial<Receipt>) =>
     setState((s) => ({
       ...s,
-      receipt: applyReceiptEdit(s.receipt, change),
+      receipt: reconcileObservedUnits(applyReceiptEdit(s.receipt, change)),
       finalizedStamp: "",
     }));
   const editItem = (id: string, change: Partial<Item>) =>
     setState((s) => ({
       ...s,
-      receipt: applyItemEdit(s.receipt, id, change),
-      finalizedStamp: "",
-    }));
-  const confirmValue = (key: string, confirmed: boolean) =>
-    setState((s) => ({
-      ...s,
-      receipt: confirmReviewCheck(s.receipt, key, confirmed),
+      receipt: reconcileObservedUnits(applyItemEdit(s.receipt, id, change)),
       finalizedStamp: "",
     }));
   const replaceReceipt = (
@@ -641,7 +645,7 @@ export default function App() {
     setState((s) => ({
       ...newState(),
       people: s.people,
-      receipt,
+      receipt: reconcileObservedUnits(receipt),
       step: "review",
     }));
     setNotice("");
@@ -996,7 +1000,15 @@ export default function App() {
             : "device",
         );
       setRawText(output.text);
-      const nativeParsed = parseReceiptWithSources(output, readingContext);
+      let nativeParsed = parseReceiptWithSources(output, readingContext);
+      if (reader === "enhanced")
+        nativeParsed = await rereadUncertainNames(
+          nativeParsed,
+          output,
+          images,
+          controller.current.signal,
+          setScanStatus,
+        );
       const {
         receipt: parsed,
         sources,
@@ -1066,9 +1078,7 @@ export default function App() {
         ),
         evidence,
       );
-      setNotice(
-        "OCR finished. Check the extracted details against your images before confirming.",
-      );
+      setNotice("Receipt ready to review.");
     } catch (e) {
       setImageError(
         e instanceof Error
@@ -1118,7 +1128,7 @@ export default function App() {
     }
   }
   function finalize() {
-    const checked = calculateSplit(state);
+    const checked = calculateSplit(state, { readingNotes: "advisory" });
     if (!checked.canFinalize) {
       if (checked.receipt.issues.length)
         showValidation(checked.receipt.issues, "review");
@@ -2051,7 +2061,7 @@ export default function App() {
               }
               title={
                 state.step === "review"
-                  ? "A quick check, then we share."
+                  ? "Your receipt."
                   : state.step === "people"
                     ? "Who’s in on the shop?"
                     : state.step === "assign"
@@ -2062,7 +2072,7 @@ export default function App() {
               }
             >
               {state.step === "review"
-                ? "Check the details against your receipt. Discounts and tax deserve a second look."
+                ? "Your digital receipt. Make any corrections, then continue to share the bill."
                 : state.step === "people"
                   ? "Housemates, friends, family. Add a name for everyone sharing this receipt."
                   : state.step === "assign"
@@ -2071,702 +2081,756 @@ export default function App() {
                       ? "Your receipt balances, and everyone has a clear share. Ready for the group chat."
                       : "These are draft amounts. Resolve the remaining details before finalizing."}
             </SectionIntro>
-            <div className="workspace">
+            <div
+              className={`workspace${state.step === "review" ? " workspace-receipt" : ""}`}
+            >
               <div className="workspace-main">
                 {state.step === "review" && (
                   <>
-                    {state.receipt.warnings.length > 0 && (
-                      <details className="review-notes" open>
-                        <summary>
-                          <CircleHelp size={18} />A few things to check
-                        </summary>
-                        <ul>
-                          {state.receipt.warnings.map((warning, i) => (
-                            <li key={i}>{warning}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                    <section className="panel">
-                      {images.length > 0 && (
-                        <div className="review-image-links">
-                          {images.map((image, index) => (
-                            <button
-                              className="button button-outline"
-                              key={image.id}
-                              onClick={() => setZoomImage(image)}
-                            >
-                              <ReceiptText size={16} />
-                              View receipt image {index + 1}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <div className="panel-heading">
-                        <h2>The receipt details</h2>
-                        <span className="pill">
-                          {state.receipt.currencyUnresolved
-                            ? "Currency needed"
-                            : state.receipt.currency}
-                        </span>
-                      </div>
-                      <div className="form-grid metadata">
-                        <Field
-                          label="Merchant"
-                          path="merchant"
-                          error={receiptError("merchant")}
-                          hint="Optional. Leave blank if the name is missing or unreadable."
-                        >
-                          <input
-                            maxLength={100}
-                            value={state.receipt.merchant}
-                            onChange={(e) =>
-                              editReceipt({ merchant: e.target.value })
-                            }
-                          />
-                        </Field>
-                        <Field
-                          label="Receipt date (optional)"
-                          path="date"
-                          error={receiptError("date")}
-                        >
-                          <input
-                            type="date"
-                            value={state.receipt.date}
-                            onChange={(e) =>
-                              editReceipt({ date: e.target.value })
-                            }
-                          />
-                        </Field>
-                        <Field
-                          label="Currency"
-                          path="currency"
-                          error={
-                            receiptError("currency") ||
-                            (state.receipt.currencyUnresolved
-                              ? "Choose the currency printed on your receipt."
-                              : undefined)
-                          }
-                        >
-                          <select
-                            value={
-                              state.receipt.currencyUnresolved
-                                ? ""
-                                : state.receipt.currency
-                            }
-                            onChange={(e) =>
-                              editReceipt({
-                                currency: e.target.value as Receipt["currency"],
-                                currencyUnresolved: false,
-                              })
-                            }
-                          >
-                            <option value="" disabled>
-                              Choose currency
-                            </option>
-                            {Object.keys(currencies).map((code) => (
-                              <option key={code}>{code}</option>
+                    <ReceiptSnapshot
+                      receipt={state.receipt}
+                      result={receiptResult}
+                      onViewOriginal={
+                        images.length
+                          ? () => setZoomImage(images[0])
+                          : undefined
+                      }
+                      onEdit={(path) => {
+                        const editor = document.getElementById(
+                          "receipt-editor",
+                        ) as HTMLDetailsElement;
+                        editor.open = true;
+                        flushSync(() => openValidationDetails(document, path));
+                        const field = Array.from(
+                          editor.querySelectorAll<HTMLElement>(
+                            "[data-validation-path]",
+                          ),
+                        ).find((node) => node.dataset.validationPath === path);
+                        const control = field?.querySelector<HTMLElement>(
+                          "input, select, textarea",
+                        );
+                        control?.focus({ preventScroll: true });
+                        control?.scrollIntoView({ block: "center" });
+                      }}
+                    />
+                    <details
+                      id="receipt-editor"
+                      className="receipt-editor-disclosure"
+                      open={state.receipt.source === "manual"}
+                    >
+                      <summary>Edit fields and receipt text</summary>
+                      {state.receipt.warnings.length > 0 && (
+                        <details className="review-notes">
+                          <summary>
+                            <CircleHelp size={18} />A few things to check
+                          </summary>
+                          <ul>
+                            {state.receipt.warnings.map((warning, i) => (
+                              <li key={i}>{warning}</li>
                             ))}
-                          </select>
-                        </Field>
-                        <MoneyInput
-                          label="Printed total"
-                          path="printedTotal"
-                          error={
-                            receiptError("printedTotal") ||
-                            receiptError("total")
-                          }
-                          signed
-                          value={state.receipt.printedTotal}
-                          onChange={(printedTotal) =>
-                            editReceipt({ printedTotal })
-                          }
-                        />
-                        <MoneyInput
-                          label="Subtotal after item discounts (optional)"
-                          path="subtotal"
-                          error={receiptError("subtotal")}
-                          signed
-                          value={state.receipt.subtotal}
-                          onChange={(subtotal) => editReceipt({ subtotal })}
-                        />
-                        <MoneyInput
-                          label="Printed tax (optional check)"
-                          path="printedTax"
-                          error={receiptError("printedTax")}
-                          placeholder="Leave blank if not printed"
-                          signed
-                          value={state.receipt.printedTax}
-                          onChange={(printedTax) => editReceipt({ printedTax })}
-                          hint="A check against the receipt. When prices exclude tax, add tax using codes or a tax adjustment below."
-                        />
-                      </div>
-                      {(state.receipt.taxRegistrationNumber ||
-                        state.receipt.printedTaxRate) && (
-                        <aside
-                          className="tax-registration"
-                          aria-label="Printed tax details"
-                        >
-                          {state.receipt.taxRegistrationNumber && (
-                            <p>
-                              Tax registration:{" "}
-                              <strong>
-                                {state.receipt.taxRegistrationNumber}
-                              </strong>
-                              . This identifies the business; it is not a tax
-                              amount.
-                            </p>
-                          )}
-                          {state.receipt.printedTaxRate && (
-                            <p>
-                              Printed tax rate:{" "}
-                              <strong>{state.receipt.printedTaxRate}%</strong>.
-                            </p>
-                          )}
-                          {!state.receipt.printedTax && (
-                            <p>
-                              No separate tax amount was identified. Check the
-                              receipt; leave Printed tax blank if no amount is
-                              shown.
-                            </p>
-                          )}
-                        </aside>
+                          </ul>
+                        </details>
                       )}
-                      <p className="hint">
-                        Changing currency changes precision; it does not convert
-                        prices.
-                      </p>
-                      <div className="tax-options">
-                        <label
-                          className="check-row"
-                          data-validation-path="pricesIncludeTax"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={state.receipt.pricesIncludeTax}
-                            onChange={(e) =>
-                              editReceipt({
-                                pricesIncludeTax: e.target.checked,
-                              })
-                            }
-                          />
-                          <span>
-                            Item prices already include tax
-                            <small>
-                              Included tax is recorded for information. Extra
-                              tax stays at zero.
-                            </small>
-                            {receiptError("pricesIncludeTax") && (
-                              <small className="field-error" role="alert">
-                                {receiptError("pricesIncludeTax")}
-                              </small>
-                            )}
-                          </span>
-                        </label>
-                        {!state.receipt.pricesIncludeTax && (
-                          <Field
-                            label="How should added tax be calculated?"
-                            path="taxMode"
-                            error={receiptError("taxMode")}
-                          >
-                            <select
-                              value={state.receipt.taxMode}
-                              onChange={(e) =>
-                                editReceipt({
-                                  taxMode: e.target.value as Receipt["taxMode"],
-                                })
-                              }
-                            >
-                              <option value="printed">
-                                Printed tax amount
-                              </option>
-                              <option value="codes">Item tax codes</option>
-                            </select>
-                          </Field>
-                        )}
-                        {!state.receipt.pricesIncludeTax &&
-                          state.receipt.taxMode === "printed" &&
-                          state.receipt.printedTax.trim() !== "" &&
-                          !state.receipt.adjustments.some(
-                            (adjustment) => adjustment.kind === "tax",
-                          ) && (
-                            <button
-                              type="button"
-                              className="text-button"
-                              disabled={state.receipt.adjustments.length >= 30}
-                              onClick={() =>
-                                editReceipt({
-                                  adjustments: [
-                                    ...state.receipt.adjustments,
-                                    {
-                                      id: uid(),
-                                      label: "Printed tax",
-                                      kind: "tax",
-                                      amount: state.receipt.printedTax,
-                                      allocation: "proportional",
-                                    },
-                                  ],
-                                })
-                              }
-                            >
-                              <Plus size={16} />
-                              Add printed tax
-                            </button>
-                          )}
-                        {((!state.receipt.pricesIncludeTax &&
-                          state.receipt.taxMode === "codes") ||
-                          state.receipt.reviewChecks.some(
-                            (check) =>
-                              check.scope === "receipt" &&
-                              check.field === "taxCodes",
-                          )) && (
-                          <div
-                            className="tax-code-box"
-                            data-validation-path="taxCodes"
-                          >
-                            {receiptError("taxCodes") && (
-                              <p className="field-error" role="alert">
-                                {receiptError("taxCodes")}
-                              </p>
-                            )}
-                            <p>
-                              <strong>Use the legend on your receipt.</strong>{" "}
-                              Match the printed code and rate. Codes vary by
-                              retailer and country; keep an unreadable rate
-                              blank until checked.
-                            </p>
-                            {state.receipt.taxCodes.map((code, index) => (
-                              <div className="tax-code-row" key={index}>
-                                <Field
-                                  label={`Tax code ${index + 1}`}
-                                  path={`taxCodes.${index}.code`}
-                                  error={receiptError(`taxCodes.${index}.code`)}
-                                >
-                                  <input
-                                    value={code.code}
-                                    maxLength={12}
-                                    onChange={(e) =>
-                                      editReceipt({
-                                        taxCodes: state.receipt.taxCodes.map(
-                                          (c, j) =>
-                                            j === index
-                                              ? {
-                                                  ...c,
-                                                  code: e.target.value.toUpperCase(),
-                                                }
-                                              : c,
-                                        ),
-                                      })
-                                    }
-                                  />
-                                </Field>
-                                <MoneyInput
-                                  label={`Rate % for code ${index + 1}`}
-                                  path={`taxCodes.${index}.rate`}
-                                  error={receiptError(`taxCodes.${index}.rate`)}
-                                  value={code.rate}
-                                  onChange={(rate) =>
-                                    editReceipt({
-                                      taxCodes: state.receipt.taxCodes.map(
-                                        (c, j) =>
-                                          j === index ? { ...c, rate } : c,
-                                      ),
-                                    })
-                                  }
-                                />
-                                <button
-                                  className="icon-button danger"
-                                  aria-label={`Remove tax code ${index + 1}`}
-                                  onClick={() =>
-                                    editReceipt({
-                                      taxCodes: state.receipt.taxCodes.filter(
-                                        (_, j) => j !== index,
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <Trash2 size={17} />
-                                </button>
-                              </div>
+                      <section className="panel">
+                        {images.length > 0 && (
+                          <div className="review-image-links">
+                            {images.map((image, index) => (
+                              <button
+                                className="button button-outline"
+                                key={image.id}
+                                onClick={() => setZoomImage(image)}
+                              >
+                                <ReceiptText size={16} />
+                                View receipt image {index + 1}
+                              </button>
                             ))}
-                            <button
-                              className="text-button"
-                              disabled={state.receipt.taxCodes.length >= 20}
-                              onClick={() =>
-                                editReceipt({
-                                  taxCodes: [
-                                    ...state.receipt.taxCodes,
-                                    { code: "", rate: "" },
-                                  ],
-                                })
-                              }
-                            >
-                              <Plus size={16} />
-                              Add tax code
-                            </button>
                           </div>
                         )}
-                      </div>
-                    </section>
-                    <section className="panel items-panel">
-                      <div className="panel-heading">
-                        <h2>What’s in the trolley?</h2>
-                        <span className="muted">
-                          {state.receipt.items.length} purchase lines
-                        </span>
-                      </div>
-                      <p className="hint">
-                        Purchased packs and units inside each pack are
-                        different. Pack sizes are confirmed later when sharing
-                        by quantity.
-                      </p>
-                      {state.receipt.items.some((i) => !i.quantity) && (
-                        <button
-                          className="button button-outline"
-                          onClick={() =>
-                            setState((value) => ({
-                              ...value,
-                              receipt: value.receipt.items.reduce(
-                                (receipt, item) =>
-                                  item.quantity
-                                    ? receipt
-                                    : applyItemEdit(receipt, item.id, {
-                                        quantity: "1",
-                                        note: "Purchased quantity set to one by you. Confirm against receipt.",
-                                      }),
-                                value.receipt,
-                              ),
-                              finalizedStamp: "",
-                            }))
-                          }
-                        >
-                          Confirm all missing purchased quantities as 1
-                        </button>
-                      )}
-                      <div className="item-table-heading">
-                        <span>ITEM</span>
-                        <span>LINE PRICE</span>
-                        <span>AFTER TAX & DISCOUNTS</span>
-                      </div>
-                      {state.receipt.items.map((item, index) => (
-                        <ItemEditor
-                          key={item.id}
-                          item={item}
-                          index={index}
-                          receipt={state.receipt}
-                          issues={
-                            validationAttempted === "review"
-                              ? receiptResult.issues
-                              : []
-                          }
-                          cost={receiptResult.items[index]?.total ?? 0n}
-                          evidence={
-                            scanEvidence?.receiptId === state.receipt.id
-                              ? scanEvidence.items[item.id]
-                              : undefined
-                          }
-                          onViewSource={() => {
-                            setSourceCheckKey(null);
-                            setSourceItemId(item.id);
-                          }}
-                          onConfirm={confirmValue}
-                          onChange={(change) => editItem(item.id, change)}
-                          onDelete={() =>
-                            editReceipt({
-                              items: state.receipt.items.filter(
-                                (i) => i.id !== item.id,
-                              ),
-                            })
-                          }
-                        />
-                      ))}
-                      <button
-                        className="text-button add-line"
-                        data-validation-path="items"
-                        disabled={state.receipt.items.length >= 300}
-                        onClick={() =>
-                          editReceipt({
-                            items: [...state.receipt.items, newItem()],
-                          })
-                        }
-                      >
-                        <Plus size={18} />
-                        Add an item
-                      </button>
-                    </section>
-                    <section className="panel">
-                      <div className="panel-heading">
-                        <h2>Discounts & little extras</h2>
-                      </div>
-                      <p className="hint">
-                        Purchase discounts reduce purchase costs before added
-                        tax. Negative coupon reversals reduce refund credits. An
-                        item discount belongs in that item’s details. Shared
-                        charges on mixed purchases and returns need an explicit
-                        choice: use equal per person, printed tax codes or
-                        separate item charges.
-                      </p>
-                      {state.receipt.adjustments.map((a, index) => (
-                        <div className="adjustment-row" key={a.id}>
+                        <div className="panel-heading">
+                          <h2>The receipt details</h2>
+                          <span className="pill">
+                            {state.receipt.currencyUnresolved
+                              ? "Currency needed"
+                              : state.receipt.currency}
+                          </span>
+                        </div>
+                        <div className="form-grid metadata">
                           <Field
-                            label={`Adjustment ${index + 1} label`}
-                            path={`adjustments.${a.id}.label`}
-                            error={receiptError(`adjustments.${a.id}.label`)}
+                            label="Merchant"
+                            path="merchant"
+                            error={receiptError("merchant")}
+                            hint="Optional. Leave blank if the name is missing or unreadable."
                           >
                             <input
-                              value={a.label}
                               maxLength={100}
+                              value={state.receipt.merchant}
                               onChange={(e) =>
-                                editReceipt({
-                                  adjustments: state.receipt.adjustments.map(
-                                    (x) =>
-                                      x.id === a.id
-                                        ? { ...x, label: e.target.value }
-                                        : x,
-                                  ),
-                                })
+                                editReceipt({ merchant: e.target.value })
                               }
                             />
                           </Field>
                           <Field
-                            label={`Adjustment ${index + 1} type`}
-                            path={`adjustments.${a.id}.kind`}
-                            error={receiptError(`adjustments.${a.id}.kind`)}
+                            label="Receipt date (optional)"
+                            path="date"
+                            error={receiptError("date")}
+                          >
+                            <input
+                              type="date"
+                              value={state.receipt.date}
+                              onChange={(e) =>
+                                editReceipt({ date: e.target.value })
+                              }
+                            />
+                          </Field>
+                          <Field
+                            label="Currency"
+                            path="currency"
+                            error={
+                              receiptError("currency") ||
+                              (state.receipt.currencyUnresolved
+                                ? "Choose the currency printed on your receipt."
+                                : undefined)
+                            }
                           >
                             <select
-                              value={a.kind}
+                              value={
+                                state.receipt.currencyUnresolved
+                                  ? ""
+                                  : state.receipt.currency
+                              }
                               onChange={(e) =>
                                 editReceipt({
-                                  adjustments: state.receipt.adjustments.map(
-                                    (x) =>
-                                      x.id === a.id
-                                        ? {
-                                            ...x,
-                                            kind: e.target
-                                              .value as typeof a.kind,
-                                            includedTaxRate:
-                                              e.target.value === "fee"
-                                                ? x.includedTaxRate
-                                                : undefined,
-                                          }
-                                        : x,
-                                  ),
+                                  currency: e.target
+                                    .value as Receipt["currency"],
+                                  currencyUnresolved: false,
                                 })
                               }
                             >
-                              <option value="discount">Receipt discount</option>
-                              <option value="tax">Tax</option>
-                              <option value="fee">Fee</option>
-                              <option value="tip">Tip</option>
-                              <option value="deposit">Deposit</option>
-                              <option value="rounding">
-                                Rounding (signed)
+                              <option value="" disabled>
+                                Choose currency
                               </option>
+                              {Object.keys(currencies).map((code) => (
+                                <option key={code}>{code}</option>
+                              ))}
                             </select>
                           </Field>
                           <MoneyInput
-                            label={`Adjustment ${index + 1} amount`}
-                            path={`adjustments.${a.id}`}
-                            error={receiptError(`adjustments.${a.id}`)}
+                            label="Printed total"
+                            path="printedTotal"
+                            error={
+                              receiptError("printedTotal") ||
+                              receiptError("total")
+                            }
                             signed
-                            value={a.amount}
-                            onChange={(amount) =>
-                              editReceipt({
-                                adjustments: state.receipt.adjustments.map(
-                                  (x) => (x.id === a.id ? { ...x, amount } : x),
-                                ),
-                              })
+                            value={state.receipt.printedTotal}
+                            onChange={(printedTotal) =>
+                              editReceipt({ printedTotal })
                             }
                           />
-                          <Field
-                            label={`Adjustment ${index + 1} allocation`}
-                            path={`adjustments.${a.id}.allocation`}
-                            error={receiptError(
-                              `adjustments.${a.id}.allocation`,
-                            )}
+                          <MoneyInput
+                            label="Subtotal after item discounts (optional)"
+                            path="subtotal"
+                            error={receiptError("subtotal")}
+                            signed
+                            value={state.receipt.subtotal}
+                            onChange={(subtotal) => editReceipt({ subtotal })}
+                          />
+                          <MoneyInput
+                            label="Printed tax (optional check)"
+                            path="printedTax"
+                            error={receiptError("printedTax")}
+                            placeholder="Leave blank if not printed"
+                            signed
+                            value={state.receipt.printedTax}
+                            onChange={(printedTax) =>
+                              editReceipt({ printedTax })
+                            }
+                            hint="A check against the receipt. When prices exclude tax, add tax using codes or a tax adjustment below."
+                          />
+                        </div>
+                        {(state.receipt.taxRegistrationNumber ||
+                          state.receipt.printedTaxRate) && (
+                          <aside
+                            className="tax-registration"
+                            aria-label="Printed tax details"
                           >
-                            <select
-                              disabled={a.kind === "discount"}
-                              value={
-                                a.kind === "discount"
-                                  ? "proportional"
-                                  : a.allocation
-                              }
+                            {state.receipt.taxRegistrationNumber && (
+                              <p>
+                                Tax registration:{" "}
+                                <strong>
+                                  {state.receipt.taxRegistrationNumber}
+                                </strong>
+                                . This identifies the business; it is not a tax
+                                amount.
+                              </p>
+                            )}
+                            {state.receipt.printedTaxRate && (
+                              <p>
+                                Printed tax rate:{" "}
+                                <strong>{state.receipt.printedTaxRate}%</strong>
+                                .
+                              </p>
+                            )}
+                            {!state.receipt.printedTax && (
+                              <p>
+                                No separate tax amount was identified. Check the
+                                receipt; leave Printed tax blank if no amount is
+                                shown.
+                              </p>
+                            )}
+                          </aside>
+                        )}
+                        <p className="hint">
+                          Changing currency changes precision; it does not
+                          convert prices.
+                        </p>
+                        <div className="tax-options">
+                          <label
+                            className="check-row"
+                            data-validation-path="pricesIncludeTax"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={state.receipt.pricesIncludeTax}
                               onChange={(e) =>
                                 editReceipt({
-                                  adjustments: state.receipt.adjustments.map(
-                                    (x) =>
-                                      x.id === a.id
-                                        ? {
-                                            ...x,
-                                            allocation: e.target
-                                              .value as typeof a.allocation,
-                                          }
-                                        : x,
-                                  ),
+                                  pricesIncludeTax: e.target.checked,
                                 })
                               }
+                            />
+                            <span>
+                              Item prices already include tax
+                              <small>
+                                Included tax is recorded for information. Extra
+                                tax stays at zero.
+                              </small>
+                              {receiptError("pricesIncludeTax") && (
+                                <small className="field-error" role="alert">
+                                  {receiptError("pricesIncludeTax")}
+                                </small>
+                              )}
+                            </span>
+                          </label>
+                          {!state.receipt.pricesIncludeTax && (
+                            <Field
+                              label="How should added tax be calculated?"
+                              path="taxMode"
+                              error={receiptError("taxMode")}
                             >
-                              <option value="proportional">By item cost</option>
-                              <option value="equal-people">
-                                Equally per person
-                              </option>
-                            </select>
-                          </Field>
-                          {a.kind === "fee" && (
-                            <div className="fee-tax-options">
-                              <label className="check-row">
-                                <input
-                                  type="checkbox"
-                                  aria-label={`Adjustment ${index + 1}: fee already includes tax`}
-                                  checked={a.includedTaxRate !== undefined}
-                                  onChange={(e) =>
-                                    editReceipt({
-                                      adjustments:
-                                        state.receipt.adjustments.map((x) =>
-                                          x.id === a.id
-                                            ? {
-                                                ...x,
-                                                includedTaxRate: e.target
-                                                  .checked
-                                                  ? ""
-                                                  : undefined,
-                                              }
-                                            : x,
-                                        ),
-                                    })
-                                  }
-                                />
-                                This fee already includes tax
-                              </label>
-                              {a.includedTaxRate !== undefined && (
-                                <>
+                              <select
+                                value={state.receipt.taxMode}
+                                onChange={(e) =>
+                                  editReceipt({
+                                    taxMode: e.target
+                                      .value as Receipt["taxMode"],
+                                  })
+                                }
+                              >
+                                <option value="printed">
+                                  Printed tax amount
+                                </option>
+                                <option value="codes">Item tax codes</option>
+                              </select>
+                            </Field>
+                          )}
+                          {!state.receipt.pricesIncludeTax &&
+                            state.receipt.taxMode === "printed" &&
+                            state.receipt.printedTax.trim() !== "" &&
+                            !state.receipt.adjustments.some(
+                              (adjustment) => adjustment.kind === "tax",
+                            ) && (
+                              <button
+                                type="button"
+                                className="text-button"
+                                disabled={
+                                  state.receipt.adjustments.length >= 30
+                                }
+                                onClick={() =>
+                                  editReceipt({
+                                    adjustments: [
+                                      ...state.receipt.adjustments,
+                                      {
+                                        id: uid(),
+                                        label: "Printed tax",
+                                        kind: "tax",
+                                        amount: state.receipt.printedTax,
+                                        allocation: "proportional",
+                                      },
+                                    ],
+                                  })
+                                }
+                              >
+                                <Plus size={16} />
+                                Add printed tax
+                              </button>
+                            )}
+                          {((!state.receipt.pricesIncludeTax &&
+                            state.receipt.taxMode === "codes") ||
+                            state.receipt.reviewChecks.some(
+                              (check) =>
+                                check.scope === "receipt" &&
+                                check.field === "taxCodes",
+                            )) && (
+                            <div
+                              className="tax-code-box"
+                              data-validation-path="taxCodes"
+                            >
+                              {receiptError("taxCodes") && (
+                                <p className="field-error" role="alert">
+                                  {receiptError("taxCodes")}
+                                </p>
+                              )}
+                              <p>
+                                <strong>Use the legend on your receipt.</strong>{" "}
+                                Match the printed code and rate. Codes vary by
+                                retailer and country; keep an unreadable rate
+                                blank until checked.
+                              </p>
+                              {state.receipt.taxCodes.map((code, index) => (
+                                <div className="tax-code-row" key={index}>
                                   <Field
-                                    label={`Adjustment ${index + 1} included tax rate (%)`}
-                                    path={`adjustments.${a.id}.includedTaxRate`}
-                                    hint="Use the fee’s printed rate and keep its full amount. A printed tax adjustment must be the full tax total, including this fee."
-                                    error={
-                                      receiptResult.issues.find(
-                                        (issue) =>
-                                          issue.path ===
-                                          `adjustments.${a.id}.includedTaxRate`,
-                                      )?.message
-                                    }
+                                    label={`Tax code ${index + 1}`}
+                                    path={`taxCodes.${index}.code`}
+                                    error={receiptError(
+                                      `taxCodes.${index}.code`,
+                                    )}
                                   >
                                     <input
-                                      inputMode="decimal"
-                                      maxLength={40}
-                                      value={a.includedTaxRate}
+                                      value={code.code}
+                                      maxLength={12}
                                       onChange={(e) =>
                                         editReceipt({
-                                          adjustments:
-                                            state.receipt.adjustments.map(
-                                              (x) =>
-                                                x.id === a.id
-                                                  ? {
-                                                      ...x,
-                                                      includedTaxRate:
-                                                        e.target.value,
-                                                    }
-                                                  : x,
-                                            ),
+                                          taxCodes: state.receipt.taxCodes.map(
+                                            (c, j) =>
+                                              j === index
+                                                ? {
+                                                    ...c,
+                                                    code: e.target.value.toUpperCase(),
+                                                  }
+                                                : c,
+                                          ),
                                         })
                                       }
                                     />
                                   </Field>
-                                </>
-                              )}
+                                  <MoneyInput
+                                    label={`Rate % for code ${index + 1}`}
+                                    path={`taxCodes.${index}.rate`}
+                                    error={receiptError(
+                                      `taxCodes.${index}.rate`,
+                                    )}
+                                    value={code.rate}
+                                    onChange={(rate) =>
+                                      editReceipt({
+                                        taxCodes: state.receipt.taxCodes.map(
+                                          (c, j) =>
+                                            j === index ? { ...c, rate } : c,
+                                        ),
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    className="icon-button danger"
+                                    aria-label={`Remove tax code ${index + 1}`}
+                                    onClick={() =>
+                                      editReceipt({
+                                        taxCodes: state.receipt.taxCodes.filter(
+                                          (_, j) => j !== index,
+                                        ),
+                                      })
+                                    }
+                                  >
+                                    <Trash2 size={17} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                className="text-button"
+                                disabled={state.receipt.taxCodes.length >= 20}
+                                onClick={() =>
+                                  editReceipt({
+                                    taxCodes: [
+                                      ...state.receipt.taxCodes,
+                                      { code: "", rate: "" },
+                                    ],
+                                  })
+                                }
+                              >
+                                <Plus size={16} />
+                                Add tax code
+                              </button>
                             </div>
                           )}
+                        </div>
+                      </section>
+                      <section className="panel items-panel">
+                        <div className="panel-heading">
+                          <h2>What’s in the trolley?</h2>
+                          <span className="muted">
+                            {state.receipt.items.length} purchase lines
+                          </span>
+                        </div>
+                        <p className="hint">
+                          Purchased packs and units inside each pack are
+                          different. Pack sizes are confirmed later when sharing
+                          by quantity.
+                        </p>
+                        {state.receipt.items.some((i) => !i.quantity) && (
                           <button
-                            className="icon-button danger"
-                            aria-label={`Remove adjustment ${index + 1}`}
+                            className="button button-outline"
                             onClick={() =>
+                              setState((value) => ({
+                                ...value,
+                                receipt: value.receipt.items.reduce(
+                                  (receipt, item) =>
+                                    item.quantity
+                                      ? receipt
+                                      : applyItemEdit(receipt, item.id, {
+                                          quantity: "1",
+                                          note: "Purchased quantity set to one by you. Confirm against receipt.",
+                                        }),
+                                  value.receipt,
+                                ),
+                                finalizedStamp: "",
+                              }))
+                            }
+                          >
+                            Confirm all missing purchased quantities as 1
+                          </button>
+                        )}
+                        <div className="item-table-heading">
+                          <span>ITEM</span>
+                          <span>LINE PRICE</span>
+                          <span>AFTER TAX & DISCOUNTS</span>
+                        </div>
+                        {state.receipt.items.map((item, index) => (
+                          <ItemEditor
+                            key={item.id}
+                            item={item}
+                            index={index}
+                            receipt={state.receipt}
+                            issues={
+                              validationAttempted === "review"
+                                ? receiptResult.issues
+                                : []
+                            }
+                            cost={receiptResult.items[index]?.total ?? 0n}
+                            evidence={
+                              scanEvidence?.receiptId === state.receipt.id
+                                ? scanEvidence.items[item.id]
+                                : undefined
+                            }
+                            onViewSource={() => {
+                              setSourceCheckKey(null);
+                              setSourceItemId(item.id);
+                            }}
+                            onChange={(change) => editItem(item.id, change)}
+                            onDelete={() =>
                               editReceipt({
-                                adjustments: state.receipt.adjustments.filter(
-                                  (x) => x.id !== a.id,
+                                items: state.receipt.items.filter(
+                                  (i) => i.id !== item.id,
                                 ),
                               })
                             }
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                          {a.kind === "tax" &&
-                            state.receipt.pricesIncludeTax && (
-                              <small className="included-tax">
-                                Already included in item prices. This row adds
-                                no extra tax.
-                              </small>
-                            )}
-                        </div>
-                      ))}
-                      <button
-                        className="text-button"
-                        data-validation-path="adjustments"
-                        disabled={state.receipt.adjustments.length >= 30}
-                        onClick={() =>
-                          editReceipt({
-                            adjustments: [
-                              ...state.receipt.adjustments,
-                              {
-                                id: uid(),
-                                label: "",
-                                kind: "fee",
-                                amount: "",
-                                allocation: "proportional",
-                              },
-                            ],
-                          })
-                        }
-                      >
-                        <Plus size={17} />
-                        Add discount, tax or charge
-                      </button>
-                    </section>
-                    {(state.receipt.rawText || rawText) && (
-                      <details className="panel raw-text">
-                        <summary>
-                          Check or correct recognized receipt text
-                        </summary>
-                        <Field label="Recognized text">
-                          <textarea
-                            rows={10}
-                            maxLength={60000}
-                            value={rawText || state.receipt.rawText}
-                            onChange={(e) => {
-                              setRawText(e.target.value);
-                              editReceipt({ rawText: e.target.value });
-                            }}
                           />
-                        </Field>
+                        ))}
                         <button
-                          className="button button-outline"
-                          onClick={parseText}
+                          className="text-button add-line"
+                          data-validation-path="items"
+                          disabled={state.receipt.items.length >= 300}
+                          onClick={() =>
+                            editReceipt({
+                              items: [...state.receipt.items, newItem()],
+                            })
+                          }
                         >
-                          Reparse text (replaces current items)
+                          <Plus size={18} />
+                          Add an item
                         </button>
+                      </section>
+                      <section className="panel">
+                        <div className="panel-heading">
+                          <h2>Discounts & little extras</h2>
+                        </div>
                         <p className="hint">
-                          Raw OCR text is not saved after a refresh. All
-                          extracted fields above remain editable.
+                          Purchase discounts reduce purchase costs before added
+                          tax. Negative coupon reversals reduce refund credits.
+                          An item discount belongs in that item’s details.
+                          Shared charges on mixed purchases and returns need an
+                          explicit choice: use equal per person, printed tax
+                          codes or separate item charges.
                         </p>
-                      </details>
-                    )}
-                    <ReviewChecks
-                      receipt={state.receipt}
-                      checks={state.receipt.reviewChecks.filter(
-                        (check) => check.scope === "receipt",
+                        {state.receipt.adjustments.map((a, index) => (
+                          <div className="adjustment-row" key={a.id}>
+                            <Field
+                              label={`Adjustment ${index + 1} label`}
+                              path={`adjustments.${a.id}.label`}
+                              error={receiptError(`adjustments.${a.id}.label`)}
+                            >
+                              <input
+                                value={a.label}
+                                maxLength={100}
+                                onChange={(e) =>
+                                  editReceipt({
+                                    adjustments: state.receipt.adjustments.map(
+                                      (x) =>
+                                        x.id === a.id
+                                          ? { ...x, label: e.target.value }
+                                          : x,
+                                    ),
+                                  })
+                                }
+                              />
+                            </Field>
+                            <Field
+                              label={`Adjustment ${index + 1} type`}
+                              path={`adjustments.${a.id}.kind`}
+                              error={receiptError(`adjustments.${a.id}.kind`)}
+                            >
+                              <select
+                                value={a.kind}
+                                onChange={(e) =>
+                                  editReceipt({
+                                    adjustments: state.receipt.adjustments.map(
+                                      (x) =>
+                                        x.id === a.id
+                                          ? {
+                                              ...x,
+                                              kind: e.target
+                                                .value as typeof a.kind,
+                                              includedTaxRate:
+                                                e.target.value === "fee"
+                                                  ? x.includedTaxRate
+                                                  : undefined,
+                                            }
+                                          : x,
+                                    ),
+                                  })
+                                }
+                              >
+                                <option value="discount">
+                                  Receipt discount
+                                </option>
+                                <option value="tax">Tax</option>
+                                <option value="fee">Fee</option>
+                                <option value="tip">Tip</option>
+                                <option value="deposit">Deposit</option>
+                                <option value="rounding">
+                                  Rounding (signed)
+                                </option>
+                              </select>
+                            </Field>
+                            <MoneyInput
+                              label={`Adjustment ${index + 1} amount`}
+                              path={`adjustments.${a.id}`}
+                              error={receiptError(`adjustments.${a.id}`)}
+                              signed
+                              value={a.amount}
+                              onChange={(amount) =>
+                                editReceipt({
+                                  adjustments: state.receipt.adjustments.map(
+                                    (x) =>
+                                      x.id === a.id ? { ...x, amount } : x,
+                                  ),
+                                })
+                              }
+                            />
+                            <Field
+                              label={`Adjustment ${index + 1} allocation`}
+                              path={`adjustments.${a.id}.allocation`}
+                              error={receiptError(
+                                `adjustments.${a.id}.allocation`,
+                              )}
+                            >
+                              <select
+                                disabled={a.kind === "discount"}
+                                value={
+                                  a.kind === "discount"
+                                    ? "proportional"
+                                    : a.allocation
+                                }
+                                onChange={(e) =>
+                                  editReceipt({
+                                    adjustments: state.receipt.adjustments.map(
+                                      (x) =>
+                                        x.id === a.id
+                                          ? {
+                                              ...x,
+                                              allocation: e.target
+                                                .value as typeof a.allocation,
+                                            }
+                                          : x,
+                                    ),
+                                  })
+                                }
+                              >
+                                <option value="proportional">
+                                  By item cost
+                                </option>
+                                <option value="equal-people">
+                                  Equally per person
+                                </option>
+                              </select>
+                            </Field>
+                            {a.kind === "fee" && (
+                              <div className="fee-tax-options">
+                                <label className="check-row">
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Adjustment ${index + 1}: fee already includes tax`}
+                                    checked={a.includedTaxRate !== undefined}
+                                    onChange={(e) =>
+                                      editReceipt({
+                                        adjustments:
+                                          state.receipt.adjustments.map((x) =>
+                                            x.id === a.id
+                                              ? {
+                                                  ...x,
+                                                  includedTaxRate: e.target
+                                                    .checked
+                                                    ? ""
+                                                    : undefined,
+                                                }
+                                              : x,
+                                          ),
+                                      })
+                                    }
+                                  />
+                                  This fee already includes tax
+                                </label>
+                                {a.includedTaxRate !== undefined && (
+                                  <>
+                                    <Field
+                                      label={`Adjustment ${index + 1} included tax rate (%)`}
+                                      path={`adjustments.${a.id}.includedTaxRate`}
+                                      hint="Use the fee’s printed rate and keep its full amount. A printed tax adjustment must be the full tax total, including this fee."
+                                      error={
+                                        receiptResult.issues.find(
+                                          (issue) =>
+                                            issue.path ===
+                                            `adjustments.${a.id}.includedTaxRate`,
+                                        )?.message
+                                      }
+                                    >
+                                      <input
+                                        inputMode="decimal"
+                                        maxLength={40}
+                                        value={a.includedTaxRate}
+                                        onChange={(e) =>
+                                          editReceipt({
+                                            adjustments:
+                                              state.receipt.adjustments.map(
+                                                (x) =>
+                                                  x.id === a.id
+                                                    ? {
+                                                        ...x,
+                                                        includedTaxRate:
+                                                          e.target.value,
+                                                      }
+                                                    : x,
+                                              ),
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            <button
+                              className="icon-button danger"
+                              aria-label={`Remove adjustment ${index + 1}`}
+                              onClick={() =>
+                                editReceipt({
+                                  adjustments: state.receipt.adjustments.filter(
+                                    (x) => x.id !== a.id,
+                                  ),
+                                })
+                              }
+                            >
+                              <Trash2 size={17} />
+                            </button>
+                            {a.kind === "tax" &&
+                              state.receipt.pricesIncludeTax && (
+                                <small className="included-tax">
+                                  Already included in item prices. This row adds
+                                  no extra tax.
+                                </small>
+                              )}
+                          </div>
+                        ))}
+                        <button
+                          className="text-button"
+                          data-validation-path="adjustments"
+                          disabled={state.receipt.adjustments.length >= 30}
+                          onClick={() =>
+                            editReceipt({
+                              adjustments: [
+                                ...state.receipt.adjustments,
+                                {
+                                  id: uid(),
+                                  label: "",
+                                  kind: "fee",
+                                  amount: "",
+                                  allocation: "proportional",
+                                },
+                              ],
+                            })
+                          }
+                        >
+                          <Plus size={17} />
+                          Add discount, tax or charge
+                        </button>
+                      </section>
+                      {(state.receipt.rawText || rawText) && (
+                        <details className="panel raw-text">
+                          <summary>
+                            Check or correct recognized receipt text
+                          </summary>
+                          <Field label="Recognized text">
+                            <textarea
+                              rows={10}
+                              maxLength={60000}
+                              value={rawText || state.receipt.rawText}
+                              onChange={(e) => {
+                                setRawText(e.target.value);
+                                editReceipt({ rawText: e.target.value });
+                              }}
+                            />
+                          </Field>
+                          <button
+                            className="button button-outline"
+                            onClick={parseText}
+                          >
+                            Reparse text (replaces current items)
+                          </button>
+                          <p className="hint">
+                            Raw OCR text is not saved after a refresh. All
+                            extracted fields above remain editable.
+                          </p>
+                        </details>
                       )}
-                      onConfirm={confirmValue}
-                      canViewSource={(check) =>
-                        check.scope === "receipt" &&
-                        scanEvidence?.receiptId === state.receipt.id &&
-                        Boolean(scanEvidence.fields?.[check.field])
-                      }
-                      onViewSource={(check) => {
-                        setSourceItemId(null);
-                        setSourceCheckKey(reviewKey(check));
-                      }}
-                    />
+                      <ReviewChecks
+                        receipt={state.receipt}
+                        checks={state.receipt.reviewChecks.filter(
+                          (check) => check.scope === "receipt",
+                        )}
+                        canViewSource={(check) =>
+                          check.scope === "receipt" &&
+                          scanEvidence?.receiptId === state.receipt.id &&
+                          Boolean(scanEvidence.fields?.[check.field])
+                        }
+                        onViewSource={(check) => {
+                          setSourceItemId(null);
+                          setSourceCheckKey(reviewKey(check));
+                        }}
+                      />
+                      <h3>Calculation details</h3>
+                      <SummaryRows
+                        receipt={state.receipt}
+                        result={receiptResult}
+                      />
+                    </details>
                     <IssueBox
                       issues={receiptResult.issues.map((i) => i.message)}
                       title="Let’s get the receipt to balance"
@@ -3285,7 +3349,7 @@ export default function App() {
                   </>
                 )}
               </div>
-              {sidePanel}
+              {state.step !== "review" && sidePanel}
             </div>
           </>
         )}
@@ -3425,14 +3489,8 @@ export default function App() {
                   error={sourceError("discount")}
                   onChange={(discount) => editItem(sourceItem.id, { discount })}
                 />
-                {(!state.receipt.pricesIncludeTax &&
-                  state.receipt.taxMode === "codes") ||
-                state.receipt.reviewChecks.some(
-                  (check) =>
-                    check.scope === "item" &&
-                    check.itemId === sourceItem.id &&
-                    check.field === "taxCode",
-                ) ? (
+                {!state.receipt.pricesIncludeTax &&
+                state.receipt.taxMode === "codes" ? (
                   <Field
                     label={`Item ${sourceItemIndex + 1} tax code`}
                     error={sourceError("taxCode")}
@@ -3451,11 +3509,11 @@ export default function App() {
               </div>
               <ReviewChecks
                 receipt={state.receipt}
+                open
                 checks={state.receipt.reviewChecks.filter(
                   (check) =>
                     check.scope === "item" && check.itemId === sourceItem.id,
                 )}
-                onConfirm={confirmValue}
               />
               <p className="hint">
                 Changes recalculate your receipt. Confirm the whole receipt
@@ -3487,13 +3545,13 @@ export default function App() {
             localReader={areaReader}
           >
             <ReviewChecks
+              open
               receipt={state.receipt}
               checks={[sourceFieldCheck]}
-              onConfirm={confirmValue}
             />
             <p className="hint">
-              Use the receipt fields to correct this value. Checking it here
-              records your review of the current draft.
+              Use the receipt fields to make a correction, then continue with
+              the whole receipt.
             </p>
             <button
               className="button button-primary full-width"
@@ -3503,7 +3561,26 @@ export default function App() {
             </button>
           </ReceiptSource>
         ) : zoomImage ? (
-          <ReceiptPhotos key={zoomImage.id} image={zoomImage} />
+          <>
+            {images.length > 1 && (
+              <nav
+                className="receipt-photo-navigation"
+                aria-label="Receipt photos"
+              >
+                {images.map((image, index) => (
+                  <button
+                    className="button button-outline"
+                    key={image.id}
+                    aria-pressed={image.id === zoomImage.id}
+                    onClick={() => setZoomImage(image)}
+                  >
+                    Photo {index + 1}
+                  </button>
+                ))}
+              </nav>
+            )}
+            <ReceiptPhotos key={zoomImage.id} image={zoomImage} />
+          </>
         ) : (
           <div className="privacy-dialog">
             <ShieldCheck size={32} />
@@ -3600,14 +3677,15 @@ function SummaryRows({
           <dd>{f(-result.receiptDiscount)}</dd>
         </div>
       )}
-      <div>
-        <dt>
-          {receipt.pricesIncludeTax
-            ? "Extra tax (already included)"
-            : "Added tax"}
-        </dt>
-        <dd>{f(result.tax)}</dd>
-      </div>
+      {(result.tax !== 0n ||
+        receipt.printedTax ||
+        receipt.adjustments.some((row) => row.kind === "tax") ||
+        receipt.taxCodes.length > 0) && (
+        <div>
+          <dt>{receipt.pricesIncludeTax ? "Additional tax" : "Added tax"}</dt>
+          <dd>{f(result.tax)}</dd>
+        </div>
+      )}
       {result.otherCharges !== 0n && (
         <div>
           <dt>Fees, tips & adjustments</dt>
@@ -3676,7 +3754,6 @@ function ItemEditor({
   onDelete,
   evidence,
   onViewSource,
-  onConfirm,
   issues,
 }: {
   item: Item;
@@ -3687,7 +3764,6 @@ function ItemEditor({
   onDelete: () => void;
   evidence?: ItemEvidence;
   onViewSource?: () => void;
-  onConfirm: (key: string, confirmed: boolean) => void;
   issues: Issue[];
 }) {
   const checks = receipt.reviewChecks.filter(
@@ -3697,11 +3773,7 @@ function ItemEditor({
     const invalid = issues.find(
       (issue) => issue.path === `items.${index}.${field}`,
     );
-    if (invalid) return invalid.message;
-    const check = checks.find(
-      (check) => check.field === field && checkIsPending(receipt, check),
-    );
-    return check ? reviewMessage(check) : undefined;
+    return invalid?.message;
   };
   const [expanded, setExpanded] = useState(
     !item.description ||
@@ -3828,8 +3900,7 @@ function ItemEditor({
               error={fieldError("discount")}
               onChange={(discount) => onChange({ discount })}
             />
-            {((!receipt.pricesIncludeTax && receipt.taxMode === "codes") ||
-              checks.some((check) => check.field === "taxCode")) && (
+            {!receipt.pricesIncludeTax && receipt.taxMode === "codes" && (
               <Field
                 label={`Item ${index + 1} tax code`}
                 path={`items.${index}.taxCode`}
@@ -3871,7 +3942,23 @@ function ItemEditor({
           </button>
         </div>
       )}
-      <ReviewChecks receipt={receipt} checks={checks} onConfirm={onConfirm} />
+      {item.observedUnitPrice && (
+        <p className="hint">
+          First unit reading: {item.observedUnitPrice}. Current unit price:{" "}
+          {item.unitPrice}
+          {item.unitPriceDerived
+            ? ", calculated from quantity and line amount"
+            : ""}
+          .
+        </p>
+      )}
+      {item.observedDescription && (
+        <p className="hint">
+          First name reading: {item.observedDescription}. Current name:{" "}
+          {item.description}.
+        </p>
+      )}
+      <ReviewChecks receipt={receipt} checks={checks} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 
@@ -148,7 +148,7 @@ test("configured computer reader fits phones and produces an editable balanced d
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(2);
   await expect(
@@ -326,7 +326,7 @@ test("source rows support phone review, edits, keyboard return and private refre
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("2.50");
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -486,7 +486,7 @@ test("a selected purchase area is reread locally, preserves the draft and fits p
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
@@ -611,7 +611,7 @@ for (const failure of ["unavailable", "empty"]) {
   });
 }
 
-test("a balanced bare negative row needs a classification check with literal source evidence (mock protocol)", async ({
+test("a balanced bare negative row retains its classification note and literal source evidence (mock protocol)", async ({
   page,
 }, info) => {
   await configure(page);
@@ -644,7 +644,12 @@ test("a balanced bare negative row needs a classification check with literal sou
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
+  await page
+    .locator(
+      '.reader-notes:has(button[aria-label="View source for receipt adjustments"]) > summary',
+    )
+    .click();
   await page
     .getByRole("button", {
       name: "View source for receipt adjustments",
@@ -660,7 +665,7 @@ test("a balanced bare negative row needs a classification check with literal sou
     .getByText("Recognized text in this area", { exact: true })
     .click();
   await expect(dialog.locator("pre")).toHaveText("CP Club Card -2.00");
-  await expect(dialog.locator(".verification-current")).toContainText(
+  await expect(dialog.locator(".reader-notes")).toContainText(
     "Receipt discount; by item cost",
   );
   await expect(
@@ -669,7 +674,7 @@ test("a balanced bare negative row needs a classification check with literal sou
   await expect(
     dialog.getByText(/The source text was difficult to read/),
   ).toHaveCount(0);
-  await dialog.locator(".verification-current").scrollIntoViewIfNeeded();
+  await dialog.locator(".reader-notes").scrollIntoViewIfNeeded();
   await mkdir("qa-artifacts", { recursive: true });
   await dialog.screenshot({
     path: await qaArtifactPath(
@@ -677,12 +682,12 @@ test("a balanced bare negative row needs a classification check with literal sou
       `refund-ambiguous-source-${info.project.name}.png`,
     ),
   });
-  await dialog
-    .getByRole("checkbox", {
+  await expect(
+    dialog.getByRole("checkbox", {
       name: "I checked receipt adjustments against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await dialog
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();

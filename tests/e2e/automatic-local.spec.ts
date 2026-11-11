@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { writeFile } from "node:fs/promises";
 import {
@@ -296,8 +296,8 @@ test("automatic comparison recovers a missing free item with pending source and 
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
   expect((await readSaved()).receipt).toEqual(before.receipt);
-  await coverage(page).check();
-  await expectReviewBlocked(page, confirm(page));
+  await expect(coverage(page)).toHaveCount(0);
+  await expectReviewAttention(page, confirm(page));
   await writeFile(
     await qaArtifactPath(info, "zero-purchase-review.json"),
     JSON.stringify(
@@ -309,7 +309,7 @@ test("automatic comparison recovers a missing free item with pending source and 
   );
 });
 
-test("a failed comparison keeps the weak financial source check and highlighted total (mock protocol)", async ({
+test("a failed comparison retains optional financial source evidence without a checkbox gate (mock protocol)", async ({
   page,
 }, info) => {
   const { scan, posts } = await setup(page, clear, true, true);
@@ -318,13 +318,18 @@ test("a failed comparison keeps the weak financial source check and highlighted 
     name: "I checked printed total against the original",
     exact: true,
   });
-  await expect(totalCheck).toBeVisible();
-  await coverage(page).check();
-  await expectReviewBlocked(page, confirm(page));
-  await expect(totalCheck).not.toBeChecked();
+  await expect(totalCheck).toHaveCount(0);
+  await expect(coverage(page)).toHaveCount(0);
+  await expectReviewAttention(page, confirm(page));
+  await expect(totalCheck).toHaveCount(0);
   const before = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
+  await page
+    .locator(
+      '.reader-notes:has(button[aria-label="View source for printed total"]) > summary',
+    )
+    .click();
   await page
     .getByRole("button", { name: "View source for printed total", exact: true })
     .click();
@@ -338,7 +343,7 @@ test("a failed comparison keeps the weak financial source check and highlighted 
       name: "I checked printed total against the original",
       exact: true,
     }),
-  ).not.toBeChecked();
+  ).toHaveCount(0);
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
     expect(
@@ -357,7 +362,7 @@ test("a failed comparison keeps the weak financial source check and highlighted 
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
   expect(after.receipt).toEqual(before.receipt);
-  await expectReviewBlocked(page, confirm(page));
+  await expectReviewAttention(page, confirm(page));
   expect(posts.map((post) => post.path)).toEqual([
     "/api/receipts/recognize",
     "/api/receipts/vision",
@@ -399,7 +404,7 @@ test("configured automatic computer check invokes independent vision for a missi
   await expect(
     page.getByText("Both local readings finished.", { exact: false }).first(),
   ).toBeVisible();
-  await expectReviewBlocked(page, confirm(page));
+  await expectReviewAttention(page, confirm(page));
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("gather.receipt.v1")!),
   );
@@ -426,15 +431,15 @@ test("configured automatic computer check invokes independent vision for a missi
   );
 });
 
-test("a clear primary draft skips the second model but cannot be confirmed before purchase-source review (mock protocol)", async ({
+test("a clear primary draft skips the second model and retains receipt-level review (mock protocol)", async ({
   page,
 }) => {
   const { scan, posts } = await setup(page);
   await scan.click();
-  await expect(coverage(page)).toBeVisible();
+  await expect(coverage(page)).toHaveCount(0);
   expect(posts.map((post) => post.path)).toEqual(["/api/receipts/recognize"]);
-  await expectReviewBlocked(page, confirm(page));
-  await coverage(page).check();
+  await expectReviewAttention(page, confirm(page));
+  await expect(coverage(page)).toHaveCount(0);
   await expectReviewReady(page, confirm(page));
 });
 
@@ -470,11 +475,11 @@ test("a failed automatic comparison preserves negative-line classification separ
     name: "I checked receipt adjustments against the original",
     exact: true,
   });
-  await expect(classification).toBeVisible();
-  await coverage(page).check();
-  await expectReviewBlocked(page, confirm(page));
-  await expect(classification).not.toBeChecked();
-  await classification.check();
+  await expect(classification).toHaveCount(0);
+  await expect(coverage(page)).toHaveCount(0);
+  await expectReviewAttention(page, confirm(page));
+  await expect(classification).toHaveCount(0);
+  await expect(classification).toHaveCount(0);
   await expectReviewReady(page, confirm(page));
   expect(posts.map((post) => post.path)).toEqual([
     "/api/receipts/recognize",

@@ -21,7 +21,11 @@ export function localCheckDecision(
   recognition: Recognition,
 ): LocalCheckDecision {
   const reasons: LocalCheckDecision["reasons"] = [];
-  if (calculateReceipt(receipt).issues.length) reasons.push("validation");
+  if (
+    calculateReceipt(receipt).issues.length ||
+    receipt.items.some((item) => item.observedUnitPrice)
+  )
+    reasons.push("validation");
   if (recognition.panels.length > 1) reasons.push("multiple-sections");
   const relevant = new Set(Object.values(sources).flat());
   for (const [index, line] of sourceLines.entries())

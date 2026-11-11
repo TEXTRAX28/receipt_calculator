@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 
 for (const width of [320, 390, 1440]) {
   test(`manual net-goods/gross-fee correction and split at ${width}px`, async ({
@@ -65,7 +65,7 @@ for (const width of [320, 390, 1440]) {
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
     await expect(page.locator(".summary-rows").first()).toContainText("£29.89");
 
     const included = page.getByRole("checkbox", {
@@ -77,7 +77,7 @@ for (const width of [320, 390, 1440]) {
       exact: true,
     });
     await expect(rate).toHaveAttribute("aria-invalid", "true");
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
     await rate.fill("20");
     await expect(rate).not.toHaveAttribute("aria-invalid", "true");
     await expectReviewReady(page, confirm);
@@ -94,7 +94,7 @@ for (const width of [320, 390, 1440]) {
       .selectOption("fee");
     await expect(included).not.toBeChecked();
     await expect(rate).toHaveCount(0);
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
     await included.check();
     await rate.fill("20");
     await expectReviewReady(page, confirm);
@@ -209,7 +209,7 @@ for (const width of [320, 390, 1440]) {
         name: "Confirm receipt & add people",
         exact: true,
       });
-      await expectReviewBlocked(page, confirm);
+      await expectReviewAttention(page, confirm);
       const before = await page.evaluate(() =>
         JSON.parse(localStorage.getItem("gather.receipt.v1")!),
       );
@@ -239,7 +239,7 @@ for (const width of [320, 390, 1440]) {
       ).toHaveValue(tax);
       await included.check();
       await expect(addTax).toHaveCount(0);
-      await expectReviewBlocked(page, confirm);
+      await expectReviewAttention(page, confirm);
       await included.uncheck();
       await expectReviewReady(page, confirm);
       await printedTax.fill(`${prefix}0.60`);
@@ -247,7 +247,7 @@ for (const width of [320, 390, 1440]) {
       await expect(
         page.getByLabel("Adjustment 1 amount", { exact: true }),
       ).toHaveValue(tax);
-      await expectReviewBlocked(page, confirm);
+      await expectReviewAttention(page, confirm);
       await printedTax.fill(tax);
       await expectReviewReady(page, confirm);
       expect(

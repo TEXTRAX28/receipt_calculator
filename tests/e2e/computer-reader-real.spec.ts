@@ -1,6 +1,6 @@
 import { requireAssistedPolicy } from "./assisted-policy";
-import { expectReviewBlocked } from "./review-assertions";
-import { test, expect } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { test, expect } from "./editor-fixture";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -92,7 +92,7 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
   );
   expect(response.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 260000 });
   const elapsed = Date.now() - started;
   const state = appSchema.parse(
@@ -222,7 +222,7 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
       source.getByLabel("I checked printed total against the original", {
         exact: true,
       }),
-    ).not.toBeChecked();
+    ).toHaveCount(0);
     await source
       .getByText("Recognized text in this area", { exact: true })
       .click();
@@ -255,7 +255,7 @@ test("real invalid-price recovery preserves source proposals on a phone", async 
     .getByRole("dialog", { name: "Receipt source for purchase 1", exact: true })
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -382,7 +382,7 @@ test("real row-first native comparison preserves printed prices and blocks unsup
   );
   expect(response.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 260000 });
   const elapsedMs = Date.now() - started;
   const state = appSchema.parse(
@@ -441,7 +441,7 @@ test("real row-first native comparison preserves printed prices and blocks unsup
       await page.screenshot({ path: path.join(folder, "phone-review.png") });
     }
   }
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -557,7 +557,7 @@ test("real leading-count receipt preserves its row price and source review on a 
       { flag: "wx" },
     );
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   const elapsedMs = Date.now() - started;
   const items = [];
@@ -683,7 +683,7 @@ test("real scanned PDF → installed computer OCR → exact split", async ({
   const result = await response;
   const recognized = await result.json();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   const elapsedMs = Date.now() - started;
   const items = [];
@@ -848,7 +848,7 @@ test("real computer reader → review → people → exact split", async ({
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(2);
   await expect(
@@ -951,7 +951,7 @@ test("real two-photo Costco receipt → automatic financial fields → exact spl
     .getByRole("button", { name: "Read receipt on this computer", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(18);
   await expect(
@@ -1257,7 +1257,7 @@ test("real separate purchase expressions preserve literal unit prices on a phone
   expect(ocr.status()).toBe(200);
   expect(vision.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 260000 });
   const elapsed = Date.now() - started;
   const state = appSchema.parse(
@@ -1354,7 +1354,7 @@ test("real separate purchase expressions preserve literal unit prices on a phone
     source.getByLabel("I checked unit price against the original", {
       exact: true,
     }),
-  ).not.toBeChecked();
+  ).toHaveCount(0);
   await source
     .getByText("Recognized text in this area", { exact: true })
     .click();
@@ -1365,7 +1365,7 @@ test("real separate purchase expressions preserve literal unit prices on a phone
   await source
     .getByRole("button", { name: "Back to receipt", exact: true })
     .click();
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );

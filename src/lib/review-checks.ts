@@ -187,6 +187,7 @@ export function applyReceiptEdit(
     // Resolving currency supplies precision for an exact calculation, not a
     // human confirmation of the underlying quantity or printed unit price.
     next.items = next.items.map((item) => {
+      if (item.unitPriceEdited) return item;
       if (item.unitPrice && !item.unitPriceDerived) return item;
       const unitPrice = exactUnitPrice(
         item.quantity,
@@ -221,8 +222,10 @@ export function applyItemEdit(
 ): Receipt {
   const original = receipt.items.find((item) => item.id === itemId);
   const fields = { ...change };
-  if (Object.hasOwn(change, "unitPrice")) fields.unitPriceDerived = false;
-  else if (
+  if (Object.hasOwn(change, "unitPrice")) {
+    fields.unitPriceDerived = false;
+    fields.unitPriceEdited = true;
+  } else if (
     original &&
     !receipt.currencyUnresolved &&
     (Object.hasOwn(change, "quantity") || Object.hasOwn(change, "lineTotal")) &&
@@ -234,6 +237,7 @@ export function applyItemEdit(
       receipt.currency,
     );
     fields.unitPriceDerived = Boolean(fields.unitPrice);
+    fields.unitPriceEdited = false;
   }
   const next = applyReceiptEdit(receipt, {
     items: receipt.items.map((item) =>

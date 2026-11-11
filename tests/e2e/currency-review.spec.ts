@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./editor-fixture";
 
 test("choosing currency after reading calculates units without confirming a repaired quantity", async ({
   page,
@@ -39,10 +39,7 @@ Total to pay: 51.70`);
     name: "I checked purchased quantity against the original",
     exact: true,
   });
-  await expect(source).not.toBeChecked();
-  await confirm.click();
-  await expect(source).toBeFocused();
-  await source.check();
+  await expect(source).toHaveCount(0);
   await confirm.click();
   await expect(page.getByLabel("Person’s name", { exact: true })).toBeVisible();
 });

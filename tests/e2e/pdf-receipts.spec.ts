@@ -1,6 +1,6 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
 import { qaArtifactPath } from "./qa-artifacts";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./editor-fixture";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -180,7 +180,7 @@ test("real PDF text → original row areas → checked three-person split, witho
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("button", { name: "View source for item 2", exact: true })
     .click();
@@ -189,12 +189,12 @@ test("real PDF text → original row areas → checked three-person split, witho
     path: await qaArtifactPath(info, `pdf-source-${info.project.name}.png`),
   });
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
-  await page
-    .getByRole("checkbox", {
+  await expect(
+    page.getByRole("checkbox", {
       name: "I checked purchase list against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await page.screenshot({
     path: await qaArtifactPath(info, `pdf-review-${info.project.name}.png`),

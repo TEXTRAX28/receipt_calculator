@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./editor-fixture";
 async function receiptImage(page: Page) {
   const data = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
@@ -49,7 +49,7 @@ test("cropping is accessible, preserves the original and still performs real OCR
     .getByRole("button", { name: "Read receipt on this device", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   await expect(
     page.getByRole("textbox", { name: "Printed total", exact: true }),
@@ -86,9 +86,11 @@ test("real local OCR reads an image without uploading it", async ({
   await expect(scan).toBeEnabled();
   await scan.click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
-  await expect(page.getByText("OCR finished.", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Receipt ready to review.", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Merchant", exact: true }),
   ).toHaveValue(/LITTLE MARKET/i);

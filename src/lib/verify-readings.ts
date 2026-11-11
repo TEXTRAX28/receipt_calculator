@@ -862,6 +862,21 @@ export function verifyIndependentReadings(
       )
         continue;
       if (field === "discount" && correctedOwners.has(item.id)) continue;
+      // Retain the source observation without promoting an unclassified suffix
+      // to an active tax code or rate merely because a model proposed one.
+      if (
+        field === "taxCode" &&
+        source?.item.observedPriceSuffix &&
+        !source.item.taxCode
+      ) {
+        itemCheck(
+          item,
+          field,
+          "unclear",
+          `Unclassified price suffix: ${source.item.observedPriceSuffix}`,
+        );
+        continue;
+      }
       if (!source || source.item[field] === "")
         itemCheck(item, field, "unsupported");
       else if (!sameField(item, source.item, field, receipt.currency))

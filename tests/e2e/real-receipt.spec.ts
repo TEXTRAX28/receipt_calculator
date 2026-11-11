@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./editor-fixture";
 import { costcoDemo } from "../../src/lib/demo";
 
 /** Opt-in local QA. The private image path comes from the environment and is never committed. */
@@ -30,7 +30,7 @@ test("real Costco photograph → transparent correction → exact finalized spli
     .getByRole("button", { name: "Read receipt on this device", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   const count = await page.locator('[data-testid^="review-item-"]').count();
   console.log(

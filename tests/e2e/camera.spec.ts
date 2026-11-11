@@ -1,5 +1,5 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { test, expect, type Page } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { test, expect, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile, writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
@@ -518,7 +518,7 @@ test("camera tracks stop if the capture screen unmounts", async ({ page }) => {
     .getByRole("button", { name: "Enter manually", exact: true })
     .evaluate((button: HTMLButtonElement) => button.click());
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible();
   expect(await trackStates(page)).toEqual([["ended"]]);
   expect(network).toEqual({ external: [], writes: [], errors: [] });
@@ -587,7 +587,7 @@ test("captured synthetic photo reaches real enhanced OCR and exact equal split",
     .getByRole("button", { name: "Read receipt on this device", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
+    page.getByRole("heading", { name: "Your receipt." }),
   ).toBeVisible({ timeout: 130000 });
   const receipt = await page.evaluate(
     () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
@@ -606,18 +606,16 @@ test("captured synthetic photo reaches real enhanced OCR and exact equal split",
     unitPrice: "3.50",
     lineTotal: "3.50",
   });
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",
       exact: true,
     }),
   );
-  for (const check of await page
-    .locator(".verification-checks")
-    .getByRole("checkbox")
-    .all())
-    if (await check.isEnabled()) await check.check();
+  await expect(page.getByRole("checkbox", { name: /^I checked/ })).toHaveCount(
+    0,
+  );
   await page
     .getByRole("button", { name: "Confirm receipt & add people", exact: true })
     .click();

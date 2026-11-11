@@ -54,7 +54,12 @@ function mixedTaxParts(costs: bigint[], rate: bigint): bigint[] {
   return parts;
 }
 
-export function calculateReceipt(receipt: Receipt): ReceiptResult {
+export type CalculationOptions = { readingNotes?: "blocking" | "advisory" };
+
+export function calculateReceipt(
+  receipt: Receipt,
+  options: CalculationOptions = {},
+): ReceiptResult {
   if (receipt.currencyUnresolved)
     return {
       hasRefunds: false,
@@ -84,7 +89,8 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       discrepancy: null,
       equalCharges: [],
     };
-  const issues: Issue[] = pendingReviewIssues(receipt);
+  const issues: Issue[] =
+    options.readingNotes === "advisory" ? [] : pendingReviewIssues(receipt);
   const issue = (path: string, message: string) =>
     issues.push({ path, message });
   const read = (value: string, path: string, signed = false) => {
@@ -545,8 +551,11 @@ export interface PersonTotal {
   total: bigint;
   lines: PersonLine[];
 }
-export function calculateSplit(state: AppState) {
-  const receipt = calculateReceipt(state.receipt);
+export function calculateSplit(
+  state: AppState,
+  options: CalculationOptions = {},
+) {
+  const receipt = calculateReceipt(state.receipt, options);
   const issues = [...receipt.issues];
   if (state.reviewedStamp !== receiptStamp(state.receipt))
     issues.push({

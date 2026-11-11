@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import { planVisionBatches } from "../../src/lib/vision-plan.mjs";
 import {
   longDraft,
@@ -173,7 +173,7 @@ for (const count of [4, 12])
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
     if (count === 4) {
       const positions: string[] = [];
       for (const index of [4, 5]) {
@@ -203,11 +203,9 @@ for (const count of [4, 12])
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    for (const checkbox of await page
-      .locator(".verification-checks")
-      .getByRole("checkbox")
-      .all())
-      if (await checkbox.isEnabled()) await checkbox.check();
+    await expect(
+      page.getByRole("checkbox", { name: /^I checked/ }),
+    ).toHaveCount(0);
     await expectReviewReady(page, confirm);
     await confirm.click();
     for (const name of ["Alice", "Bob"]) {
@@ -272,13 +270,13 @@ test("an unsupported tax table remains editable when prices include tax", async 
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
-  await page
-    .getByRole("checkbox", {
+  await expectReviewAttention(page, confirm);
+  await expect(
+    page.getByRole("checkbox", {
       name: "I checked purchase list against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await expectReviewReady(page, confirm);
 });
 
@@ -297,7 +295,7 @@ test("a stopped long-receipt stream keeps the first draft explicitly unverified 
   );
   await (await setup(page)).click();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(6);
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );

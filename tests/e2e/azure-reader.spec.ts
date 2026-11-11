@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { createServer } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -248,18 +248,18 @@ test("Azure consent, source highlights and exact split through real local HTTP w
     const confirm = page.getByRole("button", {
       name: "Confirm receipt & add people",
     });
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
     for (const field of [
       "purchase list",
       "receipt adjustments",
       "whether item prices include tax",
     ])
-      await page
-        .getByRole("checkbox", {
+      await expect(
+        page.getByRole("checkbox", {
           name: `I checked ${field} against the original`,
           exact: true,
-        })
-        .check();
+        }),
+      ).toHaveCount(0);
     await expectReviewReady(page, confirm);
     await confirm.click();
     for (const name of ["Alice", "Bob"]) {
@@ -359,7 +359,7 @@ test("Azure credentials without a section allowance stay unavailable", async ({
   }
 });
 
-test("Azure source-owned quantity reaches review through real local HTTP and requires checking before splitting", async ({
+test("Azure source-owned quantity reaches review through real local HTTP and retains source evidence", async ({
   page,
 }, info) => {
   const fixture = await backend(page, { quantities: true });
@@ -413,13 +413,13 @@ test("Azure source-owned quantity reaches review through real local HTTP and req
       "receipt adjustments",
       "whether item prices include tax",
     ])
-      await page
-        .getByRole("checkbox", {
+      await expect(
+        page.getByRole("checkbox", {
           name: `I checked ${field} against the original`,
           exact: true,
-        })
-        .check();
-    await expectReviewBlocked(page, confirm);
+        }),
+      ).toHaveCount(0);
+    await expectReviewAttention(page, confirm);
     await page
       .getByRole("button", { name: "View source for item 1", exact: true })
       .click();
@@ -439,12 +439,12 @@ test("Azure source-owned quantity reaches review through real local HTTP and req
         `azure-quantity-source-${info.project.name}.png`,
       ),
     });
-    await dialog
-      .getByRole("checkbox", {
+    await expect(
+      dialog.getByRole("checkbox", {
         name: "I checked purchased quantity against the original",
         exact: true,
-      })
-      .check();
+      }),
+    ).toHaveCount(0);
     await dialog
       .getByRole("button", { name: "Back to receipt", exact: true })
       .click();

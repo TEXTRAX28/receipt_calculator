@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { qaArtifactPath } from "./qa-artifacts";
 import { VERYFI_NOTICE } from "../../src/lib/veryfi-schema.mjs";
@@ -117,31 +117,31 @@ test("Veryfi consent, phone layout, source review and exact split (synthetic tra
   const confirm = page.getByRole("button", {
     name: "Confirm receipt & add people",
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   for (const field of [
     "purchase list",
     "receipt adjustments",
     "whether item prices include tax",
   ])
-    await page
-      .getByRole("checkbox", {
+    await expect(
+      page.getByRole("checkbox", {
         name: `I checked ${field} against the original`,
         exact: true,
-      })
-      .check();
+      }),
+    ).toHaveCount(0);
   await expectReviewReady(page, confirm);
-  await expect(page.locator(".grand-total strong")).toHaveText("£5.50");
+  await expect(page.locator(".receipt-grand-total button")).toHaveText("£5.50");
   await page.reload();
   await expectReviewReady(page, confirm);
   await page.getByLabel("Item 1 line price", { exact: true }).fill("5.49");
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page.getByLabel("Item 1 line price", { exact: true }).fill("5.50");
-  await page
-    .getByRole("checkbox", {
+  await expect(
+    page.getByRole("checkbox", {
       name: "I checked purchase list against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {

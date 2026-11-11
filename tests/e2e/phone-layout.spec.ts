@@ -1,5 +1,5 @@
 import { expectReviewReady } from "./review-assertions";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./editor-fixture";
 import { mkdir } from "node:fs/promises";
 
 async function fitsPhone(page: Page) {

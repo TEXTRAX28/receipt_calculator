@@ -76,17 +76,21 @@ describe("printed item terms across adjacent rows", () => {
     expect(calculateReceipt(receipt).total).toBe(1020000n);
   });
 
-  it("keeps printed values when the multiplication disagrees", () => {
+  it("keeps the observed unit while deriving the effective unit from balanced printed amounts", () => {
     const { receipt } = parseReceiptWithSources(
       "Shop\n2X @4.00\nBread 9.00\nTOTAL 9.00",
       { currency: "GBP" },
     );
     expect(receipt.items[0]).toMatchObject({
       quantity: "2",
-      unitPrice: "4.00",
+      unitPrice: "4.50",
+      observedUnitPrice: "4.00",
+      unitPriceDerived: true,
       lineTotal: "9.00",
     });
-    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+    expect(
+      calculateReceipt(receipt, { readingNotes: "advisory" }).issues,
+    ).toEqual([]);
   });
 
   it("does not make a bare zero an item or use a pack description as terms", () => {

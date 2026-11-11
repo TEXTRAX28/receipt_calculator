@@ -1,5 +1,5 @@
-import { expectReviewBlocked } from "./review-assertions";
-import { test, expect } from "@playwright/test";
+import { expectReviewAttention } from "./review-assertions";
+import { test, expect } from "./editor-fixture";
 import { qaArtifactPath } from "./qa-artifacts";
 
 async function upload(page: import("@playwright/test").Page, tall = false) {
@@ -102,8 +102,8 @@ test("native tall-receipt source evidence reaches the last reading section", asy
       name: "I checked purchase list against the original",
       exact: true,
     }),
-  ).toBeVisible();
-  await expectReviewBlocked(
+  ).toHaveCount(0);
+  await expectReviewAttention(
     page,
     page.getByRole("button", {
       name: "Confirm receipt & add people",

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./editor-fixture";
 import { mkdir } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -155,6 +155,10 @@ test("a second tab cannot silently overwrite an open draft", async ({
   await page.getByRole("button", { name: "Try the Costco demo" }).click();
   const other = await context.newPage();
   await other.goto(String(test.info().project.use.baseURL));
+  const otherEditor = other.locator("#receipt-editor");
+  await expect(otherEditor).toBeAttached();
+  if ((await otherEditor.getAttribute("open")) === null)
+    await otherEditor.locator(":scope > summary").click();
   await other
     .getByRole("textbox", { name: "Merchant", exact: true })
     .fill("Other tab shop");

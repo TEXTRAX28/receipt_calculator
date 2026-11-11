@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { test, expect, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { test, expect, type Page } from "./editor-fixture";
 import { qaArtifactPath } from "./qa-artifacts";
 import { writeFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
@@ -252,7 +252,7 @@ test("real local correction and compatibility OCR preserve source review before 
     name: "Confirm receipt & add people",
     exact: true,
   });
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await page
     .getByRole("button", { name: "View receipt image 1", exact: true })
     .click();
@@ -300,9 +300,9 @@ test("real local correction and compatibility OCR preserve source review before 
   await expect(
     page.getByLabel("Item 2 unit price (optional)", { exact: true }),
   ).toHaveValue("3.00");
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   // These known synthetic values were asserted and compared with the source above.
-  // Checking them is explicit simulated human review, never an OCR accuracy gain.
+  // Receipt acceptance is simulated review, never an OCR accuracy gain.
   for (const field of [
     "description",
     "purchased quantity",
@@ -311,19 +311,18 @@ test("real local correction and compatibility OCR preserve source review before 
     "printed total",
     "whether item prices include tax",
   ])
-    for (const check of await page
-      .getByRole("checkbox", {
+    await expect(
+      page.getByRole("checkbox", {
         name: `I checked ${field} against the original`,
         exact: true,
-      })
-      .all())
-      await check.check();
-  await page
-    .getByRole("checkbox", {
+      }),
+    ).toHaveCount(0);
+  await expect(
+    page.getByRole("checkbox", {
       name: "I checked purchase list against the original",
       exact: true,
-    })
-    .check();
+    }),
+  ).toHaveCount(0);
   await expectReviewReady(page, confirm);
   await confirm.click();
   for (const name of ["Alice", "Bob"]) {

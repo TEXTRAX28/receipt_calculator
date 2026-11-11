@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 
@@ -57,12 +57,15 @@ test("unknown currency stays unpriced until explicitly selected, including the e
   });
   await expect(currency).toHaveValue("");
   await expect(currency).toHaveAttribute("aria-invalid", "true");
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await expect(page.locator(".item-cost")).toHaveText("—");
-  await expect(page.locator(".grand-total strong")).toHaveText("—");
+  await expect(page.locator(".receipt-grand-total button")).toHaveText("2.00");
+  await expect(
+    page.getByRole("region", { name: "Digital receipt", exact: true }),
+  ).not.toContainText("£");
   await page.reload();
   await expect(currency).toHaveValue("");
-  await expectReviewBlocked(page, confirm);
+  await expectReviewAttention(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("2.00");
@@ -128,6 +131,13 @@ test("manual entry → review → people → equal sharing → export and refres
   await expect(
     page.getByRole("button", { name: "Finalize checked split" }),
   ).toBeEnabled();
+  await page.getByRole("button", { name: "Finalize checked split" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "All balanced. All accounted for.",
+      exact: true,
+    }),
+  ).toBeVisible();
 });
 test("quantity 1/3/5 is rejected and corrected to valid 1/3/4", async ({
   page,
@@ -150,7 +160,7 @@ test("quantity 1/3/5 is rejected and corrected to valid 1/3/4", async ({
       .getByRole("textbox", { name: `Units for ${name}`, exact: false })
       .fill(value);
   await expect(card).toContainText("1 units too many");
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Finalize split", exact: true }),
   );
@@ -239,7 +249,7 @@ test("Costco demo retains repeated chickens, discounts and correct tax total", a
   ).toBeVisible();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(18);
   await expect(page.getByTestId("review-item-3")).toContainText("£7.49");
-  await expect(page.locator(".grand-total")).toContainText("£176.78");
+  await expect(page.locator(".receipt-grand-total")).toContainText("£176.78");
   await expectReviewReady(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
@@ -267,7 +277,7 @@ test("edits after assignment invalidate review; removing people recalculates saf
   await page
     .getByRole("textbox", { name: "Item 1 line price", exact: true })
     .fill("12.00");
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );
@@ -315,7 +325,7 @@ test("pasted text with missing quantity stays reviewable and blocks confirmation
     .getByRole("textbox", { name: "Receipt text", exact: true })
     .fill("Neighbourhood Market\nMilk £2.50\nApples £3.00\nTOTAL £5.50");
   await page.getByRole("button", { name: "Review this text" }).click();
-  await expectReviewBlocked(
+  await expectReviewAttention(
     page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
   );

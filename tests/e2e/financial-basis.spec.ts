@@ -1,5 +1,5 @@
-import { expectReviewBlocked, expectReviewReady } from "./review-assertions";
-import { expect, test } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test } from "./editor-fixture";
 import { writeFile } from "node:fs/promises";
 import { qaArtifactPath } from "./qa-artifacts";
 import { slantedSummary } from "../fixtures/financial-columns";
@@ -12,7 +12,7 @@ for (const scenario of [
   "split-tax",
   "slanted-columns",
 ] as const)
-  test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : scenario === "payments" ? "payment-row exclusions" : scenario + " fragment association"} stays blocked until checked against its printed summary (synthetic protocol)`, async ({
+  test(`${scenario === "basis" ? "net-price interpretation" : scenario === "roles" ? "fee/tax role proposals" : scenario === "payments" ? "payment-row exclusions" : scenario + " fragment association"} retains printed-summary evidence for receipt-level review (synthetic protocol)`, async ({
     page,
     browser,
   }, info) => {
@@ -230,7 +230,12 @@ for (const scenario of [
       name: "Confirm receipt & add people",
       exact: true,
     });
-    await expectReviewBlocked(page, confirm);
+    await expectReviewAttention(page, confirm);
+    await page
+      .locator(
+        '.reader-notes:has(button[aria-label^="View source for"]) > summary',
+      )
+      .click();
     const fields =
       scenario === "roles"
         ? [
@@ -251,7 +256,7 @@ for (const scenario of [
                     : []),
             ];
     for (const field of fields) {
-      await expectReviewBlocked(page, confirm);
+      await expectReviewAttention(page, confirm);
       await page
         .getByRole("button", { name: `View source for ${field}`, exact: true })
         .click();
@@ -316,12 +321,12 @@ for (const scenario of [
           `financial-${scenario}-${field.replaceAll(" ", "-")}.png`,
         ),
       });
-      await dialog
-        .getByRole("checkbox", {
+      await expect(
+        dialog.getByRole("checkbox", {
           name: `I checked ${field} against the original`,
           exact: true,
-        })
-        .check();
+        }),
+      ).toHaveCount(0);
       await dialog
         .getByRole("button", { name: "Back to receipt", exact: true })
         .click();
@@ -329,16 +334,16 @@ for (const scenario of [
     if (scenario === "slanted-columns") {
       // DUE is not supported by the primary total parser. Financial role
       // recovery must not silently confirm the separate model total.
-      await expectReviewBlocked(page, confirm);
+      await expectReviewAttention(page, confirm);
       await expect(
         page.getByLabel("Printed total", { exact: true }),
       ).toHaveValue("21.00");
-      await page
-        .getByRole("checkbox", {
+      await expect(
+        page.getByRole("checkbox", {
           name: "I checked printed total against the original",
           exact: true,
-        })
-        .check();
+        }),
+      ).toHaveCount(0);
     }
     await info.attach("Financial source protocol runtime", {
       body: Buffer.from(
