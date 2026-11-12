@@ -24,13 +24,14 @@ function request(
     method?: string;
     headers?: Record<string, string>;
     body?: string;
+    targetPort?: number;
   } = {},
 ): Promise<Response> {
   return new Promise((ok, fail) => {
     const req = http.request(
       {
         hostname: "127.0.0.1",
-        port,
+        port: options.targetPort ?? port,
         path,
         method: options.method || "GET",
         headers: { host: "127.0.0.1:5443", ...options.headers },
@@ -196,6 +197,142 @@ describe("private phone preview", () => {
           .text,
       ).configured,
     ).toBe(false);
+  });
+  it("pairs both previews independently and forwards only authenticated OpenAI traffic", async () => {
+    const baselineCookie = await authenticated();
+    const received: {
+      path: string | undefined;
+      origin: string | undefined;
+      cookie: string | undefined;
+      authorization: string | undefined;
+      body: string;
+    }[] = [];
+    const upstream = http.createServer(async (req, res) => {
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      received.push({
+        path: req.url,
+        origin: req.headers.origin,
+        cookie: req.headers.cookie,
+        authorization: req.headers.authorization,
+        body,
+      });
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ provider: "OpenAI" }));
+    });
+    await new Promise<void>((ok) => upstream.listen(0, "127.0.0.1", ok));
+    const upstreamPort = (upstream.address() as import("node:net").AddressInfo)
+      .port;
+    const gateway = createPhoneHandler({
+      origin,
+      host: "127.0.0.1",
+      netmask: "255.255.255.0",
+      accessCode: code,
+      routes: await indexBuiltFiles(directory),
+      openAiPort: upstreamPort,
+    });
+    const phone = http.createServer((req, res) => {
+      void gateway.handler(req, res);
+    });
+    await new Promise<void>((ok) => phone.listen(0, "127.0.0.1", ok));
+    const targetPort = (phone.address() as import("node:net").AddressInfo).port;
+    const config = "/api/receipts/openai/config";
+    const scan = "/api/receipts/openai";
+    try {
+      expect((await request(config, { targetPort })).status).toBe(401);
+      expect(
+        (
+          await request(config, {
+            targetPort,
+            headers: { cookie: baselineCookie },
+          })
+        ).status,
+      ).toBe(401);
+      const login = await request("/pair", {
+        targetPort,
+        method: "POST",
+        headers: { origin },
+        body: new URLSearchParams({ code }).toString(),
+      });
+      expect(login.status).toBe(303);
+      const openAiCookie = login.headers["set-cookie"]![0].split(";")[0];
+      expect(openAiCookie).toMatch(/^gather_openai=/);
+      const cookie = `${baselineCookie}; ${openAiCookie}`;
+      expect((await request("/", { headers: { cookie } })).text).toContain(
+        "Synthetic app",
+      );
+      expect(
+        (await request("/", { targetPort, headers: { cookie } })).headers[
+          "referrer-policy"
+        ],
+      ).toBe("same-origin");
+      expect(
+        (
+          await request(scan, {
+            targetPort,
+            method: "POST",
+            headers: { cookie, origin: "https://other.invalid" },
+            body: "{}",
+          })
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await request("/api/receipts/extract", {
+            targetPort,
+            method: "POST",
+            headers: { cookie, origin },
+            body: "{}",
+          })
+        ).status,
+      ).toBe(403);
+      expect(received).toHaveLength(0);
+      expect(
+        (await request(config, { targetPort, headers: { cookie } })).status,
+      ).toBe(200);
+      const body = JSON.stringify({
+        consent: true,
+        useCredits: true,
+        panels: [],
+      });
+      expect(
+        (
+          await request(scan, {
+            targetPort,
+            method: "POST",
+            headers: {
+              cookie,
+              origin,
+              "content-type": "application/json",
+              "x-gather-request": "receipt-scan",
+              authorization: "synthetic",
+            },
+            body,
+          })
+        ).status,
+      ).toBe(200);
+      expect(received).toEqual([
+        {
+          path: config,
+          origin: undefined,
+          cookie: undefined,
+          authorization: undefined,
+          body: "",
+        },
+        {
+          path: scan,
+          origin: `http://127.0.0.1:${upstreamPort}`,
+          cookie: undefined,
+          authorization: undefined,
+          body,
+        },
+      ]);
+    } finally {
+      for (const instance of [phone, upstream]) {
+        instance.closeAllConnections();
+        await new Promise<void>((ok) => instance.close(() => ok()));
+      }
+    }
   });
   it.each([
     "/.env.local",

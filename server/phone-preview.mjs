@@ -65,15 +65,23 @@ function send(res, status, body, headers = {}) {
 
 const login = `<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gather phone test</title><style>body{font:16px system-ui;background:#f5f3eb;color:#17231b;margin:0;padding:24px}main{max-width:420px;margin:8vh auto;background:white;padding:24px;border-radius:18px}input,button{font:inherit;box-sizing:border-box;width:100%;min-height:48px;padding:10px;margin-top:12px}button{background:#344f3e;color:white;border:0;border-radius:9px}</style></head><body><main><h1>Gather phone test</h1><p>Enter the access code from your PC. Keep your PC awake while testing. Receipt reading runs on your phone.</p><!--error--><form method="post" action="/pair"><label for="code">Access code</label><input id="code" name="code" type="password" autocomplete="off" required maxlength="12"><button>Open Gather</button></form></main></body></html>`;
 
-function showLogin(res, status = 200, message = "") {
+function showLogin(res, status = 200, message = "", openAi = false) {
   const safe = message
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+  const page = openAi
+    ? login
+        .replaceAll("Gather phone test", "Gather OpenAI phone test")
+        .replace(
+          "Receipt reading runs on your phone.",
+          "OpenAI reads receipts after you authorize a scan.",
+        )
+    : login;
   return send(
     res,
     status,
-    login.replace(
+    page.replace(
       "<!--error-->",
       message ? `<p id="pair-error" role="alert">${safe}</p>` : "",
     ),
@@ -85,6 +93,56 @@ function showLogin(res, status = 200, message = "") {
         "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
     },
   );
+}
+
+/** Forward the two authorized OpenAI routes to the existing loopback reader. */
+function forwardOpenAi(req, res, pathname, port) {
+  const headers = {};
+  if (req.method === "POST") {
+    headers.origin = `http://127.0.0.1:${port}`;
+    for (const name of ["content-type", "content-length", "x-gather-request"]) {
+      const value = req.headers[name];
+      if (typeof value === "string") headers[name] = value;
+    }
+  }
+  const upstream = http.request(
+    {
+      hostname: "127.0.0.1",
+      port,
+      path: pathname,
+      method: req.method,
+      headers,
+    },
+    (response) => {
+      if (res.destroyed) return response.destroy();
+      res.writeHead(response.statusCode || 502, {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      });
+      response.once("error", () => res.destroy());
+      response.pipe(res);
+    },
+  );
+  const cancel = () => upstream.destroy();
+  req.once("aborted", cancel);
+  req.once("error", cancel);
+  res.once("close", cancel);
+  upstream.setTimeout(95000, cancel);
+  upstream.once("error", () => {
+    if (res.destroyed || res.writableEnded) return;
+    if (res.headersSent) return res.destroy();
+    send(
+      res,
+      502,
+      JSON.stringify({
+        error: "Check that the OpenAI preview is running on your PC.",
+      }),
+      { "content-type": "application/json" },
+    );
+  });
+  if (req.method === "POST") req.pipe(upstream);
+  else upstream.end();
 }
 
 async function body(req, max) {
@@ -119,7 +177,7 @@ export async function indexBuiltFiles(directory) {
   return routes;
 }
 
-/** Authenticated static preview only. No dotenv, native inference or provider key. */
+/** Paired HTTPS preview. The optional OpenAI reader stays on loopback. */
 export function createPhoneHandler({
   origin,
   host,
@@ -127,8 +185,19 @@ export function createPhoneHandler({
   accessCode,
   routes,
   now = Date.now,
+  openAiPort = 0,
 }) {
   assert(/^[A-F0-9]{12}$/.test(accessCode), "Invalid local pairing code");
+  assert(
+    openAiPort === 0 ||
+      (Number.isInteger(openAiPort) &&
+        openAiPort >= 1024 &&
+        openAiPort <= 65535),
+    "Invalid OpenAI preview port.",
+  );
+  // Browser cookies are shared across ports on this IP address.
+  const openAi = openAiPort !== 0;
+  const cookieName = openAi ? "gather_openai" : "gather_phone";
   const authority = new URL(origin).host,
     mask = ipv4(netmask),
     network = ipv4(host);
@@ -165,7 +234,12 @@ export function createPhoneHandler({
           attempts.set(remote, state);
         }
         if (++state.count > 5)
-          return showLogin(res, 429, "Wait a minute before trying again.");
+          return showLogin(
+            res,
+            429,
+            "Wait a minute before trying again.",
+            openAi,
+          );
         const value = (
           new URLSearchParams((await body(req, 256)).toString()).get("code") ||
           ""
@@ -180,26 +254,33 @@ export function createPhoneHandler({
             res,
             401,
             "Incorrect access code. Check the code on your PC and try again.",
+            openAi,
           );
         if (sessions.size >= 4) sessions.delete(sessions.values().next().value);
         const token = randomBytes(32).toString("base64url");
         sessions.add(token);
         return send(res, 303, "", {
           location: "/",
-          "set-cookie": `gather_phone=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=28800`,
+          "set-cookie": `${cookieName}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=28800`,
         });
       }
       const token = (req.headers.cookie || "")
         .split(";")
         .map((x) => x.trim())
-        .find((x) => x.startsWith("gather_phone="))
-        ?.slice(13);
+        .find((x) => x.startsWith(cookieName + "="))
+        ?.slice(cookieName.length + 1);
       if (!token || !sessions.has(token))
         return pathname === "/" && req.method === "GET"
-          ? showLogin(res)
+          ? showLogin(res, 200, "", openAi)
           : send(res, 401, "Enter the access code on the home page.");
       if (pathname.startsWith("/api/receipts/")) {
-        // Configuration is safe to read; this preview never accepts extraction uploads.
+        if (
+          openAi &&
+          ((req.method === "GET" &&
+            pathname === "/api/receipts/openai/config") ||
+            (req.method === "POST" && pathname === "/api/receipts/openai"))
+        )
+          return forwardOpenAi(req, res, pathname, openAiPort);
         if (req.method !== "GET")
           return send(
             res,
@@ -236,6 +317,7 @@ export function createPhoneHandler({
       if (pathname === "/" || pathname === "/index.html")
         return send(res, 200, await readFile(file), {
           "content-type": mime[".html"],
+          ...(openAi ? { "referrer-policy": "same-origin" } : {}),
         });
       const info = await stat(file);
       res.writeHead(200, {
@@ -272,12 +354,13 @@ export async function startPhonePreview({
   host,
   netmask,
   port,
-  certificatePort,
+  certificatePort = 0,
   cert,
   key,
   publicCertificate,
   accessCode,
   directory,
+  openAiPort = 0,
 }) {
   assert(isPrivateAddress(host), "Use a private LAN IPv4 address.");
   const routes = await indexBuiltFiles(directory);
@@ -287,6 +370,7 @@ export async function startPhonePreview({
     origin: `https://${host}:${port}`,
     accessCode,
     routes,
+    openAiPort,
   });
   const secure = https.createServer(
     { cert, key, minVersion: "TLSv1.2" },
@@ -294,24 +378,28 @@ export async function startPhonePreview({
       void auth.handler(req, res);
     },
   );
-  const certificate = http.createServer((req, res) => {
-    const remote = ipv4(
-      (req.socket.remoteAddress || "").replace(/^::ffff:/, ""),
-    );
-    if (
-      remote === null ||
-      (remote & ipv4(netmask)) >>> 0 !== (ipv4(host) & ipv4(netmask)) >>> 0 ||
-      req.headers.host !== `${host}:${certificatePort}`
-    )
-      return send(res, 403, "Private local-network test only.");
-    if (req.method !== "GET" || req.url !== "/gather-phone-test.cer")
-      return send(res, 404, "Not found.");
-    return send(res, 200, publicCertificate, {
-      "content-type": "application/x-x509-ca-cert",
-      "content-disposition": 'attachment; filename="gather-phone-test.cer"',
-    });
-  });
-  for (const server of [secure, certificate]) {
+  const certificate = certificatePort
+    ? http.createServer((req, res) => {
+        const remote = ipv4(
+          (req.socket.remoteAddress || "").replace(/^::ffff:/, ""),
+        );
+        if (
+          remote === null ||
+          (remote & ipv4(netmask)) >>> 0 !==
+            (ipv4(host) & ipv4(netmask)) >>> 0 ||
+          req.headers.host !== `${host}:${certificatePort}`
+        )
+          return send(res, 403, "Private local-network test only.");
+        if (req.method !== "GET" || req.url !== "/gather-phone-test.cer")
+          return send(res, 404, "Not found.");
+        return send(res, 200, publicCertificate, {
+          "content-type": "application/x-x509-ca-cert",
+          "content-disposition": 'attachment; filename="gather-phone-test.cer"',
+        });
+      })
+    : null;
+  const servers = certificate ? [secure, certificate] : [secure];
+  for (const server of servers) {
     server.requestTimeout = 15000;
     server.headersTimeout = 10000;
     server.maxConnections = 16;
@@ -323,11 +411,12 @@ export async function startPhonePreview({
     });
   try {
     await listen(secure, port);
-    await listen(certificate, certificatePort);
+    if (certificate) await listen(certificate, certificatePort);
   } catch (error) {
-    secure.closeAllConnections();
-    secure.close();
-    certificate.close();
+    for (const server of servers) {
+      server.closeAllConnections();
+      server.close();
+    }
     throw error;
   }
   const started = Date.now();
@@ -338,7 +427,7 @@ export async function startPhonePreview({
     clearInterval(timer);
     auth.clear();
     await Promise.all(
-      [secure, certificate].map(
+      servers.map(
         (server) =>
           new Promise((ok) => {
             server.closeAllConnections();
