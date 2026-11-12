@@ -302,6 +302,7 @@ function SectionIntro({
 }
 
 export default function App() {
+  const openAiOnly = import.meta.env.MODE !== "local-only";
   const initial = useMemo(() => {
     try {
       const draft = loadDraft(localStorage);
@@ -325,7 +326,7 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
-  const [reader, setReader] = useState<
+  const [selectedReader, setReader] = useState<
     | "local"
     | "enhanced"
     | "computer"
@@ -336,7 +337,8 @@ export default function App() {
     | "azure"
     | "pdf"
   >("enhanced");
-  const pdfTextAvailable = canReadPdfText(images);
+  const reader = openAiOnly ? "openai" : selectedReader;
+  const pdfTextAvailable = !openAiOnly && canReadPdfText(images);
   const [localCheckMode, setLocalCheckMode] = useState<LocalCheckMode>("off");
   const [preferredHelper, setPreferredHelper] = useState<AssistedReader>();
   const [scanCurrency, setScanCurrency] = useState<Receipt["currency"] | "">(
@@ -518,6 +520,7 @@ export default function App() {
     setSourceCheckKey(null);
   }, [images]);
   useEffect(() => {
+    if (openAiOnly) return;
     const check = new AbortController();
     localReaderConfiguration(
       AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
@@ -533,8 +536,9 @@ export default function App() {
       })
       .catch(() => {});
     return () => check.abort();
-  }, []);
+  }, [openAiOnly]);
   useEffect(() => {
+    if (openAiOnly) return;
     const check = new AbortController();
     setCheckingAi(true);
     geminiConfiguration(
@@ -550,7 +554,7 @@ export default function App() {
         if (!check.signal.aborted) setCheckingAi(false);
       });
     return () => check.abort();
-  }, []);
+  }, [openAiOnly]);
   useEffect(() => {
     const check = new AbortController();
     setCheckingAi(true);
@@ -956,9 +960,7 @@ export default function App() {
             images.some((image) => !!image.geometry),
           ),
         );
-        setNotice(
-          "OpenAI finished. Check every purchase, discount, tax setting and total against the original photos before confirming.",
-        );
+        setNotice("Receipt ready to review.");
         return;
       }
       if (reader === "gemini") {
@@ -1566,42 +1568,46 @@ export default function App() {
                   </p>
                 )}
                 <fieldset className="reader-choice" disabled={busy}>
-                  <legend>How should we read it?</legend>
-                  <div className="reader-buttons">
-                    <button
-                      type="button"
-                      className={`button ${privateReader ? "button-primary" : "button-outline"}`}
-                      aria-pressed={privateReader}
-                      onClick={() => {
-                        setReader(pdfTextAvailable ? "pdf" : "enhanced");
-                        setAiConsented(false);
-                      }}
-                    >
-                      <ShieldCheck size={17} /> On-device scan
-                    </button>
-                    {(assistedReader || !privateReader) && (
+                  <legend>
+                    {openAiOnly ? "OpenAI scan" : "How should we read it?"}
+                  </legend>
+                  {!openAiOnly && (
+                    <div className="reader-buttons">
                       <button
                         type="button"
-                        className={`button ${!privateReader ? "button-primary" : "button-outline"}`}
-                        aria-pressed={!privateReader}
+                        className={`button ${privateReader ? "button-primary" : "button-outline"}`}
+                        aria-pressed={privateReader}
                         onClick={() => {
-                          if (privateReader && assistedReader) {
-                            setReader(assistedReader);
-                            setAiConsented(false);
-                          }
+                          setReader(pdfTextAvailable ? "pdf" : "enhanced");
+                          setAiConsented(false);
                         }}
                       >
-                        <Sparkles size={17} /> Assisted scan ·{" "}
-                        {
-                          assistedLabels[
-                            (!privateReader
-                              ? reader
-                              : assistedReader) as keyof typeof assistedLabels
-                          ]
-                        }
+                        <ShieldCheck size={17} /> On-device scan
                       </button>
-                    )}
-                  </div>
+                      {(assistedReader || !privateReader) && (
+                        <button
+                          type="button"
+                          className={`button ${!privateReader ? "button-primary" : "button-outline"}`}
+                          aria-pressed={!privateReader}
+                          onClick={() => {
+                            if (privateReader && assistedReader) {
+                              setReader(assistedReader);
+                              setAiConsented(false);
+                            }
+                          }}
+                        >
+                          <Sparkles size={17} /> Assisted scan ·{" "}
+                          {
+                            assistedLabels[
+                              (!privateReader
+                                ? reader
+                                : assistedReader) as keyof typeof assistedLabels
+                            ]
+                          }
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {reader === "local" ? (
                     <p className="hint">
                       Free, private English OCR. Photos stay on your device.
@@ -1724,22 +1730,27 @@ export default function App() {
                   ) : reader === "openai" ? (
                     <div className="ai-reader-info">
                       <p>
-                        Use this last resort when the other readers need help.
-                        It uses OpenAI API credits and prepares a draft for you
-                        to check.
+                        {openAiOnly
+                          ? "OpenAI reads the selected photos and PDF pages together. You can edit the receipt before splitting it."
+                          : "This assisted scan uses OpenAI API credits and prepares a receipt for your review."}
                       </p>
                       <p className="hint" role="status">
                         {checkingAi
                           ? "Checking the app's OpenAI allowance…"
                           : openaiConfig?.configured
                             ? `App allowance: ${openaiConfig.remaining} scan ${openaiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. Failed or cancelled attempts can still use credits.`
-                            : "OpenAI is not enabled here or its attempt allowance is used up. Choose another reader."}
+                            : openaiConfig?.availability === "missing-key"
+                              ? "Add a server-side OpenAI API key and restart Gather."
+                              : openaiConfig?.availability ===
+                                  "missing-allowance"
+                                ? "Set the app’s OpenAI scan allowance and restart Gather."
+                                : openaiConfig?.availability === "exhausted"
+                                  ? "The app’s OpenAI scan allowance is used up."
+                                  : "OpenAI scanning is unavailable. Check the local server and its allowance storage."}
                       </p>
                       <p className="hint">
-                        Requests estimated above US$0.60 are rejected before
-                        sending. This estimate guard is not an account spending
-                        cap; actual charges depend on usage. No automatic retry
-                        is made.
+                        The app accepts scans estimated at US$0.60 or less.
+                        OpenAI bills actual usage.
                       </p>
                       <p className="hint">
                         Crop out membership and payment details. OpenAI API
@@ -1908,22 +1919,26 @@ export default function App() {
                     )}
                   </div>
                 )}
-                <div className="private-line">
-                  <ShieldCheck size={16} />
-                  <span>
-                    {reader === "local" || reader === "enhanced"
-                      ? "On-device OCR keeps your photos on this device."
-                      : reader === "computer" || reader === "vision"
-                        ? "Photos are processed on this computer and temporary files are removed after reading."
-                        : reader === "veryfi"
-                          ? "Veryfi receives receipt sections only when you agree and start a scan."
-                          : reader === "azure"
-                            ? "Azure receives receipt sections only when you agree and start a scan."
-                            : reader === "pdf"
-                              ? "PDF text is read on this device."
-                              : "Gemini only receives photos when you agree and start a scan."}
-                  </span>
-                </div>
+                {!openAiOnly && (
+                  <div className="private-line">
+                    <ShieldCheck size={16} />
+                    <span>
+                      {reader === "local" || reader === "enhanced"
+                        ? "On-device OCR keeps your photos on this device."
+                        : reader === "computer" || reader === "vision"
+                          ? "Photos are processed on this computer and temporary files are removed after reading."
+                          : reader === "veryfi"
+                            ? "Veryfi receives receipt sections only when you agree and start a scan."
+                            : reader === "azure"
+                              ? "Azure receives receipt sections only when you agree and start a scan."
+                              : reader === "pdf"
+                                ? "PDF text is read on this device."
+                                : reader === "openai"
+                                  ? "OpenAI receives photos when you agree and start a scan."
+                                  : "Gemini only receives photos when you agree and start a scan."}
+                    </span>
+                  </div>
+                )}
                 <div className="or-divider">
                   <span>or take the scenic route</span>
                 </div>
@@ -3359,7 +3374,7 @@ export default function App() {
             Made for the things we share.
           </span>
           <span>
-            Private by design ·{" "}
+            {!openAiOnly && "Private by design · "}
             {saveError ? "Draft not saved" : "Draft saved on this device"}
           </span>
           <button className="text-button" disabled={busy} onClick={reset}>
@@ -3584,34 +3599,55 @@ export default function App() {
         ) : (
           <div className="privacy-dialog">
             <ShieldCheck size={32} />
-            <h2>Your shop stays yours.</h2>
-            <p>
-              The on-device reader uses English OCR in your browser. Its photos
-              stay on this device. Tall images are read in overlapping detail
-              sections so small text stays readable.
-            </p>
-            <p>
-              Gemini AI is optional. If you select it, agree to send the photos
-              and start a scan, the local server forwards those photos to Google
-              Gemini. It returns a receipt draft for you to check. The API key
-              stays on the server; Gather does not save the photos or model
-              requests. Google processes requests under its own data-use terms.
-            </p>
-            <p>
-              OpenAI is an optional last resort. Selecting it, consenting and
-              starting a scan sends your receipt sections to OpenAI and uses API
-              credits. The key stays on the server. The local attempt allowance
-              persists across restarts, including failures; it is not an account
-              spending cap. Provider safety logs and caching can retain content.
-            </p>
-            <p>
-              Veryfi OCR is optional and requires a separate server allowance.
-              Selecting it and consenting sends the prepared receipt sections to
-              Veryfi, which normally stores data in the US and may use it to
-              improve its proprietary models. We request deletion of the new
-              record after reading, but this does not guarantee zero retention
-              or exclude model improvement. No automatic retry is made.
-            </p>
+            <h2>{openAiOnly ? "Receipt privacy" : "Your shop stays yours."}</h2>
+            {openAiOnly ? (
+              <p>
+                An authorized scan sends the selected receipt sections to OpenAI
+                and uses API credits. The API key stays on the local server.
+                OpenAI handles submitted images under its{" "}
+                <a
+                  href="https://developers.openai.com/api/docs/guides/your-data"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  API data policy
+                </a>
+                .
+              </p>
+            ) : (
+              <>
+                <p>
+                  The on-device reader uses English OCR in your browser. Its
+                  photos stay on this device. Tall images are read in
+                  overlapping detail sections so small text stays readable.
+                </p>
+                <p>
+                  Gemini AI is optional. If you select it, agree to send the
+                  photos and start a scan, the local server forwards those
+                  photos to Google Gemini. It returns a receipt draft for you to
+                  check. The API key stays on the server; Gather does not save
+                  the photos or model requests. Google processes requests under
+                  its own data-use terms.
+                </p>
+                <p>
+                  OpenAI is an optional last resort. Selecting it, consenting
+                  and starting a scan sends your receipt sections to OpenAI and
+                  uses API credits. The key stays on the server. The local
+                  attempt allowance persists across restarts, including
+                  failures; it is not an account spending cap. Provider safety
+                  logs and caching can retain content.
+                </p>
+                <p>
+                  Veryfi OCR is optional and requires a separate server
+                  allowance. Selecting it and consenting sends the prepared
+                  receipt sections to Veryfi, which normally stores data in the
+                  US and may use it to improve its proprietary models. We
+                  request deletion of the new record after reading, but this
+                  does not guarantee zero retention or exclude model
+                  improvement. No automatic retry is made.
+                </p>
+              </>
+            )}
             <p>
               Your extracted draft and names are saved in this browser’s local
               storage so you can continue after a refresh. People with access to
@@ -3619,16 +3655,19 @@ export default function App() {
               only kept in memory and disappear on refresh or when the tab
               closes.
             </p>
-            <p>
-              Azure receipt OCR is optional and needs a separate section
-              allowance. Each prepared image section is one uploaded page. After
-              you select it, consent and start a scan, Azure processes the
-              images in the configured resource region. Microsoft describes
-              24-hour temporary storage; we request earlier deletion once per
-              new result. Failed or cancelled scans can still use the allowance,
-              and deletion may be unconfirmed. No automatic retry is made. See
-              Microsoft’s data-use link beside the scan consent for details.
-            </p>
+            {!openAiOnly && (
+              <p>
+                Azure receipt OCR is optional and needs a separate section
+                allowance. Each prepared image section is one uploaded page.
+                After you select it, consent and start a scan, Azure processes
+                the images in the configured resource region. Microsoft
+                describes 24-hour temporary storage; we request earlier deletion
+                once per new result. Failed or cancelled scans can still use the
+                allowance, and deletion may be unconfirmed. No automatic retry
+                is made. See Microsoft’s data-use link beside the scan consent
+                for details.
+              </p>
+            )}
             <p>
               Delete / reset receipt removes this app’s saved draft and current
               image previews. Exported or copied summaries remain wherever you

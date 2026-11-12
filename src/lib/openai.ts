@@ -27,11 +27,11 @@ export async function extractWithOpenAi(
   const body = JSON.stringify({ consent: true, useCredits: true, panels });
   if (new TextEncoder().encode(body).byteLength > MAX_AI_BODY_BYTES)
     throw new Error(
-      "These receipt sections are too large together. Choose fewer sections or another reader.",
+      "These receipt sections are too large together. Crop the photos or choose fewer sections.",
     );
   const deadline = AbortSignal.timeout(95000);
   const requestSignal = AbortSignal.any([signal, deadline]);
-  progress("OpenAI is reading your photos as one receipt…");
+  progress("OpenAI is reading your receipt…");
   try {
     const response = await fetch("./api/receipts/openai", {
       method: "POST",

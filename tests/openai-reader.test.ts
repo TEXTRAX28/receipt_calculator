@@ -360,9 +360,12 @@ describe("OpenAI explicit last-resort reader; offline transports only", () => {
 });
 
 describe("OpenAI actual loopback API; upstream mocked", () => {
-  async function api() {
+  async function api(openAiOnly = false) {
     const client = await reader();
-    const handler = createReceiptApi({ openaiReader: client.model });
+    const handler = createReceiptApi({
+      openAiOnly,
+      openaiReader: client.model,
+    });
     const server = createServer((req, res) => {
       void handler(req, res, () => {
         res.writeHead(404);
@@ -417,5 +420,30 @@ describe("OpenAI actual loopback API; upstream mocked", () => {
     ).toBe(403);
     expect(client.upstream).not.toHaveBeenCalled();
     expect((await client.model.getStatus()).remaining).toBe(1);
+  });
+  it("blocks the other receipt endpoints in OpenAI-only mode", async () => {
+    const client = await api(true);
+    const denied = [
+      "providers",
+      "config",
+      "extract",
+      "recognize",
+      "vision",
+      "vision-batches",
+      "azure",
+      "veryfi",
+    ];
+    for (const route of denied) {
+      expect((await fetch(`${client.base}/api/receipts/${route}`)).status).toBe(
+        404,
+      );
+    }
+    const result = await client.post({
+      consent: true,
+      useCredits: true,
+      panels,
+    });
+    expect(result.status).toBe(200);
+    expect(client.upstream).toHaveBeenCalledTimes(1);
   });
 });

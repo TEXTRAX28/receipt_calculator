@@ -5,8 +5,6 @@ import { createReceiptApi } from "./server/receipt-api.mjs";
 import { createLocalModelReader } from "./server/local-ocr.mjs";
 import { createLocalVisionReader } from "./server/local-vision.mjs";
 import { privateFileDeny } from "./server/private-paths.mjs";
-import { createVeryfiReader } from "./server/veryfi-reader.mjs";
-import { createAzureReader } from "./server/azure-reader.mjs";
 import { createOpenAiReader } from "./server/openai-reader.mjs";
 import { resolve } from "node:path";
 import { LOCAL_VISION_TIMEOUT_MS } from "./src/lib/vision-plan.mjs";
@@ -18,7 +16,8 @@ export function receiptEnvironment(
   directory = process.cwd(),
   variables: NodeJS.ProcessEnv = process.env,
 ) {
-  if (mode !== "local-only") return loadEnv(mode, directory, "");
+  if (mode !== "local-only")
+    return loadEnv(mode, directory, ["OPENAI_", "OPEN_AI_KEY"]);
   return Object.fromEntries(
     [
       "LOCAL_OCR_PYTHON",
@@ -31,9 +30,24 @@ export function receiptEnvironment(
   );
 }
 
-export default defineConfig(({ mode }) => {
-  const env = receiptEnvironment(mode);
+export default defineConfig(({ command, mode }) => {
+  const openAiOnly = mode !== "local-only";
+  const env = command === "build" ? {} : receiptEnvironment(mode);
   const api = () => {
+    if (openAiOnly)
+      return {
+        handler: createReceiptApi({
+          openAiOnly,
+          openaiReader: createOpenAiReader({
+            apiKey: env.OPENAI_API_KEY || env.OPEN_AI_KEY || "",
+            directory: resolve(
+              env.OPENAI_ALLOWANCE_DIRECTORY || ".receipt-reader-state/openai",
+            ),
+            grant: env.OPENAI_ALLOWANCE_ID || "",
+            limit: Number(env.OPENAI_REQUEST_LIMIT || 0),
+          }),
+        }),
+      };
     const localReader = createLocalModelReader({
       python: env.LOCAL_OCR_PYTHON || "",
       engine: env.LOCAL_OCR_ENGINE || "paddle-v6",
@@ -49,51 +63,17 @@ export default defineConfig(({ mode }) => {
       handler: createReceiptApi({
         assistedReader: env.RECEIPT_ASSISTED_READER || undefined,
         localCheckMode: env.LOCAL_OCR_CHECK_MODE || "off",
-        apiKey: env.GEMINI_API_KEY || "",
-        model: env.GEMINI_MODEL || undefined,
-        geminiAllowance: {
-          directory: resolve(
-            env.GEMINI_ALLOWANCE_DIRECTORY || ".receipt-reader-state/gemini",
-          ),
-          grant: env.GEMINI_ALLOWANCE_ID || "",
-          limit: Number(env.GEMINI_REQUEST_LIMIT || 0),
-        },
         localReader,
         localVision,
-        openaiReader: createOpenAiReader({
-          apiKey: env.OPEN_AI_KEY || env.OPENAI_API_KEY || "",
-          directory: resolve(
-            env.OPENAI_ALLOWANCE_DIRECTORY || ".receipt-reader-state/openai",
-          ),
-          grant: env.OPENAI_ALLOWANCE_ID || "",
-          limit: Number(env.OPENAI_REQUEST_LIMIT || 0),
-        }),
         visionTimeoutMs: LOCAL_VISION_TIMEOUT_MS,
-        azureReader: createAzureReader({
-          endpoint: env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT || "",
-          key: env.AZURE_DOCUMENT_INTELLIGENCE_KEY || "",
-          directory: resolve(
-            env.AZURE_ALLOWANCE_DIRECTORY || ".receipt-reader-state/azure",
-          ),
-          grant: env.AZURE_ALLOWANCE_ID || "",
-          limit: Number(env.AZURE_SECTION_LIMIT || 0),
-        }),
-        veryfiReader: createVeryfiReader({
-          clientId: env.VERYFI_CLIENT_ID || "",
-          bearerKey: env.VERYFI_BEARER_KEY || "",
-          directory: resolve(
-            env.VERYFI_ALLOWANCE_DIRECTORY || ".receipt-reader-state",
-          ),
-          grant: env.VERYFI_ALLOWANCE_ID || "",
-          limit: Number(env.VERYFI_DOCUMENT_LIMIT || 0),
-        }),
       }),
     };
   };
   return {
     // Keep generated caches in this checkout when dependencies are shared.
     cacheDir: ".vite",
-    ...(mode === "local-only" ? { envDir: false as const, envPrefix: [] } : {}),
+    envDir: false as const,
+    envPrefix: [],
     // Avoid a first-PDF dependency optimization reload discarding selected files.
     optimizeDeps: {
       entries: ["index.html"],
@@ -108,16 +88,16 @@ export default defineConfig(({ mode }) => {
           const reader = api();
           server.middlewares.use(reader.handler);
           server.httpServer?.once("close", () => {
-            void reader.localReader.dispose().catch(() => {});
-            void reader.localVision.dispose().catch(() => {});
+            void reader.localReader?.dispose().catch(() => {});
+            void reader.localVision?.dispose().catch(() => {});
           });
         },
         configurePreviewServer(server) {
           const reader = api();
           server.middlewares.use(reader.handler);
           server.httpServer?.once("close", () => {
-            void reader.localReader.dispose().catch(() => {});
-            void reader.localVision.dispose().catch(() => {});
+            void reader.localReader?.dispose().catch(() => {});
+            void reader.localVision?.dispose().catch(() => {});
           });
         },
       },

@@ -82,7 +82,7 @@ export function prepareOpenAiRequest(input) {
     if (width > 65535 || height > 65535 || patches > 30000)
       throw new OpenAiError(
         400,
-        "A receipt section is too large for this OpenAI setting. Crop it or choose another reader.",
+        "A receipt section is too large for this OpenAI setting. Crop it before scanning.",
       );
     return sum + Math.ceil(patches * 1.2);
   }, 0);
@@ -95,13 +95,13 @@ export function prepareOpenAiRequest(input) {
   if (estimateUsd > OPENAI_ESTIMATE_GUARD_USD)
     throw new OpenAiError(
       413,
-      "These sections exceed this reader's $0.60 estimate guard. Choose fewer sections or another reader. No OpenAI request was sent.",
+      "These sections exceed the US$0.60 scan estimate limit. Crop the photos or choose fewer sections.",
     );
   const serialized = JSON.stringify(body);
   if (Buffer.byteLength(serialized) > MAX_AI_BODY_BYTES)
     throw new OpenAiError(
       413,
-      "These receipt sections are too large together. Choose fewer sections or another reader.",
+      "These receipt sections are too large together. Crop the photos or choose fewer sections.",
     );
   return {
     serialized,

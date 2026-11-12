@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import base from "./playwright.config";
+import base from "./playwright.openai.config";
 
 // Optional engine check. Host WebKit is not a physical iPhone or Apple Safari.
 export default defineConfig({

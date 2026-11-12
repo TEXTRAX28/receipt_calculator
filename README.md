@@ -1,62 +1,47 @@
-# Gather
+# Gather OpenAI OCR trial
 
-A receipt scanner and bill splitter built on React, TypeScript and Vite. Choose a private on-device reader or an optional configured computer/cloud reader. All calculations and splitting run in the browser. Participants need no accounts.
+This branch uses GPT-6 Astra for photo and PDF receipt scanning. Upload or capture your receipt, authorize the scan, then review the digital receipt and split it as usual. The app renders PDF pages into images on your computer and sends the prepared pages in order. Manual entry and pasted receipt text remain available.
 
-## Run locally
+## Run this branch
 
-Use Node.js 24 LTS (22.13+ supported) and npm.
+Use Node.js 24 LTS and npm. If this checkout already has its dependencies, start with `npm run dev`. In a fresh checkout, run `npm ci` first.
 
-```sh
-npm ci
+Put your existing server key in the ignored `.env.local` under `OPENAI_API_KEY` or `OPEN_AI_KEY`. Set a stable `OPENAI_ALLOWANCE_ID` and choose a small `OPENAI_REQUEST_LIMIT` in the same file. See [.env.example](.env.example) for the format. Each submitted scan uses one app attempt, including failed or cancelled requests that reached the provider. The app keeps its count across restarts.
+
+```powershell
 npm run dev
 ```
 
-Open the Local URL printed by Vite, normally `http://127.0.0.1:5173/`.
+Open [Gather on this PC](http://127.0.0.1:5175/). The API listens on loopback. Keep this terminal open while testing.
 
-In VS Code, open the folder containing `package.json`, choose **Terminal → New Terminal**, and run the commands above. Subsequent starts only need `npm run dev`; keep its terminal open. Stop it with **Ctrl+C** before reinstalling dependencies, since a running Vite process can lock native files on Windows. If the port is occupied, choose another explicitly, for example `npm run dev -- --port 5175`, and open the printed URL.
+### Reuse an existing settings file
 
-The install, development and build scripts copy the OCR worker, English language data and WASM cores to ignored `public/ocr/`, and PDF fonts, character maps and image decoders to ignored `public/pdf-assets/`. Both come from the installed packages and are served from this app's own origin. If those generated assets are missing:
+Load the key from its current location with Node. Set the trial allowance in the terminal so this checkout uses its own count.
 
-```sh
-npm run prepare:ocr
+```powershell
+$receiptSettings = 'C:\path\to\existing\.env.local'
+$env:OPENAI_ALLOWANCE_ID = 'receipt-openai-trial'
+$env:OPENAI_REQUEST_LIMIT = '5'
+$env:OPENAI_ALLOWANCE_DIRECTORY = Join-Path (Get-Location) '.receipt-reader-state/openai'
+npm run prepare:pdf
+node "--env-file=$receiptSettings" node_modules/vite/bin/vite.js --configLoader native --host 127.0.0.1 --port 5175
 ```
 
-For a production build and local preview:
+The server reads only OpenAI settings in ordinary development and preview. Scan consent identifies the prepared images and use of API credits. The app keeps the existing US$0.60 estimate limit per request and leaves failed scans available for manual review or a new attempt. OpenAI bills actual usage. [OpenAI API data policy](https://developers.openai.com/api/docs/guides/your-data)
 
-```sh
+### Build and test
+
+```powershell
 npm run build
-npm run preview -- --port 4173
+npm run test
+npm run test:e2e
 ```
 
-On-device OCR needs no API key, paid service, database or account. Keep the local server running while using the app: an already-loaded page still needs it to download the OCR files. Nothing has been deployed or published.
+The browser tests use synthetic responses and a local server with provider credentials disabled. After building, `npm run preview` serves the OpenAI trial at [port 4175](http://127.0.0.1:4175/). The on-device build on `codex/receipt-digital-review` is available for a side-by-side comparison on the same receipts.
 
-### Local-only development in VS Code
+## Baseline reader reference
 
-With dependencies already installed and Node.js 24 LTS (or 22.18+), use:
-
-```sh
-npm run dev:local -- --port 5175
-```
-
-This starts the current source with live updates, prepares the installed browser/PDF assets without downloading models, and disables every cloud reader. It ignores dotenv files and exposes no inherited `VITE_` variables to the browser. Generated Vite caches stay in this checkout's ignored `.vite/` directory. The native config loader requires Node's TypeScript support; ordinary `npm run dev` retains its existing configuration behavior. See [Vite's configuration loader](https://vite.dev/config/) and [environment options](https://vite.dev/config/shared-options.html#envdir).
-
-To reuse an already installed computer reader, set `LOCAL_OCR_PYTHON` to its absolute interpreter path and `LOCAL_OCR_CACHE_ROOT` to the directory containing the verified model files (`receipt_training/.cache` by default) **in the terminal environment**, then run that command. No reinstall or key is needed. This cache setting applies to the computer OCR reader; experimental local vision keeps its separate setup. The computer's native worker still needs sufficient free RAM, and local-only mode does not make its inference run on a phone.
-
-VS Code tasks can supply those non-secret settings through `options.env`; run a configured task using **Terminal → Run Task** and stop it with **Ctrl+C**. See the [VS Code task documentation](https://code.visualstudio.com/docs/debugtest/tasks). Keep this server's printed URL open while scanning. The development server accepts loopback connections only.
-
-### Private iPhone or Android preview
-
-With the existing dependencies installed and Node.js 24 LTS (or 22.18+), run this from the project folder in VS Code:
-
-```sh
-npm run preview:phone
-```
-
-This builds the current app without loading dotenv or cloud keys, selects the PC's private Wi-Fi address (or a physical Ethernet address when Wi-Fi is unavailable), and prints the phone URL, certificate download URL and a local access-code file path. Keep the terminal open and the PC awake. The phone and selected PC connection must be on the same local network; managed networks such as accommodation Wi-Fi can separate wired and wireless devices. To select a connected interface explicitly, use `npm run preview:phone -- --host PRIVATE_IP`.
-
-On iPhone, open the certificate URL **directly in Safari**, allow the profile download, and install the named Gather test certificate under **Settings → General → VPN & Device Management**. Enable that certificate under **General → About → Certificate Trust Settings**, then open the HTTPS app URL. Open the printed access-code file **on the PC**, enter its code on the phone, and choose **Open Gather**. See [Apple's test-certificate instructions](https://developer.apple.com/library/archive/qa/qa1948/_index.html). A wrong code displays an inline error; signing in opens the app rather than downloading a `pair` file.
-
-This preview runs receipt reading on the phone; computer and cloud readers are disabled. It serves only the built app, requires an access code, and retains the normal development server's loopback restrictions. It changes no firewall or system trust settings. Local keys, the code and the one-day certificate stay in ignored `.receipt-reader-state/phone-preview/`; they are never committed. OpenSSL must be installed (Git for Windows includes it). The static preview needs at least 2 GiB available RAM, stops below a 1 GiB reserve or after eight hours, and can be stopped with **Ctrl+C**. Remove its certificate profile from the phone after testing. This is a local development tool; public deployment and complete mobile OCR verification remain separate work.
+The sections about on-device and assisted readers describe the baseline branch and compatibility tests. The OpenAI trial's launch commands are above.
 
 ## Scanning choices
 

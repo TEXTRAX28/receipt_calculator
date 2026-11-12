@@ -165,7 +165,7 @@ export async function extractWithGemini(
 }
 
 /** Local-only adapter. No credentials, receipt text or image data are logged or saved.
- * @param {{assistedReader?: string, localCheckMode?: string, apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>, openaiReader?: ReturnType<typeof import("./openai-reader.mjs").createOpenAiReader>}} [options]
+ * @param {{openAiOnly?: boolean, assistedReader?: string, localCheckMode?: string, apiKey?: string, model?: string, geminiAllowance?: {directory: string, grant: string, limit: number}, fetcher?: typeof fetch, timeoutMs?: number, visionTimeoutMs?: number, visionJobTimeoutMs?: number, localReader?: {configured: boolean, name: string, release?: () => Promise<void>, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, localVision?: {configured: boolean, name: string, maxPanels: number, extract: (panels: unknown[], options: {signal: AbortSignal}) => Promise<unknown>}, veryfiReader?: ReturnType<typeof import("./veryfi-reader.mjs").createVeryfiReader>, azureReader?: ReturnType<typeof import("./azure-reader.mjs").createAzureReader>, openaiReader?: ReturnType<typeof import("./openai-reader.mjs").createOpenAiReader>}} [options]
  */
 export function createReceiptApi({
   apiKey = "",
@@ -180,6 +180,7 @@ export function createReceiptApi({
   veryfiReader,
   azureReader,
   openaiReader = createOpenAiReader(),
+  openAiOnly = false,
   assistedReader,
   localCheckMode = "off",
 } = {}) {
@@ -251,6 +252,14 @@ export function createReceiptApi({
     )
       return send(403, {
         error: "The receipt request must come from Gather on this computer.",
+      });
+    if (
+      openAiOnly &&
+      pathname !== "/api/receipts/openai/config" &&
+      pathname !== "/api/receipts/openai"
+    )
+      return send(404, {
+        error: "This preview uses OpenAI for receipt scans.",
       });
     if (pathname === "/api/receipts/config" && req.method === "GET")
       return send(200, await geminiStatus());
@@ -410,7 +419,7 @@ export function createReceiptApi({
       )
         throw new ScanError(
           429,
-          "Please wait before another scan. This local preview allows one scan at a time, two per minute and ten per hour. You can use the on-device reader meanwhile.",
+          "Please wait before another scan. This local preview allows one scan at a time, two per minute and ten per hour.",
         );
       active = true;
       ownsActive = true;

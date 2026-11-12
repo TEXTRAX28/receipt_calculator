@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: [
+    "**/openai-only.spec.ts",
     ...(!process.env.GATHER_ENHANCED_PRIVATE_TEST
       ? ["**/enhanced-reader-real.spec.ts"]
       : []),
