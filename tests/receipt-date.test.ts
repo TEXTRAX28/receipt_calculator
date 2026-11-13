@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeReceiptDate } from "../src/lib/receipt-date";
-import { receiptFromAi } from "../src/lib/gemini";
+import { receiptFromOpenAi } from "../src/lib/openai-draft";
 import { calculateReceipt } from "../src/lib/engine";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { parseReceiptWithSources } from "../src/lib/parser";
@@ -25,7 +25,7 @@ describe("printed dates retain their evidence without guessing locale", () => {
     "31/10.2026",
     "not a date",
   ])("keeps %s unresolved and blocked by independent validation", (date) => {
-    const receipt = receiptFromAi({ ...aiCostcoDraft(), date }, "Local vision");
+    const receipt = receiptFromOpenAi({ ...aiCostcoDraft(), date });
     expect(receipt.date).toBe(date);
     expect(calculateReceipt(receipt).issues).toContainEqual(
       expect.objectContaining({ path: "date" }),
@@ -33,11 +33,8 @@ describe("printed dates retain their evidence without guessing locale", () => {
   });
   it("accepts the native printed-date format without changing any financial field", () => {
     const draft = aiCostcoDraft();
-    const expected = calculateReceipt(receiptFromAi(draft));
-    const receipt = receiptFromAi(
-      { ...draft, date: "31/10/2026" },
-      "Local vision",
-    );
+    const expected = calculateReceipt(receiptFromOpenAi(draft));
+    const receipt = receiptFromOpenAi({ ...draft, date: "31/10/2026" });
     expect(receipt.date).toBe("2026-10-31");
     const result = calculateReceipt(receipt);
     expect(result.issues).toEqual([]);

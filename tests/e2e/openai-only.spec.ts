@@ -87,6 +87,7 @@ async function stubOpenAi(page: Page, fails = false) {
           subtotal: "37.20",
           printedTotal: "37.20",
           printedTax: "",
+          taxRegistrationNumber: "",
           pricesIncludeTax: true,
           printedItemCount: 1,
           taxCodes: [],
@@ -132,7 +133,12 @@ test("only OpenAI is offered, with a disabled scan when the server has no key", 
   ).toBeEnabled();
   expect((await request.get("/api/receipts/providers")).status()).toBe(404);
   expect(
-    (await request.post("/api/receipts/recognize", { data: {} })).status(),
+    (
+      await request.post("/api/receipts/recognize", {
+        data: {},
+        headers: { origin: new URL(page.url()).origin },
+      })
+    ).status(),
   ).toBe(404);
 });
 
@@ -226,4 +232,10 @@ test("a failed scan keeps the photos and updates the allowance without retrying"
   await expect(scan(page)).toBeDisabled();
   await expect(page.locator(".selected-image")).toHaveCount(1);
   expect(requests).toHaveLength(1);
+  await page
+    .getByRole("button", { name: "Enter manually", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Your receipt." }),
+  ).toBeVisible();
 });

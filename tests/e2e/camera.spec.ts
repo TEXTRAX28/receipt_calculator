@@ -1,4 +1,3 @@
-import { expectReviewAttention } from "./review-assertions";
 import { test, expect, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile, writeFile } from "node:fs/promises";
@@ -32,7 +31,7 @@ async function camera(
       "This browser build lacks synthetic video-stream APIs; live capture remains unverified here.",
     );
   const png = baseline
-    ? (await readFile("tests/fixtures/paddle-synthetic.png")).toString("base64")
+    ? (await readFile("tests/fixtures/camera-receipt.png")).toString("base64")
     : "";
   await page.addInitScript(
     ({ mode, png }) => {
@@ -444,7 +443,7 @@ for (const mode of ["denied", "missing"] as const)
     await page
       .getByRole("button", { name: "Choose or take a photo", exact: true })
       .click();
-    await (await chooser).setFiles("tests/fixtures/paddle-synthetic.png");
+    await (await chooser).setFiles("tests/fixtures/camera-receipt.png");
     await expect(
       page.getByAltText("Receipt preview 1", { exact: true }),
     ).toBeVisible();
@@ -528,7 +527,7 @@ test("the twelfth photo reaches the import limit without requesting another came
   page,
 }) => {
   const network = await camera(page);
-  const buffer = await readFile("tests/fixtures/paddle-synthetic.png");
+  const buffer = await readFile("tests/fixtures/camera-receipt.png");
   await page.getByLabel("Upload receipt images").setInputFiles(
     Array.from({ length: 11 }, (_, i) => ({
       name: `section-${i + 1}.png`,
@@ -565,103 +564,4 @@ test("the twelfth photo reaches the import limit without requesting another came
   );
   expect(await trackStates(page)).toEqual([["ended"]]);
   expect(network).toEqual({ external: [], writes: [], errors: [] });
-});
-
-test("captured synthetic photo reaches real enhanced OCR and exact equal split", async ({
-  page,
-}, info) => {
-  test.setTimeout(180000);
-  const network = await camera(page, "normal", true);
-  await open(page);
-  await page
-    .getByRole("button", { name: "Capture photo", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Use photo", exact: true }).click();
-  await expect(
-    page.getByAltText("Receipt preview 1", { exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "On-device scan", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Read receipt on this device", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Your receipt." }),
-  ).toBeVisible({ timeout: 130000 });
-  const receipt = await page.evaluate(
-    () => JSON.parse(localStorage.getItem("gather.receipt.v1")!).receipt,
-  );
-  expect(receipt.printedTotal).toBe("6.00");
-  expect(receipt.items).toHaveLength(2);
-  expect(receipt.items[0]).toMatchObject({
-    description: "Soup",
-    quantity: "2",
-    unitPrice: "1.25",
-    lineTotal: "2.50",
-  });
-  expect(receipt.items[1]).toMatchObject({
-    description: "Rice",
-    quantity: "1",
-    unitPrice: "3.50",
-    lineTotal: "3.50",
-  });
-  await expectReviewAttention(
-    page,
-    page.getByRole("button", {
-      name: "Confirm receipt & add people",
-      exact: true,
-    }),
-  );
-  await expect(page.getByRole("checkbox", { name: /^I checked/ })).toHaveCount(
-    0,
-  );
-  await page
-    .getByRole("button", { name: "Confirm receipt & add people", exact: true })
-    .click();
-  await page
-    .getByRole("textbox", { name: "Person’s name", exact: true })
-    .fill("Ari");
-  await page.getByRole("button", { name: "Add person", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Person’s name", exact: true })
-    .fill("Bo");
-  await page.getByRole("button", { name: "Add person", exact: true }).click();
-  await page.getByRole("button", { name: "Let’s share it" }).click();
-  await page
-    .getByRole("button", { name: "Whole receipt", exact: true })
-    .click();
-  for (const check of await page
-    .getByTestId("whole-assignment")
-    .getByRole("checkbox")
-    .all())
-    await check.check();
-  await page
-    .getByRole("button", { name: "Finalize split", exact: true })
-    .click();
-  await expect(page.getByTestId("person-total-0")).toHaveText("£3.00");
-  await expect(page.getByTestId("person-total-1")).toHaveText("£3.00");
-  expect(await trackStates(page)).toEqual([["ended"]]);
-  expect(network).toEqual({ external: [], writes: [], errors: [] });
-  await page.screenshot({
-    path: await qaArtifactPath(info, "camera-real-ocr-split.png"),
-    fullPage: true,
-  });
-  await writeFile(
-    await qaArtifactPath(info, "camera-real-ocr.json"),
-    JSON.stringify(
-      {
-        scope:
-          "Only camera hardware is replaced by a generated stream of the fixed synthetic receipt. Actual JPEG capture, import, enhanced worker, parser and UI. Source review checkboxes are automated, not independent human verification.",
-        receipt,
-        state: await page.evaluate(() =>
-          JSON.parse(localStorage.getItem("gather.receipt.v1")!),
-        ),
-        financialEdits: 0,
-        ...network,
-      },
-      null,
-      2,
-    ),
-  );
 });

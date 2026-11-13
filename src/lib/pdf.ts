@@ -7,15 +7,8 @@ import {
   type PDFDocumentLoadingTask,
   type RenderTask,
 } from "pdfjs-dist";
-import type { TextItem, TextStyle } from "pdfjs-dist/types/src/display/api";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import {
-  MAX_IMAGE_BYTES,
-  prepareImage,
-  previewDimensions,
-  type ReceiptImage,
-} from "./images";
-import { pdfTextRows } from "./pdf-text";
+import { MAX_IMAGE_BYTES, prepareImage, type ReceiptImage } from "./images";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 const MAX_PAGE_PIXELS = 12_000_000;
@@ -112,10 +105,7 @@ export async function preparePdf(
       throw new Error(
         `This PDF has ${document.numPages} pages; there is room for ${options.remaining}. Import fewer pages or start a new receipt.`,
       );
-    const formFields = await guard(document.getFieldObjects());
-    const id = crypto.randomUUID();
-    let textCharacters = 0,
-      totalPixels = 0;
+    let totalPixels = 0;
     for (let number = 1; number <= document.numPages; number++) {
       signal.throwIfAborted();
       options.progress(
@@ -169,30 +159,6 @@ export async function preparePdf(
       };
       await guard(rendering.promise);
       rendering = undefined;
-      const items: TextItem[] = [],
-        styles: Record<string, TextStyle> = {};
-      const reader = page.streamTextContent().getReader();
-      try {
-        while (true) {
-          const chunk = await guard(reader.read());
-          if (chunk.done) break;
-          Object.assign(styles, chunk.value.styles);
-          for (const item of chunk.value.items) {
-            if (!("str" in item)) continue;
-            textCharacters += item.str.length;
-            if (items.length >= 10000 || textCharacters > 60000)
-              throw new Error(
-                "This PDF contains too much text for one receipt. Import fewer pages.",
-              );
-            items.push(item);
-          }
-        }
-      } finally {
-        await reader.cancel().catch(() => {});
-      }
-      const text = formFields
-        ? undefined
-        : pdfTextRows(items, styles, original);
       const blob = await guard(
         new Promise<Blob>((resolve, reject) =>
           canvas!.toBlob(
@@ -205,7 +171,6 @@ export async function preparePdf(
           ),
         ),
       );
-      const output = previewDimensions(canvas.width, canvas.height);
       canvas.width = canvas.height = 0;
       canvas = undefined;
       const image = await guard(
@@ -227,16 +192,7 @@ export async function preparePdf(
         ...image,
         name: `${file.name.slice(0, 140)} · page ${number}`,
         sourceBytes: (number === 1 ? file.size : 0) + image.blob.size,
-        document: {
-          kind: "pdf",
-          id,
-          page: number,
-          pages: document.numPages,
-          original: file,
-          ...(text
-            ? { text: { ...text, width: output.width, height: output.height } }
-            : {}),
-        },
+        document: { page: number },
       });
       page.cleanup();
     }

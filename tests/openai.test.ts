@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractWithOpenAi, openaiConfiguration } from "../src/lib/openai";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
+import type { ReceiptImage } from "../src/lib/images";
 
 const panels = [
   { photo: 1, part: 1, data: "offline_jpeg_1" },
@@ -8,6 +9,12 @@ const panels = [
 ];
 vi.mock("../src/lib/panel-transport", () => ({
   panelsForImages: vi.fn(async () => panels),
+}));
+const images: ReceiptImage[] = panels.map(({ photo }) => ({
+  id: String(photo),
+  name: "Synthetic photo",
+  url: "",
+  blob: new Blob(),
 }));
 afterEach(() => vi.unstubAllGlobals());
 describe("OpenAI client contract with fake transport", () => {
@@ -39,7 +46,7 @@ describe("OpenAI client contract with fake transport", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     const receipt = await extractWithOpenAi(
-      [],
+      images,
       new AbortController().signal,
       () => {},
       { currency: "GBP" },
@@ -80,7 +87,7 @@ describe("OpenAI client contract with fake transport", () => {
         ),
     );
     expect(
-      (await extractWithOpenAi([], new AbortController().signal, () => {}))
+      (await extractWithOpenAi(images, new AbortController().signal, () => {}))
         .currencyUnresolved,
     ).toBe(true);
   });

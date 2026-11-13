@@ -155,19 +155,12 @@ export function focusValidationIssue(
   document
     .querySelectorAll(".validation-target")
     .forEach((element) => element.classList.remove("validation-target"));
-  const frame =
-    control.closest(".field, .verification-check, .assignment-controls") ||
-    control;
+  const frame = control.closest(".field, .assignment-controls") || control;
   frame.classList.add("validation-target");
   control.focus({ preventScroll: true });
-  control.scrollIntoView({
-    block: "center",
-    behavior: document.defaultView?.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches
-      ? "auto"
-      : "smooth",
-  });
+  // Scroll in the same gesture. WebKit can cancel a smooth scroll as the
+  // newly opened editor and the focused input change the viewport.
+  control.scrollIntoView({ block: "center", behavior: "instant" });
   setTimeout(() => frame.classList.remove("validation-target"), 2500);
   return true;
 }

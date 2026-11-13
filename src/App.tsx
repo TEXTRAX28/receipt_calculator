@@ -44,7 +44,6 @@ import {
 } from "lucide-react";
 import {
   currencies,
-  emptyAssignment,
   finalStamp,
   newItem,
   newState,
@@ -65,36 +64,14 @@ import {
 } from "./lib/engine";
 import { formatReceiptMoney, weight, SCALE } from "./lib/money";
 import { costcoDemo } from "./lib/demo";
-import { parseReceiptText, parseReceiptWithSources } from "./lib/parser";
+import { parseReceiptText } from "./lib/parser";
 import { readingBlobs, type ReceiptImage } from "./lib/images";
 import { prepareReceiptFile } from "./lib/receipt-files";
-import { canReadPdfText, readPdfText } from "./lib/pdf-text";
-import { localOcrProvider, type ExtractionProvider } from "./lib/ocr";
-import { deviceOcrProvider } from "./lib/device-reader";
-import {
-  assistedLabels,
-  chooseAssistedReader,
-  isDeviceReader,
-  type AssistedReader,
-} from "./lib/scanner-policy";
-import { extractWithGemini, geminiConfiguration } from "./lib/gemini";
 import { extractWithOpenAi, openaiConfiguration } from "./lib/openai";
-import {
-  extractWithLocalModel,
-  localReaderConfiguration,
-} from "./lib/local-model";
-import { extractWithLocalVision } from "./lib/local-vision";
-import { receiptFromVeryfiText, veryfiOcrProvider } from "./lib/veryfi";
-import { receiptFromAzureWords, azureOcrProvider } from "./lib/azure";
-import { extractComparedReceipt } from "./lib/compared-reader";
-import type { LocalCheckMode } from "./lib/local-check-policy";
 import {
   applyItemEdit,
   applyReceiptEdit,
   checkIsPending,
-  receiptFieldStamp,
-  reviewFieldLabels,
-  reviewKey,
 } from "./lib/review-checks";
 import {
   MAX_RECEIPT_IMAGES,
@@ -104,29 +81,17 @@ import {
 import { loadDraft, saveDraft, STORAGE_KEY } from "./lib/storage";
 import { readableSummary } from "./lib/summary";
 import ImageCropper from "./ImageCropper";
-import ReceiptSource from "./ReceiptSource";
 import ReviewChecks from "./ReviewChecks";
 import ReceiptSnapshot from "./ReceiptSnapshot";
 import {
   reconcileObservedUnits,
   prepareSavedReceiptReview,
 } from "./lib/receipt-reconciliation";
-import { rereadUncertainNames } from "./lib/name-reread";
 import PhotoGuidance from "./PhotoGuidance";
 import ReceiptPhotos from "./ReceiptPhotos";
 import ReceiptCamera from "./ReceiptCamera";
 import { requireCorrectedPhotoReview } from "./lib/capture-review";
-import {
-  recoverDeviceFinancialSummary,
-  reviewDeviceReading,
-} from "./lib/device-review";
 import RefundControl from "./RefundControl";
-import {
-  collectReceiptEvidence,
-  type ItemEvidence,
-  type ReceiptEvidence,
-} from "./lib/receipt-evidence";
-
 type Step = AppState["step"];
 const steps: { id: Step; title: string }[] = [
   { id: "scan", title: "Receipt" },
@@ -302,7 +267,6 @@ function SectionIntro({
 }
 
 export default function App() {
-  const openAiOnly = import.meta.env.MODE !== "local-only";
   const initial = useMemo(() => {
     try {
       const draft = loadDraft(localStorage);
@@ -326,90 +290,21 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const busyRef = useRef(false);
   const [scanStatus, setScanStatus] = useState("");
-  const [selectedReader, setReader] = useState<
-    | "local"
-    | "enhanced"
-    | "computer"
-    | "vision"
-    | "gemini"
-    | "openai"
-    | "veryfi"
-    | "azure"
-    | "pdf"
-  >("enhanced");
-  const reader = openAiOnly ? "openai" : selectedReader;
-  const pdfTextAvailable = !openAiOnly && canReadPdfText(images);
-  const [localCheckMode, setLocalCheckMode] = useState<LocalCheckMode>("off");
-  const [preferredHelper, setPreferredHelper] = useState<AssistedReader>();
   const [scanCurrency, setScanCurrency] = useState<Receipt["currency"] | "">(
     "",
   );
   const readingContext = scanCurrency ? { currency: scanCurrency } : undefined;
-  const [computerConfig, setComputerConfig] = useState<{
-    configured: boolean;
-    name: string;
-  } | null>(null);
-  const [deviceEngine, setDeviceEngine] = useState<"device" | "enhanced">(
-    "enhanced",
-  );
-  const areaReader =
-    reader === "enhanced"
-      ? deviceEngine
-      : reader === "local"
-        ? "device"
-        : computerConfig?.configured
-          ? "computer"
-          : "device";
   const [aiConsented, setAiConsented] = useState(false);
-  const [azureConfig, setAzureConfig] = useState<{
-    configured: boolean;
-    remaining: number;
-    maxPanels: 24;
-  } | null>(null);
-  const [veryfiConfig, setVeryfiConfig] = useState<{
-    configured: boolean;
-    remaining: number;
-    maxPanels: 15;
-  } | null>(null);
-  const [visionConfig, setVisionConfig] = useState<{
-    configured: boolean;
-    name: string;
-    maxPanels: number;
-    maxReceiptPanels?: number;
-    supportsBatches?: boolean;
-  } | null>(null);
-  const [aiConfig, setAiConfig] = useState<{
-    configured: boolean;
-    model: string;
-    remaining?: number;
-    availability?: string;
-  } | null>(null);
   const [checkingAi, setCheckingAi] = useState(false);
   const [openaiConfig, setOpenaiConfig] = useState<Awaited<
     ReturnType<typeof openaiConfiguration>
   > | null>(null);
-  const assistedReader = chooseAssistedReader(
-    {
-      computer: computerConfig,
-      gemini: aiConfig,
-      azure: azureConfig,
-      veryfi: veryfiConfig,
-      vision: visionConfig,
-      openai: openaiConfig,
-    },
-    preferredHelper,
-  );
-  const privateReader = isDeviceReader(reader);
+  const canScan = aiConsented && openaiConfig?.configured && !checkingAi;
   const controller = useRef<AbortController | null>(null);
   const [rawText, setRawText] = useState("");
   const [privacy, setPrivacy] = useState(false);
   const [zoomImage, setZoomImage] = useState<ReceiptImage | null>(null);
   const [cropTarget, setCropTarget] = useState<ReceiptImage | null>(null);
-  const [scanEvidence, setScanEvidence] = useState<ReceiptEvidence | null>(
-    null,
-  );
-  const [sourceItemId, setSourceItemId] = useState<string | null>(null);
-  const [sourceCheckKey, setSourceCheckKey] = useState<string | null>(null);
   const [personName, setPersonName] = useState("");
   const [validation, setValidation] = useState<
     (ValidationIssue & { step: Step }) | null
@@ -489,72 +384,7 @@ export default function App() {
     state.finalizedStamp !== "" &&
     state.finalizedStamp === finalStamp(state) &&
     result.canFinalize;
-  const sourceItemIndex = state.receipt.items.findIndex(
-    (item) => item.id === sourceItemId,
-  );
-  const sourceItem = state.receipt.items[sourceItemIndex];
-  const selectedSource =
-    scanEvidence?.receiptId === state.receipt.id && sourceItemId
-      ? scanEvidence.items[sourceItemId]
-      : undefined;
-  const sourceFieldCheck = state.receipt.reviewChecks.find(
-    (check) => check.scope === "receipt" && reviewKey(check) === sourceCheckKey,
-  );
-  const selectedFieldSource =
-    scanEvidence?.receiptId === state.receipt.id &&
-    sourceFieldCheck?.scope === "receipt"
-      ? scanEvidence.fields?.[sourceFieldCheck.field]
-      : undefined;
-  const sourceOpen = Boolean(
-    (sourceItem && selectedSource) || selectedFieldSource,
-  );
-  const sourceError = (field: string) =>
-    receiptResult.issues.find(
-      (issue) => issue.path === `items.${sourceItemIndex}.${field}`,
-    )?.message;
-  useEffect(() => {
-    // Editing, replacing or removing an input invalidates its old coordinate map.
-    setAiConsented(false);
-    setScanEvidence(null);
-    setSourceItemId(null);
-    setSourceCheckKey(null);
-  }, [images]);
-  useEffect(() => {
-    if (openAiOnly) return;
-    const check = new AbortController();
-    localReaderConfiguration(
-      AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
-    )
-      .then((config) => {
-        if (check.signal.aborted) return;
-        setComputerConfig(config.localModel);
-        setVisionConfig(config.localVision || null);
-        setVeryfiConfig(config.veryfi || null);
-        setAzureConfig(config.azure || null);
-        setPreferredHelper(config.assistedReader);
-        setLocalCheckMode(config.localCheckMode || "off");
-      })
-      .catch(() => {});
-    return () => check.abort();
-  }, [openAiOnly]);
-  useEffect(() => {
-    if (openAiOnly) return;
-    const check = new AbortController();
-    setCheckingAi(true);
-    geminiConfiguration(
-      AbortSignal.any([check.signal, AbortSignal.timeout(5000)]),
-    )
-      .then((config) => {
-        if (!check.signal.aborted) setAiConfig(config);
-      })
-      .catch(() => {
-        if (!check.signal.aborted) setAiConfig(null);
-      })
-      .finally(() => {
-        if (!check.signal.aborted) setCheckingAi(false);
-      });
-    return () => check.abort();
-  }, [openAiOnly]);
+  useEffect(() => setAiConsented(false), [images]);
   useEffect(() => {
     const check = new AbortController();
     setCheckingAi(true);
@@ -575,10 +405,6 @@ export default function App() {
   useEffect(() => {
     imageRef.current = images;
   }, [images]);
-  useEffect(() => {
-    if (isDeviceReader(reader))
-      setReader(pdfTextAvailable ? "pdf" : "enhanced");
-  }, [reader, pdfTextAvailable]);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -613,10 +439,9 @@ export default function App() {
     }
   }, [state]);
   useEffect(() => {
-    if (privacy || zoomImage || cropTarget || sourceOpen)
-      dialogRef.current?.showModal();
+    if (privacy || zoomImage || cropTarget) dialogRef.current?.showModal();
     else dialogRef.current?.close();
-  }, [privacy, zoomImage, cropTarget, sourceOpen]);
+  }, [privacy, zoomImage, cropTarget]);
   useEffect(() => {
     if (validation?.step === state.step) return;
     document.getElementById("screen-title")?.focus({ preventScroll: true });
@@ -639,13 +464,7 @@ export default function App() {
       receipt: reconcileObservedUnits(applyItemEdit(s.receipt, id, change)),
       finalizedStamp: "",
     }));
-  const replaceReceipt = (
-    receipt: Receipt,
-    evidence: ReceiptEvidence | null = null,
-  ) => {
-    setScanEvidence(evidence);
-    setSourceItemId(null);
-    setSourceCheckKey(null);
+  const replaceReceipt = (receipt: Receipt) => {
     setState((s) => ({
       ...newState(),
       people: s.people,
@@ -682,9 +501,6 @@ export default function App() {
     images.forEach((i) => URL.revokeObjectURL(i.url));
     setImages([]);
     setScanCurrency("");
-    setScanEvidence(null);
-    setSourceItemId(null);
-    setSourceCheckKey(null);
     setRawText("");
     setImageError("");
     setAiConsented(false);
@@ -753,10 +569,6 @@ export default function App() {
             "The prepared receipt exceeds 48 MB. Import fewer pages or smaller images.",
           );
       }
-      if (isDeviceReader(reader))
-        setReader(
-          canReadPdfText([...images, ...prepared]) ? "pdf" : "enhanced",
-        );
       setImages((previous) => [...previous, ...prepared]);
       setAiConsented(false);
     } catch (e) {
@@ -783,339 +595,41 @@ export default function App() {
     setAiConsented(false);
   }
   async function scan() {
-    if (busyRef.current || !images.length || !canReplace()) return;
-    if (reader === "gemini" && (!aiConsented || !aiConfig?.configured)) return;
-    if (
-      reader === "openai" &&
-      (!aiConsented || !openaiConfig?.configured || checkingAi)
-    )
-      return;
-    if (reader === "veryfi" && (!aiConsented || !veryfiConfig?.configured))
-      return;
-    if (reader === "azure" && (!aiConsented || !azureConfig?.configured))
-      return;
-    if (reader === "computer" && !computerConfig?.configured) return;
-    if (reader === "vision" && !visionConfig?.configured) return;
+    if (busyRef.current || !images.length || !canScan || !canReplace()) return;
     busyRef.current = true;
     setBusy(true);
+    setAiConsented(false);
     setImageError("");
-    controller.current = new AbortController();
+    const scanController = new AbortController();
+    controller.current = scanController;
     try {
-      if (reader === "pdf") {
-        const output = readPdfText(images, readingContext);
-        const evidence = collectReceiptEvidence(
-          output.receipt,
-          output.text,
-          output.sources,
-          output.sourceLines,
-          output.recognition,
-          images,
-        );
-        setRawText(output.text);
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            output.receipt,
-            images.some((image) => !!image.geometry),
-          ),
-          evidence,
-        );
-        setNotice(
-          "PDF text read on this device. Check every purchase against the page previews; scanned content may be missing from a text layer.",
-        );
-        return;
-      }
-      if (
-        (reader === "computer" &&
-          localCheckMode !== "off" &&
-          visionConfig?.configured) ||
-        (reader === "vision" &&
-          visionConfig?.supportsBatches &&
-          images.reduce(
-            (count, image) => count + readingBlobs(image).length,
-            0,
-          ) > (visionConfig.maxPanels || 3))
-      ) {
-        if (!computerConfig?.configured)
-          throw new Error(
-            "Long local vision receipts also need the computer OCR reader configured. Your photos are still available.",
-          );
-        const compared = await extractComparedReceipt(
-          images,
-          controller.current.signal,
-          setScanStatus,
-          readingContext,
-          reader === "computer" && localCheckMode === "auto"
-            ? "auto"
-            : "always",
-        );
-        const evidence = collectReceiptEvidence(
-          compared.receipt,
-          compared.text,
-          compared.sources,
-          compared.sourceLines,
-          compared.recognition,
-          images,
-          compared.fieldSources,
-        );
-        setRawText(compared.text);
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            compared.receipt,
-            images.some((image) => !!image.geometry),
-          ),
-          evidence,
-        );
-        setNotice(
-          compared.comparisonComplete
-            ? "Both local readings finished. Check the marked values and every purchase against your photos before confirming."
-            : compared.comparisonAttempted
-              ? "The computer reader finished, but the extra comparison could not. Check the whole draft against your photos."
-              : "The computer reader finished. Check every purchase against your photos before confirming.",
-        );
-        return;
-      }
-      if (reader === "vision") {
-        const parsed = await extractWithLocalVision(
-          images,
-          controller.current.signal,
-          setScanStatus,
-          readingContext,
-        );
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            parsed,
-            images.some((image) => !!image.geometry),
-          ),
-        );
-        setNotice(
-          "Local vision finished. This reader is experimental: check every purchase, discount, tax setting and amount against your photos before confirming.",
-        );
-        return;
-      }
-      if (reader === "azure") {
-        const output = await azureOcrProvider.extract(
-          images,
-          controller.current.signal,
-          setScanStatus,
-        );
-        const parsed = receiptFromAzureWords(
-          output.recognition,
-          readingContext,
-          output.quantityHints,
-        );
-        const evidence = collectReceiptEvidence(
-          parsed.receipt,
-          parsed.text,
-          parsed.sources,
-          parsed.sourceLines,
-          output.recognition,
-          images,
-        );
-        setRawText(parsed.text);
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            parsed.receipt,
-            images.some((image) => !!image.geometry),
-          ),
-          evidence,
-        );
-        setNotice(
-          output.cleanup === "provider-reported-success"
-            ? "Azure finished and reported deletion of its results. Check every purchase and amount against the photos; a deletion response is not an independent erasure audit."
-            : "Azure finished, but deletion of uploaded sections could not be confirmed. Check every purchase and amount against the photos.",
-        );
-        return;
-      }
-      if (reader === "veryfi") {
-        const output = await veryfiOcrProvider.extract(
-          images,
-          controller.current.signal,
-          setScanStatus,
-        );
-        const parsed = receiptFromVeryfiText(output.text, readingContext);
-        setRawText(output.text);
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            parsed,
-            images.some((image) => !!image.geometry),
-          ),
-        );
-        setNotice(
-          output.cleanup === "provider-reported-success"
-            ? "Veryfi finished and reported deletion of its new receipt record. Check the draft against every photo. Deletion does not guarantee zero retention or exclude model improvement."
-            : "Veryfi finished, but deletion of its new receipt record could not be confirmed. Check the draft against every photo.",
-        );
-        return;
-      }
-      if (reader === "openai") {
-        const parsed = await extractWithOpenAi(
-          images,
-          controller.current.signal,
-          setScanStatus,
-          readingContext,
-        );
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            parsed,
-            images.some((image) => !!image.geometry),
-          ),
-        );
-        setNotice("Receipt ready to review.");
-        return;
-      }
-      if (reader === "gemini") {
-        const parsed = await extractWithGemini(
-          images,
-          controller.current.signal,
-          setScanStatus,
-          readingContext,
-        );
-        replaceReceipt(
-          requireCorrectedPhotoReview(
-            parsed,
-            images.some((image) => !!image.geometry),
-          ),
-        );
-        setAiConsented(false);
-        setNotice(
-          "Gemini finished. Check the combined receipt against every photo before confirming.",
-        );
-        return;
-      }
-      const computerOutput =
-        reader === "computer"
-          ? await extractWithLocalModel(
-              images,
-              controller.current.signal,
-              setScanStatus,
-            )
-          : null;
-      const output: Awaited<ReturnType<ExtractionProvider["extract"]>> =
-        computerOutput ??
-        (await (
-          reader === "enhanced" ? deviceOcrProvider : localOcrProvider
-        ).extract(images, controller.current.signal, setScanStatus));
-      if (reader === "enhanced")
-        setDeviceEngine(
-          output.recognition?.engine.startsWith("paddle-")
-            ? "enhanced"
-            : "device",
-        );
-      setRawText(output.text);
-      let nativeParsed = parseReceiptWithSources(output, readingContext);
-      if (reader === "enhanced")
-        nativeParsed = await rereadUncertainNames(
-          nativeParsed,
-          output,
-          images,
-          controller.current.signal,
-          setScanStatus,
-        );
-      const {
-        receipt: parsed,
-        sources,
-        fieldSources,
-      } = computerOutput
-        ? nativeParsed
-        : recoverDeviceFinancialSummary(
-            nativeParsed,
-            output.sourceLines || [],
-            output.recognition,
-            output.sourceConflicts,
-          );
-      const evidence =
-        output.recognition && output.sourceLines
-          ? collectReceiptEvidence(
-              parsed,
-              output.text,
-              sources,
-              output.sourceLines,
-              output.recognition,
-              images,
-              fieldSources,
-              output.sourceAlternatives,
-            )
-          : null;
-      parsed.warnings = [...parsed.warnings, ...(output.warnings || [])].slice(
-        0,
-        60,
+      const receipt = await extractWithOpenAi(
+        images,
+        scanController.signal,
+        setScanStatus,
+        readingContext,
       );
-      if (
-        computerOutput &&
-        Object.keys(evidence?.items || {}).length < parsed.items.length
-      )
-        parsed.warnings = [
-          ...parsed.warnings,
-          "Some source areas could not be matched. Check those purchases against the full receipt photos.",
-        ].slice(0, 60);
-      parsed.source = "ocr";
-      if (
-        reader === "enhanced" &&
-        !parsed.reviewChecks.some(
-          (check) => check.scope === "receipt" && check.field === "items",
-        )
-      )
-        parsed.reviewChecks.push({
-          scope: "receipt",
-          field: "items",
-          reason: "source",
-          other:
-            "Check the complete purchase list, quantities, amounts and overlapping rows against every photo before confirming.",
-          confirmedValue: "",
-        });
       replaceReceipt(
         requireCorrectedPhotoReview(
-          computerOutput
-            ? parsed
-            : reviewDeviceReading(
-                parsed,
-                sources,
-                output.sourceLines || [],
-                output.recognition,
-                fieldSources,
-                output.sourceConflicts,
-                output.joinedSectionRows,
-              ),
+          receipt,
           images.some((image) => !!image.geometry),
         ),
-        evidence,
       );
       setNotice("Receipt ready to review.");
-    } catch (e) {
+    } catch (error) {
       setImageError(
-        e instanceof Error
-          ? e.message
-          : "OCR could not start or finish. Try another image or use manual entry.",
+        error instanceof Error
+          ? error.message
+          : "The scan could not finish. Your photos are still available. You can enter the receipt manually.",
       );
     } finally {
-      if (reader === "openai") {
-        setAiConsented(false);
-        await openaiConfiguration(AbortSignal.timeout(5000))
-          .then(setOpenaiConfig)
-          .catch(() => setOpenaiConfig(null));
-      }
-      if (reader === "gemini") {
-        setAiConsented(false);
-        await geminiConfiguration(AbortSignal.timeout(5000))
-          .then(setAiConfig)
-          .catch(() => setAiConfig(null));
-      }
-      if (reader === "veryfi" || reader === "azure") {
-        setAiConsented(false);
-        await localReaderConfiguration(AbortSignal.timeout(5000))
-          .then((config) => {
-            setVeryfiConfig(config.veryfi || null);
-            setAzureConfig(config.azure || null);
-          })
-          .catch(() => {
-            setVeryfiConfig(null);
-            setAzureConfig(null);
-          });
-      }
+      controller.current = null;
+      await openaiConfiguration(AbortSignal.timeout(5000))
+        .then(setOpenaiConfig)
+        .catch(() => setOpenaiConfig(null));
       busyRef.current = false;
       setBusy(false);
       setScanStatus("");
-      controller.current = null;
     }
   }
   function parseText() {
@@ -1257,9 +771,9 @@ export default function App() {
       <div className="small-note">
         <ShieldCheck size={18} />
         <p>
-          Original photos are kept in memory. Cloud readers send receipt
-          sections to the selected provider only with your agreement. The
-          editable draft is saved in this browser.
+          Original photos are kept in memory. OpenAI scans send receipt sections
+          to the selected provider only with your agreement. The editable draft
+          is saved in this browser.
         </p>
       </div>
       {images.length > 0 ? (
@@ -1483,11 +997,6 @@ export default function App() {
                           {image.panels
                             ? ` · ${image.panels.length} sections`
                             : ""}
-                          {image.document
-                            ? image.document.text && !image.crop
-                              ? " · text available"
-                              : " · image reader"
-                            : ""}
                         </span>
                         <div className="image-order">
                           <button
@@ -1568,321 +1077,62 @@ export default function App() {
                   </p>
                 )}
                 <fieldset className="reader-choice" disabled={busy}>
-                  <legend>
-                    {openAiOnly ? "OpenAI scan" : "How should we read it?"}
-                  </legend>
-                  {!openAiOnly && (
-                    <div className="reader-buttons">
-                      <button
-                        type="button"
-                        className={`button ${privateReader ? "button-primary" : "button-outline"}`}
-                        aria-pressed={privateReader}
-                        onClick={() => {
-                          setReader(pdfTextAvailable ? "pdf" : "enhanced");
-                          setAiConsented(false);
-                        }}
+                  <legend>OpenAI scan</legend>
+                  <div className="ai-reader-info">
+                    <p>
+                      Gather sends the selected receipt photos and rendered PDF
+                      pages to OpenAI to prepare an editable receipt.
+                    </p>
+                    <p className="hint" role="status">
+                      {checkingAi
+                        ? "Checking the app's OpenAI allowance…"
+                        : openaiConfig?.configured
+                          ? `App allowance: ${openaiConfig.remaining} scan ${openaiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. Failed or cancelled attempts can still use credits.`
+                          : openaiConfig?.availability === "missing-key"
+                            ? "Add a server-side OpenAI API key and restart Gather."
+                            : openaiConfig?.availability === "missing-allowance"
+                              ? "Set the app’s OpenAI scan allowance and restart Gather."
+                              : openaiConfig?.availability === "exhausted"
+                                ? "The app’s OpenAI scan allowance is used up."
+                                : "OpenAI scanning is unavailable. Check the local server and its allowance storage."}
+                    </p>
+                    <p className="hint">
+                      The app accepts scans estimated at US$0.60 or less. OpenAI
+                      bills actual usage.
+                    </p>
+                    <p className="hint">
+                      Crop out membership and payment details. OpenAI API
+                      content is excluded from training by default, but safety
+                      logs and caching can retain content and processing may
+                      occur outside your country. Gather does not save these
+                      photos or model requests.{" "}
+                      <a
+                        href="https://developers.openai.com/api/docs/guides/your-data"
+                        target="_blank"
+                        rel="noreferrer"
                       >
-                        <ShieldCheck size={17} /> On-device scan
-                      </button>
-                      {(assistedReader || !privateReader) && (
-                        <button
-                          type="button"
-                          className={`button ${!privateReader ? "button-primary" : "button-outline"}`}
-                          aria-pressed={!privateReader}
-                          onClick={() => {
-                            if (privateReader && assistedReader) {
-                              setReader(assistedReader);
-                              setAiConsented(false);
-                            }
-                          }}
-                        >
-                          <Sparkles size={17} /> Assisted scan ·{" "}
-                          {
-                            assistedLabels[
-                              (!privateReader
-                                ? reader
-                                : assistedReader) as keyof typeof assistedLabels
-                            ]
-                          }
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {reader === "local" ? (
-                    <p className="hint">
-                      Free, private English OCR. Photos stay on your device.
-                      Overlapping photos may need duplicate rows removed during
-                      review.
+                        OpenAI’s data-use information
+                      </a>
                     </p>
-                  ) : reader === "enhanced" ? (
-                    <p className="hint">
-                      Recommended. Free receipt scanning; photos stay on your
-                      device. First use loads about 50 MB of reader files. A
-                      compatibility reader is used if those files or browser
-                      features are unavailable. Check quantities, amounts and
-                      repeated rows before splitting.
-                    </p>
-                  ) : reader === "computer" ? (
-                    <div>
-                      <p className="hint">
-                        Receipt photos are processed on this computer. The first
-                        scan takes longer while the reader starts. Check
-                        quantities, amounts and overlapping rows against the
-                        originals.
-                      </p>
-                    </div>
-                  ) : reader === "pdf" ? (
-                    <p className="hint">
-                      Reads selectable text from every PDF page on this device.
-                      Check the previews for purchases stored as images or
-                      missing text. If a page is incomplete, upload its photo to
-                      scan the image instead.
-                    </p>
-                  ) : reader === "vision" ? (
-                    <p className="hint">
-                      Experimental vision reader on this computer. Longer
-                      receipts also use the computer OCR reader and are read in
-                      sections, which can take several minutes. Check every
-                      amount and overlapping row.
-                    </p>
-                  ) : reader === "azure" ? (
-                    <div className="ai-reader-info">
-                      <p>
-                        Reads receipt words and their positions to prepare a
-                        draft with source highlights. Check every purchase,
-                        quantity, discount and tax setting before splitting.
-                      </p>
-                      <p className="hint" role="status">
-                        {azureConfig?.configured
-                          ? `App allowance: ${azureConfig.remaining} receipt ${azureConfig.remaining === 1 ? "section" : "sections"} remaining. A long photo can use several sections; a failed scan can still use the allowance.`
-                          : "The app's Azure allowance is unavailable or used up. Choose another reader."}
-                      </p>
-                      <p className="hint">
-                        Crop out membership and payment details. Azure processes
-                        these images in the app owner's configured resource
-                        region. Microsoft describes temporary storage for 24
-                        hours; we request earlier deletion after reading each
-                        section. A deletion response is not an independent
-                        erasure audit. No account-specific training-use
-                        commitment has been verified.{" "}
-                        <a
-                          href="https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/document-intelligence/data-privacy-security"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Microsoft’s data-use information
-                        </a>
-                      </p>
-                      <label className="check-line">
-                        <input
-                          type="checkbox"
-                          checked={aiConsented}
-                          disabled={!azureConfig?.configured}
-                          onChange={(event) =>
-                            setAiConsented(event.target.checked)
-                          }
-                        />
-                        Send these receipt sections to Azure for this scan. I
-                        have read the data-use notice above.
-                      </label>
-                    </div>
-                  ) : reader === "veryfi" ? (
-                    <div className="ai-reader-info">
-                      <p>
-                        Reads these sections as one receipt and prepares a text
-                        draft. Check the purchases, prices, discounts and tax
-                        settings against every original before splitting.
-                      </p>
-                      <p className="hint" role="status">
-                        {veryfiConfig?.configured
-                          ? `App allowance: ${veryfiConfig.remaining} scan ${veryfiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. A failed scan can still use an attempt.`
-                          : "The app's Veryfi allowance is unavailable or used up. Choose another reader."}
-                      </p>
-                      <p className="hint">
-                        Up to 15 receipt sections per scan; a long photo can use
-                        several sections. Crop out membership and payment
-                        details. Veryfi normally processes and stores data in
-                        the US and may use submitted data to improve its
-                        proprietary models. After reading, we request deletion
-                        of the new record; this does not guarantee zero
-                        retention or exclude model improvement.{" "}
-                        <a
-                          href="https://www.veryfi.com/privacy/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Veryfi’s privacy policy
-                        </a>
-                      </p>
-                      <label className="check-line">
-                        <input
-                          type="checkbox"
-                          checked={aiConsented}
-                          disabled={!veryfiConfig?.configured}
-                          onChange={(event) =>
-                            setAiConsented(event.target.checked)
-                          }
-                        />
-                        Send these receipt sections to Veryfi for this scan. I
-                        have read the data-use notice above.
-                      </label>
-                    </div>
-                  ) : reader === "openai" ? (
-                    <div className="ai-reader-info">
-                      <p>
-                        {openAiOnly
-                          ? "OpenAI reads the selected photos and PDF pages together. You can edit the receipt before splitting it."
-                          : "This assisted scan uses OpenAI API credits and prepares a receipt for your review."}
-                      </p>
-                      <p className="hint" role="status">
-                        {checkingAi
-                          ? "Checking the app's OpenAI allowance…"
-                          : openaiConfig?.configured
-                            ? `App allowance: ${openaiConfig.remaining} scan ${openaiConfig.remaining === 1 ? "attempt" : "attempts"} remaining. Failed or cancelled attempts can still use credits.`
-                            : openaiConfig?.availability === "missing-key"
-                              ? "Add a server-side OpenAI API key and restart Gather."
-                              : openaiConfig?.availability ===
-                                  "missing-allowance"
-                                ? "Set the app’s OpenAI scan allowance and restart Gather."
-                                : openaiConfig?.availability === "exhausted"
-                                  ? "The app’s OpenAI scan allowance is used up."
-                                  : "OpenAI scanning is unavailable. Check the local server and its allowance storage."}
-                      </p>
-                      <p className="hint">
-                        The app accepts scans estimated at US$0.60 or less.
-                        OpenAI bills actual usage.
-                      </p>
-                      <p className="hint">
-                        Crop out membership and payment details. OpenAI API
-                        content is excluded from training by default, but safety
-                        logs and caching can retain content and processing may
-                        occur outside your country. Gather does not save these
-                        photos or model requests.{" "}
-                        <a
-                          href="https://developers.openai.com/api/docs/guides/your-data"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          OpenAI’s data-use information
-                        </a>
-                      </p>
-                      <label className="check-line">
-                        <input
-                          type="checkbox"
-                          checked={aiConsented}
-                          disabled={checkingAi || !openaiConfig?.configured}
-                          onChange={(event) =>
-                            setAiConsented(event.target.checked)
-                          }
-                        />
-                        Send these receipt sections to OpenAI and use API
-                        credits for this scan. I have read the notice above.
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="ai-reader-info">
-                      <p>
-                        Reads the sections together as one receipt, including
-                        overlapping rows, coupons and VAT codes. Your review and
-                        the printed-total check still come next.
-                      </p>
-                      <p className="hint" role="status">
-                        {checkingAi
-                          ? "Checking Gemini setup…"
-                          : aiConfig?.configured
-                            ? `Gemini ready · ${aiConfig.model}${aiConfig.remaining === undefined ? "" : ` · ${aiConfig.remaining} scan${aiConfig.remaining === 1 ? "" : "s"} left in this server's allowance`}`
-                            : aiConfig?.availability === "exhausted"
-                              ? "This server's Gemini scan allowance has been used. Choose an on-device reader to continue."
-                              : aiConfig?.availability === "storage-unavailable"
-                                ? "Gemini's scan allowance could not be checked. Your photos are still available; choose an on-device reader."
-                                : "Gemini needs a server API key and a scan allowance before scanning."}
-                      </p>
-                      {!checkingAi && !aiConfig?.configured && (
-                        <details className="ai-setup">
-                          <summary>Connect Gemini on this computer</summary>
-                          <ol>
-                            <li>
-                              Create an API key in{" "}
-                              <a
-                                href="https://aistudio.google.com/apikey"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Google AI Studio
-                              </a>
-                              . The Gemini chat app does not supply an API key
-                              automatically.
-                            </li>
-                            <li>
-                              Create <code>.env.local</code> from{" "}
-                              <code>.env.example</code> if it does not exist.
-                              Otherwise edit the existing file. Put the key
-                              after <code>GEMINI_API_KEY=</code>.
-                            </li>
-                            <li>
-                              After checking unused quota in your API project,
-                              set <code>GEMINI_ALLOWANCE_ID</code> to a new name
-                              of 8–80 letters, numbers, underscores or hyphens
-                              and <code>GEMINI_REQUEST_LIMIT</code> to the
-                              number of scans you allow (1–100). Failed attempts
-                              also count. Keep the same name across restarts.
-                            </li>
-                            <li>
-                              Restart Gather, reload this page and choose Gemini
-                              AI.
-                            </li>
-                          </ol>
-                          <p>
-                            The key stays on the local server. Never paste it in
-                            a group chat. Google's limits and data-use terms
-                            depend on your API project.
-                          </p>
-                        </details>
-                      )}
-                      <p className="hint">
-                        Gemini sends these photos to Google. Crop out membership
-                        and payment details before sending.{" "}
-                        <a
-                          href="https://ai.google.dev/gemini-api/terms"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Google’s data-use terms
-                        </a>
-                      </p>
-                      <label className="check-line">
-                        <input
-                          type="checkbox"
-                          checked={aiConsented}
-                          onChange={(event) =>
-                            setAiConsented(event.target.checked)
-                          }
-                        />
-                        Send these receipt photos to Google Gemini for this scan
-                      </label>
-                    </div>
-                  )}
+                    <label className="check-line">
+                      <input
+                        type="checkbox"
+                        checked={aiConsented}
+                        disabled={checkingAi || !openaiConfig?.configured}
+                        onChange={(event) =>
+                          setAiConsented(event.target.checked)
+                        }
+                      />
+                      Send these receipt sections to OpenAI and use API credits
+                      for this scan. I have read the notice above.
+                    </label>
+                  </div>
                 </fieldset>
                 {(images.length > 0 || importing) && (
                   <div className="scan-controls">
                     <button
                       className="button button-primary full-width"
-                      disabled={
-                        busy ||
-                        (reader === "vision" && !visionConfig?.configured) ||
-                        (reader === "veryfi" &&
-                          (!aiConsented || !veryfiConfig?.configured)) ||
-                        (reader === "azure" &&
-                          (!aiConsented || !azureConfig?.configured)) ||
-                        (reader === "gemini" &&
-                          (!aiConsented ||
-                            !aiConfig?.configured ||
-                            checkingAi)) ||
-                        (reader === "openai" &&
-                          (!aiConsented ||
-                            !openaiConfig?.configured ||
-                            checkingAi))
-                      }
+                      disabled={busy || !canScan}
                       onClick={() => void scan()}
                     >
                       {busy ? (
@@ -1892,21 +1142,7 @@ export default function App() {
                       )}
                       {busy
                         ? scanStatus || "Preparing images…"
-                        : reader === "pdf"
-                          ? "Read PDF text on this device"
-                          : reader === "gemini"
-                            ? "Read receipt with Gemini"
-                            : reader === "openai"
-                              ? "Read receipt with OpenAI credits"
-                              : reader === "veryfi"
-                                ? "Read receipt with Veryfi"
-                                : reader === "azure"
-                                  ? "Read receipt with Azure"
-                                  : reader === "computer"
-                                    ? "Read receipt on this computer"
-                                    : reader === "vision"
-                                      ? "Read receipt with local vision"
-                                      : "Read receipt on this device"}
+                        : "Read receipt with OpenAI credits"}
                       {!busy && <ArrowRight size={17} />}
                     </button>
                     {busy && controller.current && (
@@ -1919,28 +1155,8 @@ export default function App() {
                     )}
                   </div>
                 )}
-                {!openAiOnly && (
-                  <div className="private-line">
-                    <ShieldCheck size={16} />
-                    <span>
-                      {reader === "local" || reader === "enhanced"
-                        ? "On-device OCR keeps your photos on this device."
-                        : reader === "computer" || reader === "vision"
-                          ? "Photos are processed on this computer and temporary files are removed after reading."
-                          : reader === "veryfi"
-                            ? "Veryfi receives receipt sections only when you agree and start a scan."
-                            : reader === "azure"
-                              ? "Azure receives receipt sections only when you agree and start a scan."
-                              : reader === "pdf"
-                                ? "PDF text is read on this device."
-                                : reader === "openai"
-                                  ? "OpenAI receives photos when you agree and start a scan."
-                                  : "Gemini only receives photos when you agree and start a scan."}
-                    </span>
-                  </div>
-                )}
                 <div className="or-divider">
-                  <span>or take the scenic route</span>
+                  <span>or</span>
                 </div>
                 <div className="alternate-actions">
                   <button
@@ -1983,8 +1199,8 @@ export default function App() {
                     <ArrowRight size={16} />
                   </button>
                   <p className="hint">
-                    Text parsing is separate from OCR. Every extracted detail
-                    can be corrected.
+                    Pasted text is processed on this device. You can edit every
+                    field before splitting.
                   </p>
                 </details>
               </section>
@@ -2530,15 +1746,6 @@ export default function App() {
                                 : []
                             }
                             cost={receiptResult.items[index]?.total ?? 0n}
-                            evidence={
-                              scanEvidence?.receiptId === state.receipt.id
-                                ? scanEvidence.items[item.id]
-                                : undefined
-                            }
-                            onViewSource={() => {
-                              setSourceCheckKey(null);
-                              setSourceItemId(item.id);
-                            }}
                             onChange={(change) => editItem(item.id, change)}
                             onDelete={() =>
                               editReceipt({
@@ -2800,9 +2007,9 @@ export default function App() {
                       {(state.receipt.rawText || rawText) && (
                         <details className="panel raw-text">
                           <summary>
-                            Check or correct recognized receipt text
+                            Check or correct imported receipt text
                           </summary>
-                          <Field label="Recognized text">
+                          <Field label="Imported receipt text">
                             <textarea
                               rows={10}
                               maxLength={60000}
@@ -2820,8 +2027,8 @@ export default function App() {
                             Reparse text (replaces current items)
                           </button>
                           <p className="hint">
-                            Raw OCR text is not saved after a refresh. All
-                            extracted fields above remain editable.
+                            Imported text clears when you refresh. The receipt
+                            fields above remain editable.
                           </p>
                         </details>
                       )}
@@ -2830,15 +2037,6 @@ export default function App() {
                         checks={state.receipt.reviewChecks.filter(
                           (check) => check.scope === "receipt",
                         )}
-                        canViewSource={(check) =>
-                          check.scope === "receipt" &&
-                          scanEvidence?.receiptId === state.receipt.id &&
-                          Boolean(scanEvidence.fields?.[check.field])
-                        }
-                        onViewSource={(check) => {
-                          setSourceItemId(null);
-                          setSourceCheckKey(reviewKey(check));
-                        }}
                       />
                       <h3>Calculation details</h3>
                       <SummaryRows
@@ -3374,7 +2572,6 @@ export default function App() {
             Made for the things we share.
           </span>
           <span>
-            {!openAiOnly && "Private by design · "}
             {saveError ? "Draft not saved" : "Draft saved on this device"}
           </span>
           <button className="text-button" disabled={busy} onClick={reset}>
@@ -3386,16 +2583,12 @@ export default function App() {
       <dialog
         ref={dialogRef}
         onCancel={() => {
-          setSourceItemId(null);
-          setSourceCheckKey(null);
           setCropTarget(null);
           setPrivacy(false);
           setZoomImage(null);
         }}
         onClick={(e) => {
           if (e.target === dialogRef.current) {
-            setSourceItemId(null);
-            setSourceCheckKey(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -3404,23 +2597,17 @@ export default function App() {
         aria-label={
           cropTarget
             ? "Crop receipt image"
-            : selectedFieldSource && sourceFieldCheck?.scope === "receipt"
-              ? `Receipt source for ${reviewFieldLabels[sourceFieldCheck.field]}`
-              : sourceOpen
-                ? `Receipt source for purchase ${sourceItemIndex + 1}`
-                : zoomImage
-                  ? zoomImage.geometry
-                    ? "Original and corrected receipt"
-                    : "Original receipt image"
-                  : "Your privacy at Gather"
+            : zoomImage
+              ? zoomImage.geometry
+                ? "Original and corrected receipt"
+                : "Original receipt image"
+              : "Your privacy at Gather"
         }
       >
         <button
           className="icon-button dialog-close"
           aria-label="Close dialog"
           onClick={() => {
-            setSourceItemId(null);
-            setSourceCheckKey(null);
             setCropTarget(null);
             setPrivacy(false);
             setZoomImage(null);
@@ -3454,127 +2641,6 @@ export default function App() {
               setCropTarget(null);
             }}
           />
-        ) : sourceItem && selectedSource ? (
-          <ReceiptSource
-            key={sourceItem.id}
-            item={sourceItem}
-            index={sourceItemIndex}
-            evidence={selectedSource}
-            localReader={areaReader}
-          >
-            <div className="source-edit-fields">
-              <Field
-                label={`Item ${sourceItemIndex + 1} description`}
-                error={sourceError("description")}
-              >
-                <input
-                  value={sourceItem.description}
-                  maxLength={180}
-                  onChange={(e) =>
-                    editItem(sourceItem.id, { description: e.target.value })
-                  }
-                />
-              </Field>
-              <div className="form-grid">
-                <MoneyInput
-                  label={`Item ${sourceItemIndex + 1} purchased quantity`}
-                  value={sourceItem.quantity}
-                  error={sourceError("quantity")}
-                  onChange={(quantity) => editItem(sourceItem.id, { quantity })}
-                />
-                <MoneyInput
-                  label={`Item ${sourceItemIndex + 1} unit price (optional)`}
-                  value={sourceItem.unitPrice}
-                  error={sourceError("unitPrice")}
-                  onChange={(unitPrice) =>
-                    editItem(sourceItem.id, { unitPrice })
-                  }
-                />
-                <MoneyInput
-                  label={`Item ${sourceItemIndex + 1} line price`}
-                  value={sourceItem.lineTotal}
-                  error={sourceError("lineTotal")}
-                  onChange={(lineTotal) =>
-                    editItem(sourceItem.id, { lineTotal })
-                  }
-                />
-                <MoneyInput
-                  label={`Item ${sourceItemIndex + 1} discount`}
-                  value={sourceItem.discount}
-                  error={sourceError("discount")}
-                  onChange={(discount) => editItem(sourceItem.id, { discount })}
-                />
-                {!state.receipt.pricesIncludeTax &&
-                state.receipt.taxMode === "codes" ? (
-                  <Field
-                    label={`Item ${sourceItemIndex + 1} tax code`}
-                    error={sourceError("taxCode")}
-                  >
-                    <input
-                      maxLength={12}
-                      value={sourceItem.taxCode}
-                      onChange={(e) =>
-                        editItem(sourceItem.id, {
-                          taxCode: e.target.value.toUpperCase(),
-                        })
-                      }
-                    />
-                  </Field>
-                ) : null}
-              </div>
-              <ReviewChecks
-                receipt={state.receipt}
-                open
-                checks={state.receipt.reviewChecks.filter(
-                  (check) =>
-                    check.scope === "item" && check.itemId === sourceItem.id,
-                )}
-              />
-              <p className="hint">
-                Changes recalculate your receipt. Confirm the whole receipt
-                after checking every purchase.
-              </p>
-              <RefundControl
-                item={sourceItem}
-                index={sourceItemIndex}
-                receipt={state.receipt}
-                onChange={(patch) => editItem(sourceItem.id, patch)}
-              />
-              <button
-                className="button button-primary full-width"
-                onClick={() => setSourceItemId(null)}
-              >
-                Back to receipt
-              </button>
-            </div>
-          </ReceiptSource>
-        ) : selectedFieldSource && sourceFieldCheck?.scope === "receipt" ? (
-          <ReceiptSource
-            key={sourceCheckKey}
-            title={`Check ${reviewFieldLabels[sourceFieldCheck.field]}`}
-            currentStamp={receiptFieldStamp(
-              state.receipt,
-              sourceFieldCheck.field,
-            )}
-            evidence={selectedFieldSource}
-            localReader={areaReader}
-          >
-            <ReviewChecks
-              open
-              receipt={state.receipt}
-              checks={[sourceFieldCheck]}
-            />
-            <p className="hint">
-              Use the receipt fields to make a correction, then continue with
-              the whole receipt.
-            </p>
-            <button
-              className="button button-primary full-width"
-              onClick={() => setSourceCheckKey(null)}
-            >
-              Back to receipt
-            </button>
-          </ReceiptSource>
         ) : zoomImage ? (
           <>
             {images.length > 1 && (
@@ -3599,83 +2665,32 @@ export default function App() {
         ) : (
           <div className="privacy-dialog">
             <ShieldCheck size={32} />
-            <h2>{openAiOnly ? "Receipt privacy" : "Your shop stays yours."}</h2>
-            {openAiOnly ? (
-              <p>
-                An authorized scan sends the selected receipt sections to OpenAI
-                and uses API credits. The API key stays on the local server.
-                OpenAI handles submitted images under its{" "}
-                <a
-                  href="https://developers.openai.com/api/docs/guides/your-data"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  API data policy
-                </a>
-                .
-              </p>
-            ) : (
-              <>
-                <p>
-                  The on-device reader uses English OCR in your browser. Its
-                  photos stay on this device. Tall images are read in
-                  overlapping detail sections so small text stays readable.
-                </p>
-                <p>
-                  Gemini AI is optional. If you select it, agree to send the
-                  photos and start a scan, the local server forwards those
-                  photos to Google Gemini. It returns a receipt draft for you to
-                  check. The API key stays on the server; Gather does not save
-                  the photos or model requests. Google processes requests under
-                  its own data-use terms.
-                </p>
-                <p>
-                  OpenAI is an optional last resort. Selecting it, consenting
-                  and starting a scan sends your receipt sections to OpenAI and
-                  uses API credits. The key stays on the server. The local
-                  attempt allowance persists across restarts, including
-                  failures; it is not an account spending cap. Provider safety
-                  logs and caching can retain content.
-                </p>
-                <p>
-                  Veryfi OCR is optional and requires a separate server
-                  allowance. Selecting it and consenting sends the prepared
-                  receipt sections to Veryfi, which normally stores data in the
-                  US and may use it to improve its proprietary models. We
-                  request deletion of the new record after reading, but this
-                  does not guarantee zero retention or exclude model
-                  improvement. No automatic retry is made.
-                </p>
-              </>
-            )}
+            <h2>Receipt privacy</h2>
+            <p>
+              When you approve a scan, Gather sends the selected photos or
+              rendered PDF pages to OpenAI. The scan can use API credits. The
+              key stays on the server. OpenAI handles submitted images under its{" "}
+              <a
+                href="https://developers.openai.com/api/docs/guides/your-data"
+                target="_blank"
+                rel="noreferrer"
+              >
+                API data policy
+              </a>
+              .
+            </p>
             <p>
               Your extracted draft and names are saved in this browser’s local
               storage so you can continue after a refresh. People with access to
-              this browser profile can read them. Photos and raw OCR text are
+              this browser profile can read them. Photos and imported text are
               only kept in memory and disappear on refresh or when the tab
               closes.
             </p>
-            {!openAiOnly && (
-              <p>
-                Azure receipt OCR is optional and needs a separate section
-                allowance. Each prepared image section is one uploaded page.
-                After you select it, consent and start a scan, Azure processes
-                the images in the configured resource region. Microsoft
-                describes 24-hour temporary storage; we request earlier deletion
-                once per new result. Failed or cancelled scans can still use the
-                allowance, and deletion may be unconfirmed. No automatic retry
-                is made. See Microsoft’s data-use link beside the scan consent
-                for details.
-              </p>
-            )}
             <p>
               Delete / reset receipt removes this app’s saved draft and current
               image previews. Exported or copied summaries remain wherever you
-              save or send them. Gather has no user accounts or analytics. Cloud
-              providers handle submitted data under their own policies. API
-              credentials stay on the local server, which keeps only minimal
-              cloud-reader request and allowance records, without photos or
-              text.
+              save or send them. The server keeps scan allowance records. The
+              browser keeps your draft and the names you enter.
             </p>
             <p>
               Camera availability depends on your browser. A phone accessing the
@@ -3791,8 +2806,6 @@ function ItemEditor({
   cost,
   onChange,
   onDelete,
-  evidence,
-  onViewSource,
   issues,
 }: {
   item: Item;
@@ -3801,8 +2814,6 @@ function ItemEditor({
   cost: bigint;
   onChange: (change: Partial<Item>) => void;
   onDelete: () => void;
-  evidence?: ItemEvidence;
-  onViewSource?: () => void;
   issues: Issue[];
 }) {
   const checks = receipt.reviewChecks.filter(
@@ -3900,27 +2911,6 @@ function ItemEditor({
           <CircleHelp size={14} />
           {item.note}
         </p>
-      )}
-      {evidence && onViewSource && (
-        <div className="item-source-actions">
-          <button
-            className="text-button"
-            aria-label={`View source for item ${index + 1}`}
-            onClick={(event) => {
-              // WebKit does not focus a button on pointer activation. The native
-              // dialog needs its invoker focused to restore focus when it closes.
-              event.currentTarget.focus();
-              onViewSource();
-            }}
-          >
-            <ScanLine size={16} /> View on receipt
-          </button>
-          {evidence.panels.some((panel) => panel.unclear) && (
-            <span className="source-caution">
-              <CircleHelp size={15} /> Check unclear text
-            </span>
-          )}
-        </div>
       )}
       {expanded && (
         <div className="item-detail-fields">

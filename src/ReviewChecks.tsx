@@ -1,10 +1,5 @@
 import type { Receipt, ReviewCheck } from "./lib/model";
-import {
-  checkIsPending,
-  reviewMessage,
-  reviewKey,
-  reviewFieldLabels,
-} from "./lib/review-checks";
+import { checkIsPending, reviewMessage, reviewKey } from "./lib/review-checks";
 
 const adjustmentKinds = {
   discount: "Receipt discount",
@@ -19,15 +14,9 @@ const adjustmentKinds = {
 export default function ReviewChecks({
   receipt,
   checks,
-  onViewSource,
-  canViewSource,
-  open = false,
 }: {
   receipt: Receipt;
   checks: ReviewCheck[];
-  onViewSource?: (check: ReviewCheck) => void;
-  canViewSource?: (check: ReviewCheck) => boolean;
-  open?: boolean;
 }) {
   const grouped = new Map<string, ReviewCheck>();
   for (const check of checks.filter((check) =>
@@ -55,7 +44,7 @@ export default function ReviewChecks({
   const notes = [...grouped.values()];
   if (!notes.length) return null;
   return (
-    <details className="reader-notes" open={open}>
+    <details className="reader-notes">
       <summary>Reading notes</summary>
       <p className="hint">
         These notes explain the automatic reading. Use the receipt fields to
@@ -98,15 +87,6 @@ export default function ReviewChecks({
                   </li>
                 ))}
               </ul>
-            )}
-            {onViewSource && canViewSource?.(check) && (
-              <button
-                className="text-button"
-                aria-label={`View source for ${reviewFieldLabels[check.field]}`}
-                onClick={() => onViewSource(check)}
-              >
-                View on receipt
-              </button>
             )}
           </li>
         ))}

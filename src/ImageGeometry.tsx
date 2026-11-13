@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, RotateCw, RotateCcw, ScanLine } from "lucide-react";
-import {
-  planReadingWindows,
-  type CropBounds,
-  type ReceiptImage,
-} from "./lib/images";
+import { type CropBounds, type ReceiptImage } from "./lib/images";
 import {
   rectangleQuad,
   rotateGeometry,
@@ -305,15 +301,10 @@ export default function ImageGeometry({
             onClick={() =>
               onApply({
                 ...image,
-                ocrBlob: result.preview,
+                scanBlob: result.preview,
                 panels: result.panels,
                 quality: result.quality,
                 geometry: structuredClone(frame),
-                readingWindows: planReadingWindows(
-                  result.width,
-                  result.height,
-                  true,
-                ),
                 crop: undefined,
               })
             }

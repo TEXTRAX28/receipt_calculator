@@ -37,7 +37,7 @@ async function upload(page: Page, paper = true) {
   return original;
 }
 
-test("local edge preview preserves long receipt ends, original photo and real OCR", async ({
+test("local edge preview preserves long receipt ends and the original photo", async ({
   page,
 }, info) => {
   test.setTimeout(180000);
@@ -49,7 +49,9 @@ test("local edge preview preserves long receipt ends, original photo and real OC
   await page
     .getByRole("button", { name: "Find receipt edges", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText("Suggested frame");
+  await expect(page.getByRole("dialog").getByRole("status")).toContainText(
+    "Suggested frame",
+  );
   const left = page.getByRole("slider", {
     name: "Trim left percent",
     exact: true,
@@ -77,19 +79,6 @@ test("local edge preview preserves long receipt ends, original photo and real OC
     original!,
   );
   await expect(page.locator(".selected-image")).toContainText("cropped");
-  await page
-    .getByRole("button", { name: "Read receipt on this device", exact: true })
-    .click();
-  await expect(page.getByLabel("Printed total", { exact: true })).toHaveValue(
-    "5.50",
-    { timeout: 130000 },
-  );
-  await expect(
-    page.getByLabel("Item 1 description", { exact: true }),
-  ).toHaveValue("Milk");
-  await expect(
-    page.getByLabel("Item 2 description", { exact: true }),
-  ).toHaveValue("Apples");
   expect(posts).toEqual([]);
 });
 
@@ -104,7 +93,7 @@ test("unclear edges keep the existing manual frame", async ({ page }) => {
   await page
     .getByRole("button", { name: "Find receipt edges", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.getByRole("dialog").getByRole("status")).toContainText(
     "Couldn’t clearly separate",
   );
   await expect(left).toHaveValue("1");

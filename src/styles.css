@@ -452,15 +452,6 @@ summary::marker {
   font-size: 11px;
   color: var(--muted);
 }
-.private-line {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 17px;
-}
 .or-divider {
   display: flex;
   align-items: center;
@@ -939,14 +930,7 @@ summary::marker {
   font-size: 15px;
 }
 .capture-guide ol,
-.ai-setup ol {
-  padding-left: 20px;
-  margin: 8px 0;
-}
 .capture-guide li,
-.ai-setup li {
-  margin: 6px 0;
-}
 .capture-guide p {
   margin: 10px 0 0;
   line-height: 1.65;
@@ -964,14 +948,6 @@ summary::marker {
   font-size: 14px;
   font-weight: 600;
 }
-.reader-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.reader-buttons .button {
-  flex: 1 1 140px;
-}
 .reader-choice .hint {
   margin: 12px 0 0;
 }
@@ -979,19 +955,6 @@ summary::marker {
   margin: 14px 0 0;
   font-size: 13px;
   line-height: 1.65;
-}
-.ai-setup {
-  font-size: 13px;
-  margin-top: 12px;
-}
-.ai-setup summary {
-  cursor: pointer;
-  display: list-item;
-  align-content: center;
-}
-.ai-setup code {
-  font-size: 12px;
-  white-space: normal;
 }
 .check-line {
   display: flex;
@@ -2029,13 +1992,6 @@ dialog::backdrop {
   height: auto;
   border-radius: 8px;
 }
-.receipt-source h2 {
-  margin: 5px 0 10px;
-  font:
-    400 30px Georgia,
-    serif;
-}
-
 .camera-dialog {
   width: min(600px, calc(100% - 24px));
   max-height: 92dvh;
@@ -2132,121 +2088,6 @@ dialog::backdrop {
 .camera-dialog .error-message {
   color: var(--error, #a63224);
 }
-.receipt-source > p,
-.source-figure figcaption {
-  color: var(--muted);
-  line-height: 1.65;
-}
-.source-section-picker,
-.item-source-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-.source-section-picker .button {
-  min-height: 44px;
-}
-.source-section-picker [aria-pressed="true"] {
-  border-color: var(--green);
-  background: var(--sage-light);
-}
-.item-source-actions {
-  margin-top: 4px;
-}
-.item-source-actions .text-button {
-  min-height: 44px;
-}
-.source-figure {
-  margin: 20px 0 12px;
-}
-.source-image-viewport {
-  width: 100%;
-  min-width: 0;
-  max-height: 35dvh;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: white;
-}
-.source-image-viewport:focus-visible {
-  outline: 3px solid var(--green);
-  outline-offset: 3px;
-}
-.receipt-source-image {
-  display: block;
-  width: 100%;
-  max-width: none;
-  height: auto;
-}
-.source-zoom {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.source-zoom .button {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px 12px;
-}
-.source-zoom output {
-  min-width: 3.5ch;
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-}
-.source-zoom-help {
-  margin: 8px 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.source-region {
-  fill: transparent;
-  stroke: var(--green);
-  stroke-width: 2;
-}
-.source-region.unclear {
-  stroke: var(--danger);
-}
-.source-figure figcaption {
-  margin-top: 8px;
-  font-size: 12px;
-}
-.source-caution {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--danger);
-  font-size: 13px;
-}
-.source-caution svg {
-  flex-shrink: 0;
-}
-.source-edited {
-  font-size: 13px;
-}
-.source-text {
-  margin: 16px 0;
-}
-.source-text summary {
-  padding: 10px 0;
-  min-height: 44px;
-}
-.source-text pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 13px;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--canvas);
-}
-.source-edit-fields {
-  margin-top: 20px;
-}
 .refund-control .text-button {
   min-height: 44px;
 }
@@ -2263,87 +2104,6 @@ dialog::backdrop {
   min-height: 44px;
   flex-shrink: 0;
   padding: 0;
-}
-.receipt-area-reader {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-}
-.area-read-text {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-height: 35dvh;
-  overflow-y: auto;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--canvas);
-  font-size: 14px;
-}
-.area-read-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-.area-read-actions .button,
-.area-read-actions .text-button {
-  min-height: 44px;
-}
-.source-edit-fields .form-grid {
-  margin-top: 12px;
-}
-.comparison-choice {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: var(--sage-light);
-  align-items: flex-start;
-  font-size: 16px;
-}
-.comparison-choice small {
-  font-size: 14px;
-  line-height: 1.5;
-}
-.verification-checks {
-  margin: 20px 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.verification-checks h3 {
-  font-size: 17px;
-  margin-bottom: 8px;
-}
-.verification-check {
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-  margin-top: 12px;
-  border: 1px solid #dfc7a8;
-  border-radius: 10px;
-  background: var(--warning-bg);
-}
-.verification-check.checked {
-  border-color: var(--border-strong);
-  background: var(--sage-light);
-}
-.verification-check p,
-.verification-check ul {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.verification-check ul {
-  padding-left: 20px;
-}
-.verification-confirm {
-  padding: 8px 0;
-  align-items: flex-start;
-  font-size: 15px;
-  line-height: 1.5;
-}
-.verification-confirm input,
-.comparison-choice input {
-  flex-shrink: 0;
-  margin-top: 3px;
 }
 .field .field-error {
   color: var(--danger);
@@ -2655,10 +2415,6 @@ textarea[aria-invalid="true"] {
   .upload-actions .button {
     padding: 10px 12px;
     font-size: 11px;
-  }
-  .private-line {
-    font-size: 9px;
-    align-items: flex-start;
   }
   .alternate-actions {
     gap: 5px;
@@ -2978,7 +2734,6 @@ textarea[aria-invalid="true"] {
   .item-detail-fields .text-button,
   .segmented button,
   .check-row,
-  .private-line,
   .text-import summary,
   .share-panel > p {
     font-size: 14px;

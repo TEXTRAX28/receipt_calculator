@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ReceiptImage } from "./images";
 import type { ReadingContext } from "./reading-context.mjs";
 import { panelsForImages } from "./panel-transport";
-import { receiptFromAi } from "./gemini";
+import { receiptFromOpenAi } from "./openai-draft";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 import { openaiStatusSchema } from "./openai-schema.mjs";
 
@@ -42,15 +42,17 @@ export async function extractWithOpenAi(
       body,
       signal: requestSignal,
     });
-    const result = await response.json();
+    const result = response.ok
+      ? await response.json()
+      : await response.json().catch(() => null);
     requestSignal.throwIfAborted();
     if (!response.ok)
       throw new Error(
-        typeof result.error === "string"
+        typeof result?.error === "string"
           ? result.error.slice(0, 500)
           : "OpenAI could not read this receipt. Your photos are still available.",
       );
-    return receiptFromAi(result.receipt, "OpenAI", context);
+    return receiptFromOpenAi(result?.receipt, context, images.length);
   } catch (error) {
     if (signal.aborted || deadline.aborted)
       throw new Error(

@@ -1,4 +1,3 @@
-import type { PdfPageText } from "./pdf-text";
 import { inspectCapture, type CaptureQuality } from "./image-quality";
 import type { ReceiptGeometry } from "./image-geometry";
 
@@ -116,73 +115,15 @@ export interface ReceiptImage {
   blob: Blob;
   sourceBlob?: Blob;
   sourceBytes?: number;
-  ocrBlob?: Blob;
+  scanBlob?: Blob;
   panels?: Blob[];
   crop?: CropBounds;
   geometry?: ReceiptGeometry;
-  readingWindows?: ReadingWindow[];
   quality?: CaptureQuality;
-  document?: {
-    kind: "pdf";
-    id: string;
-    page: number;
-    pages: number;
-    original: File;
-    text?: PdfPageText;
-  };
-}
-export interface ReadingWindow {
-  sourceWidth: number;
-  sourceHeight: number;
-  bounds: [number, number, number, number];
-  content: [number, number, number, number];
-}
-
-/** Known preparation coordinates, never estimated from receipt words or prices. */
-export function planReadingWindows(
-  width: number,
-  height: number,
-  padded = false,
-): ReadingWindow[] {
-  const plan = planReadingPanels(width, height);
-  const preview = previewDimensions(width, height);
-  return (
-    plan.length
-      ? plan
-      : [
-          {
-            top: 0,
-            height,
-            outputWidth: preview.width,
-            outputHeight: preview.height,
-          },
-        ]
-  ).map((section) => {
-    const frame = padded
-      ? paddedCorrectionFrame(section.outputWidth, section.outputHeight)
-      : null;
-    return {
-      sourceWidth: width,
-      sourceHeight: height,
-      bounds: [
-        0,
-        section.top / height,
-        1,
-        (section.top + section.height) / height,
-      ],
-      content: frame
-        ? [
-            frame.left / frame.width,
-            frame.top / frame.height,
-            (frame.left + frame.contentWidth) / frame.width,
-            (frame.top + frame.contentHeight) / frame.height,
-          ]
-        : [0, 0, 1, 1],
-    };
-  });
+  document?: { page: number };
 }
 export const readingBlobs = (image: ReceiptImage): Blob[] =>
-  image.panels || [image.ocrBlob || image.blob];
+  image.panels || [image.scanBlob || image.blob];
 
 /** Round down so both prepared uploads and crops satisfy the exact decode budget. */
 export function previewDimensions(
@@ -336,7 +277,7 @@ export async function cropImage(
       canvas.width,
       canvas.height,
     );
-    const ocrBlob = await new Promise<Blob>((resolve, reject) =>
+    const scanBlob = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
         (b) =>
           b ? resolve(b) : reject(new Error("Could not crop this image.")),
@@ -347,11 +288,10 @@ export async function cropImage(
     const panels = await detailPanels(bitmap, x, y, width, height);
     return {
       ...image,
-      ocrBlob,
+      scanBlob,
       panels,
       crop: bounds,
       geometry: undefined,
-      readingWindows: planReadingWindows(width, height),
       quality: inspectCapture(bitmap, x, y, width, height),
     };
   } finally {
@@ -419,7 +359,6 @@ export async function prepareImage(file: File): Promise<ReceiptImage> {
       sourceBytes: file.size,
       panels,
       quality: inspectCapture(bitmap),
-      readingWindows: planReadingWindows(bitmap.width, bitmap.height),
     };
   } catch {
     throw new Error(

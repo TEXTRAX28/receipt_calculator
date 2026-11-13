@@ -1,8 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { receiptFromAi } from "../src/lib/gemini";
+import { describe, it, expect } from "vitest";
+import { receiptFromOpenAi } from "../src/lib/openai-draft";
 import { calculateReceipt, calculateSplit } from "../src/lib/engine";
-import { extractWithGemini } from "../server/receipt-api.mjs";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 import { assign, review, shop } from "./helpers";
 
@@ -42,7 +40,7 @@ describe("explicit structured receipt rounding", () => {
   ] as const)(
     "preserves sign %s and conserves the exact split",
     (rounding, printed, expected) => {
-      const receipt = receiptFromAi(draft(rounding, printed));
+      const receipt = receiptFromOpenAi(draft(rounding, printed));
       expect(receipt.adjustments[0].amount).toBe(rounding);
       const result = calculateReceipt(receipt);
       expect(result.issues).toEqual([]);
@@ -64,12 +62,12 @@ describe("explicit structured receipt rounding", () => {
     (kind) => {
       const source = draft();
       source.adjustments[0].kind = kind;
-      expect(() => receiptFromAi(source)).toThrow();
+      expect(() => receiptFromOpenAi(source)).toThrow();
     },
   );
 
   it("keeps excessive precision unresolved instead of rounding it into valid GBP", () => {
-    const receipt = receiptFromAi(draft("-0.001"));
+    const receipt = receiptFromOpenAi(draft("-0.001"));
     expect(receipt.adjustments[0].amount).toBe("-0.001");
     expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
   });
@@ -79,13 +77,13 @@ describe("explicit structured receipt rounding", () => {
     source.currency = "KWD";
     source.subtotal = "10.001";
     source.items[0].unitPrice = source.items[0].lineTotal = "10.001";
-    const result = calculateReceipt(receiptFromAi(source));
+    const result = calculateReceipt(receiptFromOpenAi(source));
     expect(result.issues).toEqual([]);
     expect(result.total).toBe(10000n);
   });
 
   it("does not invent zero for an unreadable rounding amount", () => {
-    const receipt = receiptFromAi(draft(""));
+    const receipt = receiptFromOpenAi(draft(""));
     expect(receipt.adjustments[0].amount).toBe("");
     expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
   });
@@ -108,7 +106,7 @@ describe("explicit structured receipt rounding", () => {
       { label: "Printed rounding", kind: "rounding", amount: "-0.01" },
     ];
     const state = shop();
-    state.receipt = receiptFromAi(source);
+    state.receipt = receiptFromOpenAi(source);
     state.receipt.items.forEach((_, index) =>
       assign(state, "equal", [], index),
     );
@@ -120,61 +118,11 @@ describe("explicit structured receipt rounding", () => {
   });
 
   it.each(["20.00%", "1,234", "Rp 36.000", "١٢٣"])(
-    "keeps local rates strict and bounds Gemini percentage recovery: %s",
-    (rate) => {
-      const raw = { ...draft(), taxCodes: [{ code: "A", rate }] };
-      expect(() => receiptFromAi(raw, "Local vision")).toThrow();
-      if (rate === "20.00%") {
-        const receipt = receiptFromAi(raw, "Gemini");
-        expect(receipt.taxCodes).toEqual(raw.taxCodes);
-        expect(receipt.reviewChecks).toContainEqual(
-          expect.objectContaining({
-            scope: "receipt",
-            field: "taxCodes",
-            reason: "source",
-            confirmedValue: "",
-          }),
-        );
-      } else expect(() => receiptFromAi(raw, "Gemini")).toThrow();
+    "rejects noncanonical money %s",
+    (value) => {
+      const raw = draft();
+      raw.adjustments[0].amount = value;
+      expect(() => receiptFromOpenAi(raw)).toThrow();
     },
   );
-
-  it("accepts signed rounding through the server's actual REST response decoder (mock provider)", async () => {
-    const fetcher = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) =>
-        new Response(
-          JSON.stringify({
-            status: "completed",
-            steps: [
-              {
-                type: "model_output",
-                content: [{ type: "text", text: JSON.stringify(draft()) }],
-              },
-            ],
-          }),
-        ),
-    );
-    const result = await extractWithGemini(
-      [
-        {
-          photo: 1,
-          part: 1,
-          data: readFileSync(
-            new URL("./fixtures/prepared-section.jpg", import.meta.url),
-          ).toString("base64"),
-        },
-      ],
-      {
-        apiKey: "synthetic-test-key",
-        signal: new AbortController().signal,
-        fetcher,
-      },
-    );
-    expect(result.adjustments).toEqual(draft().adjustments);
-    const sent = JSON.parse(String(fetcher.mock.calls[0][1]!.body));
-    expect(
-      sent.response_format.schema.properties.adjustments.items.anyOf,
-    ).toHaveLength(2);
-    expect(calculateReceipt(receiptFromAi(result)).total).toBe(1000n);
-  });
 });

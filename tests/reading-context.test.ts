@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { currencies } from "../src/lib/model";
 import { readingContextSchema } from "../src/lib/reading-context.mjs";
 import { parseReceiptText } from "../src/lib/parser";
-import { receiptFromAi } from "../src/lib/gemini";
+import { receiptFromOpenAi } from "../src/lib/openai-draft";
 import { calculateReceipt } from "../src/lib/engine";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
 
@@ -66,7 +66,7 @@ describe("explicit receipt reading currency", () => {
     const draft = { ...aiCostcoDraft(), currency: "" };
     draft.items[0].lineTotal = "7.000";
     draft.items[0].unitPrice = "7.000";
-    const receipt = receiptFromAi(draft, "Local vision", { currency: "IDR" });
+    const receipt = receiptFromOpenAi(draft, { currency: "IDR" });
     expect(receipt.currency).toBe("IDR");
     expect(receipt.currencyUnresolved).toBe(false);
     expect(receipt.items[0].lineTotal).toBe("7.000");
@@ -76,7 +76,7 @@ describe("explicit receipt reading currency", () => {
   it("does not hide a conflicting AI currency", () => {
     const draft = aiCostcoDraft();
     draft.currency = "USD";
-    const receipt = receiptFromAi(draft, "Local vision", { currency: "CAD" });
+    const receipt = receiptFromOpenAi(draft, { currency: "CAD" });
     expect(receipt.currency).toBe("USD");
     expect(receipt.currencyUnresolved).toBe(true);
     expect(receipt.reviewChecks).toContainEqual(

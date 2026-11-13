@@ -1,3 +1,4 @@
+import { indexBuiltFiles } from "../server/built-site.mjs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import http from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
@@ -5,7 +6,6 @@ import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
 import {
   createPhoneHandler,
-  indexBuiltFiles,
   ipv4,
   isPrivateAddress,
 } from "../server/phone-preview.mjs";
@@ -70,7 +70,8 @@ beforeEach(async () => {
     resolve(directory, "index.html"),
     '<div id="root">Synthetic app</div>',
   );
-  await writeFile(resolve(directory, "app.js"), "export default 1");
+  await mkdir(resolve(directory, "assets"));
+  await writeFile(resolve(directory, "assets", "app.js"), "export default 1");
   const gateway = createPhoneHandler({
     origin,
     host: "127.0.0.1",
@@ -159,47 +160,29 @@ describe("private phone preview", () => {
     expect((await request("/api/receipts/providers")).status).toBe(401);
     expect(
       (
-        await request("/app.js", {
-          headers: { cookie: "gather_phone=invalid" },
+        await request("/assets/app.js", {
+          headers: { cookie: "gather_openai=invalid" },
         })
       ).status,
     ).toBe(401);
   });
-  it.each([
-    "openai",
-    "extract",
-    "recognize",
-    "veryfi",
-    "azure",
-    "vision-batches",
-  ])("never accepts a %s extraction upload", async (provider) => {
-    const cookie = await authenticated();
-    expect(
-      (
-        await request("/api/receipts/" + provider, {
-          method: "POST",
-          headers: { cookie, origin },
-          body: "{}",
-        })
-      ).status,
-    ).toBe(403);
-  });
-  it("reports every available reader as unconfigured", async () => {
-    const cookie = await authenticated();
-    const result = JSON.parse(
-      (await request("/api/receipts/providers", { headers: { cookie } })).text,
-    );
-    expect(result.localModel.configured).toBe(false);
-    expect(result.localVision.configured).toBe(false);
-    expect(
-      JSON.parse(
-        (await request("/api/receipts/openai/config", { headers: { cookie } }))
-          .text,
-      ).configured,
-    ).toBe(false);
-  });
-  it("pairs both previews independently and forwards only authenticated OpenAI traffic", async () => {
-    const baselineCookie = await authenticated();
+  it.each(["extract", "recognize", "veryfi", "azure", "vision-batches"])(
+    "never accepts a %s extraction upload",
+    async (provider) => {
+      const cookie = await authenticated();
+      expect(
+        (
+          await request("/api/receipts/" + provider, {
+            method: "POST",
+            headers: { cookie, origin },
+            body: "{}",
+          })
+        ).status,
+      ).toBe(404);
+    },
+  );
+  it("requires the current session and forwards only authenticated OpenAI traffic", async () => {
+    const staleCookie = await authenticated();
     const received: {
       path: string | undefined;
       origin: string | undefined;
@@ -244,7 +227,7 @@ describe("private phone preview", () => {
         (
           await request(config, {
             targetPort,
-            headers: { cookie: baselineCookie },
+            headers: { cookie: staleCookie },
           })
         ).status,
       ).toBe(401);
@@ -257,10 +240,7 @@ describe("private phone preview", () => {
       expect(login.status).toBe(303);
       const openAiCookie = login.headers["set-cookie"]![0].split(";")[0];
       expect(openAiCookie).toMatch(/^gather_openai=/);
-      const cookie = `${baselineCookie}; ${openAiCookie}`;
-      expect((await request("/", { headers: { cookie } })).text).toContain(
-        "Synthetic app",
-      );
+      const cookie = openAiCookie;
       expect(
         (await request("/", { targetPort, headers: { cookie } })).headers[
           "referrer-policy"
@@ -285,7 +265,7 @@ describe("private phone preview", () => {
             body: "{}",
           })
         ).status,
-      ).toBe(403);
+      ).toBe(404);
       expect(received).toHaveLength(0);
       expect(
         (await request(config, { targetPort, headers: { cookie } })).status,
@@ -344,7 +324,7 @@ describe("private phone preview", () => {
   });
   it("serves built JavaScript with a usable type and supports HEAD", async () => {
     const cookie = await authenticated();
-    const result = await request("/app.js", {
+    const result = await request("/assets/app.js", {
       method: "HEAD",
       headers: { cookie },
     });

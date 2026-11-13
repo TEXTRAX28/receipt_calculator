@@ -27,7 +27,11 @@ export function reconcileObservedUnits(receipt: Receipt): Receipt {
     return receipt;
   let changed = false;
   const items = receipt.items.map((item) => {
-    if (!item.unitPrice || item.unitPriceDerived || item.unitPriceEdited)
+    if (
+      item.unitPriceDerived ||
+      item.unitPriceEdited ||
+      (!item.unitPrice && receipt.source !== "ai")
+    )
       return item;
     if (
       receipt.reviewChecks.some(
@@ -46,6 +50,10 @@ export function reconcileObservedUnits(receipt: Receipt): Receipt {
       receipt.currency,
     );
     if (!unitPrice || unitPrice === item.unitPrice) return item;
+    if (!item.unitPrice) {
+      changed = true;
+      return { ...item, unitPrice, unitPriceDerived: true };
+    }
     try {
       if (
         money(unitPrice, receipt.currency, true) ===

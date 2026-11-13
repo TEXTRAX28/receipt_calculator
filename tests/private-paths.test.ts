@@ -1,11 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createServer, type ViteDevServer } from "vite";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { privateFileDeny } from "../server/private-paths.mjs";
-import receiptConfig, { receiptEnvironment } from "../vite.config";
+import receiptConfig from "../vite.config";
+import { openAiSettings } from "../server/openai-settings.mjs";
 
 const ownedBase = join(tmpdir(), "gather-private-http-tests");
 let root: string | undefined, server: ViteDevServer | undefined;
@@ -22,53 +23,32 @@ afterEach(async () => {
   await rm(ownedRoot, { recursive: true, force: true });
 });
 
-it("local-only configuration ignores cloud credentials, allowances and client variables", () => {
-  const local = {
-    LOCAL_OCR_PYTHON: "/installed/python",
-    LOCAL_OCR_ENGINE: "paddle-v6",
-    LOCAL_OCR_CACHE_ROOT: "/installed/models",
-    LOCAL_VISION_ENABLED: "0",
-    RECEIPT_ASSISTED_READER: "computer",
-    LOCAL_OCR_CHECK_MODE: "off",
-  };
-  const variables = new Proxy(local, {
-    get(target, name) {
-      if (!(name in target)) throw new Error("Unexpected environment read");
-      return target[name as keyof typeof local];
-    },
-    ownKeys() {
-      throw new Error("Environment enumeration is forbidden");
-    },
-  });
-  expect(receiptEnvironment("local-only", "/unused", variables)).toEqual(local);
-});
-
-it("OpenAI mode reads only its server settings and local-only skips dotenv", async () => {
+it("uses server settings and keeps dotenv variables out of the build", async () => {
   await mkdir(ownedBase, { recursive: true });
   root = await realpath(await mkdtemp(join(ownedBase, "env-")));
   await writeFile(
     join(root, ".env.local"),
-    "OPENAI_ALLOWANCE_ID=synthetic-openai-grant\nGEMINI_API_KEY=synthetic-other-reader\nVITE_SYNTHETIC_SECRET=never-expose\nLOCAL_OCR_PYTHON=/dotenv/python\n",
+    "OPENAI_API_KEY=sk-offline_openai_protocol_test_not_a_real_key\nOPENAI_ALLOWANCE_ID=synthetic-openai-grant\nOPENAI_REQUEST_LIMIT=3\nVITE_SYNTHETIC_SECRET=never-expose\n",
   );
-  const env = receiptEnvironment("local-only", root, {});
-  expect(Object.values(env).every((value) => value === "")).toBe(true);
-  expect(env).not.toHaveProperty("OPENAI_ALLOWANCE_ID");
-  expect(env).not.toHaveProperty("VITE_SYNTHETIC_SECRET");
-  vi.stubEnv("OPENAI_ALLOWANCE_ID", undefined);
-  const openai = receiptEnvironment("development", root);
-  expect(openai.OPENAI_ALLOWANCE_ID).toBe("synthetic-openai-grant");
-  expect(openai).not.toHaveProperty("GEMINI_API_KEY");
-  expect(openai).not.toHaveProperty("VITE_SYNTHETIC_SECRET");
-  expect(openai).not.toHaveProperty("LOCAL_OCR_PYTHON");
-  if (typeof receiptConfig !== "function")
-    throw new Error("Expected Vite factory");
-  const config = await receiptConfig({ command: "serve", mode: "local-only" });
-  expect(config.envDir).toBe(false);
-  expect(config.envPrefix).toEqual([]);
-  expect(config.cacheDir).toBe(".vite");
-  const build = await receiptConfig({ command: "build", mode: "production" });
-  expect(build.envDir).toBe(false);
-  expect(build.envPrefix).toEqual([]);
+  const settings = openAiSettings(root, {});
+  expect(await settings.openaiReader.getStatus()).toMatchObject({
+    configured: true,
+    remaining: 3,
+  });
+  const disabled = openAiSettings(root, {
+    OPENAI_API_KEY: "",
+    OPEN_AI_KEY: "",
+  });
+  expect(await disabled.openaiReader.getStatus()).toMatchObject({
+    configured: false,
+    availability: "missing-key",
+  });
+  expect(receiptConfig).toMatchObject({
+    envDir: false,
+    envPrefix: [],
+    cacheDir: ".vite",
+    publicDir: ".receipt-assets",
+  });
 });
 
 it("serves public files but blocks private data through direct, encoded and absolute development HTTP paths", async () => {

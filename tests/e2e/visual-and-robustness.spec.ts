@@ -123,9 +123,9 @@ test("corrupted browser storage shows a recoverable state", async ({
     );
   });
   await page.goto("/");
-  await expect(page.getByRole("status")).toContainText(
-    "could not be read safely",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "could not be read safely" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Enter manually" }),
   ).toBeEnabled();
@@ -140,7 +140,9 @@ test("unavailable browser storage preserves the in-memory workflow with a warnin
     };
   });
   await page.goto("/");
-  await expect(page.getByRole("status")).toContainText("could not be saved");
+  await expect(
+    page.getByRole("status").filter({ hasText: "could not be saved" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Enter manually" }).click();
   await expect(
     page.getByRole("textbox", { name: "Merchant", exact: true }),

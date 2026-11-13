@@ -356,7 +356,7 @@ test("rejects malformed, spoofed and excessive uploads without a scan", async ({
   });
   await expect(page.getByRole("alert")).toContainText("file signature");
   await expect(
-    page.getByRole("button", { name: "Read receipt on this device" }),
+    page.getByRole("button", { name: "Read receipt with OpenAI credits" }),
   ).toHaveCount(0);
   await page.getByLabel("Upload receipt images").setInputFiles(
     Array.from({ length: 13 }, (_, i) => ({
@@ -375,7 +375,7 @@ test("privacy dialog, keyboard escape, reset and responsive layout", async ({
     .getByRole("button", { name: "Privacy first", exact: false })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
-    "The on-device reader uses English OCR",
+    "Gather sends the selected photos or rendered PDF pages to OpenAI",
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();

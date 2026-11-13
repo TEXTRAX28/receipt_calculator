@@ -167,43 +167,6 @@ test("Continue expands a hidden invalid unit price and focuses it after earlier 
   await expect(page.getByLabel("Person’s name", { exact: true })).toBeVisible();
 });
 
-test("the default stays private and offers at most one configured helper without sending images", async ({
-  page,
-}) => {
-  const posts: string[] = [];
-  page.on("request", (request) => {
-    if (request.method() === "POST") posts.push(request.url());
-  });
-  await page.route("**/api/receipts/providers", (route) =>
-    route.fulfill({
-      json: {
-        localModel: { configured: true, name: "PaddleOCR" },
-        localVision: { configured: true, name: "Vision", maxPanels: 3 },
-        azure: { configured: true, remaining: 6, maxPanels: 24 },
-        veryfi: { configured: true, remaining: 6, maxPanels: 15 },
-      },
-    }),
-  );
-  await page.goto("/");
-  const choices = page.locator(".reader-buttons > button");
-  await expect(choices).toHaveCount(2);
-  const local = page.getByRole("button", {
-    name: "On-device scan",
-    exact: true,
-  });
-  const assisted = page.getByRole("button", {
-    name: "Assisted scan · This computer",
-    exact: true,
-  });
-  await expect(local).toHaveAttribute("aria-pressed", "true");
-  await expect(assisted).toHaveAttribute("aria-pressed", "false");
-  await assisted.click();
-  await expect(assisted).toHaveAttribute("aria-pressed", "true");
-  await local.click();
-  expect(posts).toEqual([]);
-  await withinViewport(page);
-});
-
 test("Continue focuses an invalid tax rate rather than its code label or downstream totals", async ({
   page,
 }) => {

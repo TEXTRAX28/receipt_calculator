@@ -1,4 +1,0 @@
-// Research-only clarification. No source values, merchant rules or currency hints.
-export const literalTotalInstructions = `
-COPY PRINTED ROW AMOUNTS: lineTotal must copy the amount printed for the whole purchase row. Do not multiply that printed row amount by quantity. Do not calculate an unprinted unitPrice: leave unitPrice empty when only the row amount is shown. If both a unit price and a row total are explicitly printed, copy both into their own fields.
-ONE PRINTED CHARGE, ONE FIELD: A tax line copied into printedTax must not also be repeated in adjustments as a fee, tip, deposit or discount. Distinct printed service charges still belong in adjustments. Cash tendered, card payments, change, savings summaries, future rewards and item-count metadata are not receipt adjustments. Never create an adjustment to reconcile a total.`;
