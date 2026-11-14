@@ -1,4 +1,5 @@
 import type { Item, Receipt, ReceiptReviewField, ReviewCheck } from "./model";
+import { exactUnitPrice } from "./receipt-roles";
 
 export const reviewFieldLabels: Record<ReviewCheck["field"], string> = {
   description: "description",
@@ -178,6 +179,24 @@ export function applyReceiptEdit(
   change: Partial<Receipt>,
 ): Receipt {
   const next = { ...receipt, ...change };
+  if (
+    !next.currencyUnresolved &&
+    (Object.hasOwn(change, "currency") ||
+      Object.hasOwn(change, "currencyUnresolved"))
+  ) {
+    // Resolving currency supplies precision for an exact calculation, not a
+    // human confirmation of the underlying quantity or printed unit price.
+    next.items = next.items.map((item) => {
+      if (item.unitPriceEdited) return item;
+      if (item.unitPrice && !item.unitPriceDerived) return item;
+      const unitPrice = exactUnitPrice(
+        item.quantity,
+        item.lineTotal,
+        next.currency,
+      );
+      return { ...item, unitPrice, unitPriceDerived: Boolean(unitPrice) };
+    });
+  }
   next.reviewChecks = next.reviewChecks
     .filter(
       (check) =>
@@ -201,9 +220,28 @@ export function applyItemEdit(
   itemId: string,
   change: Partial<Item>,
 ): Receipt {
+  const original = receipt.items.find((item) => item.id === itemId);
+  const fields = { ...change };
+  if (Object.hasOwn(change, "unitPrice")) {
+    fields.unitPriceDerived = false;
+    fields.unitPriceEdited = true;
+  } else if (
+    original &&
+    !receipt.currencyUnresolved &&
+    (Object.hasOwn(change, "quantity") || Object.hasOwn(change, "lineTotal")) &&
+    (original.unitPriceDerived || !original.unitPrice)
+  ) {
+    fields.unitPrice = exactUnitPrice(
+      change.quantity ?? original.quantity,
+      change.lineTotal ?? original.lineTotal,
+      receipt.currency,
+    );
+    fields.unitPriceDerived = Boolean(fields.unitPrice);
+    fields.unitPriceEdited = false;
+  }
   const next = applyReceiptEdit(receipt, {
     items: receipt.items.map((item) =>
-      item.id === itemId ? { ...item, ...change } : item,
+      item.id === itemId ? { ...item, ...fields } : item,
     ),
   });
   next.reviewChecks = next.reviewChecks.map((check) =>

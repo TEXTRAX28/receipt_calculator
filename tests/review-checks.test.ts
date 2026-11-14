@@ -155,6 +155,34 @@ describe("independent reading disagreements cannot be accepted by arithmetic alo
     delete legacy.receipt.reviewChecks;
     expect(appSchema.parse(legacy).receipt.reviewChecks).toEqual([]);
   });
+  it("preserves acceptance after schema ordering changes but rejects a later financial edit", () => {
+    const { state, check } = fixture();
+    state.receipt = confirmReviewCheck(state.receipt, reviewKey(check));
+    state.receipt = applyItemEdit(state.receipt, check.itemId, {
+      quantity: "1",
+    });
+    review(state);
+    let raw = "";
+    const storage = {
+      setItem: (_key: string, value: string) => {
+        raw = value;
+      },
+      getItem: () => raw,
+    };
+    saveDraft(storage, state);
+    const loaded = loadDraft(storage).state;
+    expect(loaded.reviewedStamp).toBe(receiptStamp(loaded.receipt));
+    expect(calculateSplit(loaded).canFinalize).toBe(true);
+    expect(loaded.finalizedStamp).toBe("");
+    state.receipt = applyItemEdit(state.receipt, check.itemId, {
+      lineTotal: "9.00",
+    });
+    saveDraft(storage, state);
+    expect(loadDraft(storage).state.reviewedStamp).not.toBe(
+      receiptStamp(loadDraft(storage).state.receipt),
+    );
+    expect(calculateSplit(loadDraft(storage).state).canFinalize).toBe(false);
+  });
   it("reopens a tax-rate check when its tax inclusion or calculation mode changes", () => {
     const { state } = fixture();
     const check: ReviewCheck = {

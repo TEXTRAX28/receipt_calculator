@@ -10,7 +10,7 @@ const signedAmount = z
   .max(40)
   .regex(/^(?:-?[0-9]{1,12}(?:[.][0-9]{1,6})?)?$/);
 // Ordinary negative adjustments need a signed return line, checked after parsing.
-// A union emits anyOf, which is supported by the Gemini and local decoder schemas.
+// A union emits anyOf for the provider's structured response.
 const adjustment = z.union([
   z.strictObject({
     label: z.string().max(100),
@@ -48,6 +48,10 @@ const receiptStructure = z.strictObject({
   subtotal: signedAmount,
   printedTotal: signedAmount,
   printedTax: signedAmount,
+  taxRegistrationNumber: z
+    .string()
+    .max(80)
+    .regex(/^(?:[A-Za-z0-9][A-Za-z0-9 ./-]{0,79})?$/),
   pricesIncludeTax: z.boolean().nullable(),
   printedItemCount: z.number().int().min(0).max(300).nullable(),
   taxCodes: z.array(z.strictObject({ code, rate: amount })).max(20),
@@ -87,56 +91,8 @@ function validateAdjustments(receipt, context) {
 export const aiReceiptSchema =
   receiptStructure.superRefine(validateAdjustments);
 
-// Gemini can copy printed grouping despite the canonical request contract.
-// Preserve these bounded literals as invalid financial inputs, never normalize
-// them here. Quantities, keys, photo references and bounds stay strict.
-const groupedAmount = z
-  .string()
-  .max(40)
-  .regex(/^[0-9]{1,3}(?:,[0-9]{3}){1,3}(?:[.][0-9]{1,6})?$/);
-const groupedSignedAmount = z
-  .string()
-  .max(40)
-  .regex(/^-?[0-9]{1,3}(?:,[0-9]{3}){1,3}(?:[.][0-9]{1,6})?$/);
-const draftAmount = amount.or(groupedAmount);
-const draftSignedAmount = signedAmount.or(groupedSignedAmount);
-// Preserve a bounded printed percentage for explicit review, not calculation.
-// The canonical schema and provider request still require plain decimal rates.
-const percentRate = z
-  .string()
-  .max(40)
-  .regex(/^[0-9]{1,3}(?:[.][0-9]{1,6})?%$/)
-  .refine((value) => Number(value.slice(0, -1)) <= 100);
-export const geminiReceiptDraftSchema = receiptStructure
-  .extend({
-    subtotal: draftSignedAmount,
-    printedTotal: draftSignedAmount,
-    printedTax: draftSignedAmount,
-    taxCodes: z
-      .array(z.strictObject({ code, rate: amount.or(percentRate) }))
-      .max(20),
-    items: z
-      .array(
-        receiptStructure.shape.items.element.extend({
-          unitPrice: draftSignedAmount,
-          lineTotal: draftSignedAmount,
-          discount: draftAmount,
-        }),
-      )
-      .max(300),
-    adjustments: z
-      .array(
-        z.union([
-          adjustment.options[0].extend({ amount: draftSignedAmount }),
-          adjustment.options[1].extend({ amount: draftSignedAmount }),
-        ]),
-      )
-      .max(30),
-  })
-  .superRefine(validateAdjustments);
-// Keep decoding constraints small. Large nested array/numeric bounds can make
-// Gemini reject or stall a request. The full strict Zod schema above is still
-// applied to every returned result on the server and in the browser.
+// Keep provider decoding constraints small. Apply the full Zod limits to
+// every returned result on the server and in the browser.
 function compactProviderSchema(value) {
   if (Array.isArray(value)) return value.map(compactProviderSchema);
   if (!value || typeof value !== "object") return value;

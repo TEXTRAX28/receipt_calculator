@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseReceiptWithSources } from "../src/lib/parser";
 import { calculateReceipt } from "../src/lib/engine";
-import { verifyIndependentReadings } from "../src/lib/verify-readings";
-import { reviewMessage } from "../src/lib/review-checks";
-import type { Recognition } from "../src/lib/receipt-layout";
-import {
-  comparedDraft,
-  comparedRecognition,
-} from "./fixtures/compared-receipt";
 
 describe("leading purchased counts with mandatory source review", () => {
   it.each([
@@ -166,61 +159,4 @@ describe("leading purchased counts with mandatory source review", () => {
       ),
     ).toBe(true);
   });
-  it.each(["x", "X"])(
-    "keeps source review when both readers agree on a leading %s count",
-    (marker) => {
-      const recognition = comparedRecognition(
-        [{ photo: 1, part: 1 }],
-        [
-          "MARKET GBP",
-          `2 ${marker} Tea 6.00`,
-          "Prices include tax",
-          "TOTAL GBP 6.00",
-        ],
-      ).recognition as Recognition;
-      const draft = comparedDraft();
-      Object.assign(draft, {
-        merchant: "MARKET",
-        currency: "GBP",
-        subtotal: "",
-        printedTotal: "6.00",
-        printedTax: "",
-        pricesIncludeTax: true,
-        printedItemCount: null,
-        taxCodes: [],
-        adjustments: [],
-        items: [
-          {
-            description: "Tea",
-            quantity: "2",
-            unitPrice: "",
-            lineTotal: "6.00",
-            discount: "0",
-            taxCode: "",
-            note: "",
-            sourcePhotos: [1],
-          },
-        ],
-      });
-      const result = verifyIndependentReadings(draft, recognition);
-      expect(result.receipt.items[0].quantity).toBe("2");
-      expect(result.receipt.reviewChecks).toContainEqual(
-        expect.objectContaining({
-          scope: "item",
-          itemId: result.receipt.items[0].id,
-          field: "quantity",
-          reason: "source",
-          confirmedValue: "",
-        }),
-      );
-      const sourceCheck = result.receipt.reviewChecks.find(
-        (check) => check.scope === "item" && check.field === "quantity",
-      )!;
-      expect(reviewMessage(sourceCheck)).toContain("pack description");
-      expect(reviewMessage(sourceCheck)).not.toContain("single text reading");
-      expect(calculateReceipt(result.receipt).issues).toContainEqual(
-        expect.objectContaining({ path: "items.0.quantity" }),
-      );
-    },
-  );
 });

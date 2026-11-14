@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ReceiptImage } from "./images";
 import type { ReadingContext } from "./reading-context.mjs";
 import { panelsForImages } from "./panel-transport";
-import { receiptFromAi } from "./gemini";
+import { receiptFromOpenAi } from "./openai-draft";
 import { MAX_AI_BODY_BYTES } from "./scan-limits.mjs";
 import { openaiStatusSchema } from "./openai-schema.mjs";
 
@@ -27,11 +27,11 @@ export async function extractWithOpenAi(
   const body = JSON.stringify({ consent: true, useCredits: true, panels });
   if (new TextEncoder().encode(body).byteLength > MAX_AI_BODY_BYTES)
     throw new Error(
-      "These receipt sections are too large together. Choose fewer sections or another reader.",
+      "These receipt sections are too large together. Crop the photos or choose fewer sections.",
     );
   const deadline = AbortSignal.timeout(95000);
   const requestSignal = AbortSignal.any([signal, deadline]);
-  progress("OpenAI is reading your photos as one receipt…");
+  progress("OpenAI is reading your receipt…");
   try {
     const response = await fetch("./api/receipts/openai", {
       method: "POST",
@@ -42,15 +42,17 @@ export async function extractWithOpenAi(
       body,
       signal: requestSignal,
     });
-    const result = await response.json();
+    const result = response.ok
+      ? await response.json()
+      : await response.json().catch(() => null);
     requestSignal.throwIfAborted();
     if (!response.ok)
       throw new Error(
-        typeof result.error === "string"
+        typeof result?.error === "string"
           ? result.error.slice(0, 500)
           : "OpenAI could not read this receipt. Your photos are still available.",
       );
-    return receiptFromAi(result.receipt, "OpenAI", context);
+    return receiptFromOpenAi(result?.receipt, context, images.length);
   } catch (error) {
     if (signal.aborted || deadline.aborted)
       throw new Error(

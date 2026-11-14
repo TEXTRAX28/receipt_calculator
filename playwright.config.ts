@@ -1,38 +1,23 @@
 import { defineConfig, devices } from "@playwright/test";
+
+const port = 4187;
+const baseURL = "http://127.0.0.1:" + port;
+const channel = process.env.GATHER_TEST_CHROME === "1" ? "chrome" : undefined;
+
 export default defineConfig({
   testDir: "./tests/e2e",
-  testIgnore: [
-    ...(!process.env.GATHER_ENHANCED_PRIVATE_TEST
-      ? ["**/enhanced-reader-real.spec.ts"]
-      : []),
-    ...(!process.env.GATHER_LOCAL_COMPARISON_URL
-      ? ["**/compared-reader-real.spec.ts"]
-      : []),
-    ...(!process.env.GATHER_LOCAL_VISION_URL
-      ? ["**/local-vision-real.spec.ts"]
-      : []),
-    ...(!process.env.GATHER_REAL_RECEIPT ? ["**/real-receipt.spec.ts"] : []),
-    ...(!process.env.GATHER_LOCAL_MODEL_URL
-      ? ["**/computer-reader-real.spec.ts"]
-      : []),
-  ],
   timeout: 60000,
   expect: { timeout: 10000 },
-  fullyParallel: true,
-  retries: 0,
-  workers: 2,
-  reporter: [["list"], ["html", { open: "never" }]],
-  use: {
-    baseURL: "http://127.0.0.1:4173",
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
-  },
+  workers: 1,
+  outputDir: "test-results",
+  reporter: "list",
+  use: { baseURL, trace: "retain-on-failure" },
   projects: [
     {
       name: "desktop",
       use: {
         ...devices["Desktop Chrome"],
-        channel: "chrome",
+        channel,
         viewport: { width: 1440, height: 1000 },
       },
     },
@@ -41,30 +26,15 @@ export default defineConfig({
       use: {
         ...devices["iPhone 13"],
         defaultBrowserType: "chromium",
-        channel: "chrome",
+        channel,
+        deviceScaleFactor: 1,
       },
     },
   ],
   webServer: {
-    command: "npm run preview -- --port 4173",
-    env: {
-      LOCAL_OCR_PYTHON: "",
-      GEMINI_API_KEY: "",
-      OPEN_AI_KEY: "",
-      OPENAI_API_KEY: "",
-      OPENAI_ALLOWANCE_ID: "",
-      OPENAI_REQUEST_LIMIT: "0",
-      VERYFI_CLIENT_ID: "",
-      VERYFI_BEARER_KEY: "",
-      VERYFI_ALLOWANCE_ID: "",
-      VERYFI_DOCUMENT_LIMIT: "0",
-      AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: "",
-      AZURE_DOCUMENT_INTELLIGENCE_KEY: "",
-      AZURE_ALLOWANCE_ID: "",
-      AZURE_SECTION_LIMIT: "0",
-    },
-    url: "http://127.0.0.1:4173",
+    command: "node scripts/start.mjs --port " + port,
+    env: { OPENAI_API_KEY: "", OPEN_AI_KEY: "", OPENAI_REQUEST_LIMIT: "0" },
+    url: baseURL,
     reuseExistingServer: false,
-    timeout: 30000,
   },
 });

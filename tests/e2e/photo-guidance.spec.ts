@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 
@@ -112,61 +112,4 @@ test("crop checks use its original native resolution while the original preview 
   await expect(
     page.getByAltText("Receipt preview 1", { exact: true }),
   ).toHaveAttribute("src", source!);
-});
-
-test("capture advice does not block a chosen reader or replace financial verification (mock reader protocol)", async ({
-  page,
-}) => {
-  await page.route("**/api/receipts/providers", (route) =>
-    route.fulfill({
-      json: { localModel: { configured: true, name: "PaddleOCR" } },
-    }),
-  );
-  await page.route("**/api/receipts/recognize", (route) => {
-    const request = route.request().postDataJSON();
-    const lines = [
-      "LITTLE MARKET",
-      "Milk 1x 2.00 2.00",
-      "Bread 1x 1.50 1.50",
-      "TOTAL GBP 3.50",
-    ];
-    return route.fulfill({
-      json: {
-        recognition: {
-          engine: "paddle-ppocrv6-medium-onnx",
-          panels: request.panels.map(
-            (panel: { photo: number; part: number }) => ({
-              photo: panel.photo,
-              part: panel.part,
-              width: 700,
-              height: 700,
-              lines: lines.map((text, i) => ({
-                text,
-                confidence: 0.95,
-                box: [0.1, 0.1 + i * 0.1, 0.9, 0.15 + i * 0.1],
-              })),
-              words: [],
-            }),
-          ),
-        },
-      },
-    });
-  });
-  await page.goto("/");
-  await page
-    .getByLabel("Upload receipt images")
-    .setInputFiles(await photo(page, "dark"));
-  await expect(
-    page.getByRole("status", { name: "Photo checks" }),
-  ).toContainText("very dark");
-  await page
-    .getByRole("button", { name: "Read receipt on this computer", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "A quick check, then we share." }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("textbox", { name: "Printed total", exact: true }),
-  ).toHaveValue("3.50");
-  await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(2);
 });

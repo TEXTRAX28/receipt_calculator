@@ -221,7 +221,7 @@ describe("signed purchases, refund credits and exact ownership", () => {
     expect(calculateSplit(s).canFinalize).toBe(false);
     expect(calculateReceipt(s.receipt).issues).toContainEqual(
       expect.objectContaining({
-        path: "adjustments.fee",
+        path: "adjustments.fee.allocation",
         message: expect.stringMatching(/mixed|purchases and returns/i),
       }),
     );

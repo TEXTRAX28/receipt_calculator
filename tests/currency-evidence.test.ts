@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateReceipt, calculateSplit } from "../src/lib/engine";
-import { receiptFromAi } from "../src/lib/gemini";
+import { receiptFromOpenAi } from "../src/lib/openai-draft";
 import { receiptStamp, type Currency } from "../src/lib/model";
 import { formatReceiptMoney } from "../src/lib/money";
 import { parseReceiptText } from "../src/lib/parser";
@@ -39,7 +39,7 @@ describe("currency evidence is required before money can be checked", () => {
 
   it("blocks a fully assigned and manually stamped balanced AI draft when currency is missing", () => {
     const state = shop();
-    state.receipt = receiptFromAi({ ...aiCostcoDraft(), currency: "" });
+    state.receipt = receiptFromOpenAi({ ...aiCostcoDraft(), currency: "" });
     state.receipt.items.forEach((item) => {
       item.assignment.participants = state.people.map((person) => person.id);
     });

@@ -3,15 +3,15 @@ import {
   aiReceiptJsonSchema,
   aiReceiptSchema,
 } from "../src/lib/extraction-schema.mjs";
-import { requestPanelsSchema } from "../src/lib/recognition-schema.mjs";
 import { MAX_AI_BODY_BYTES } from "../src/lib/scan-limits.mjs";
 import {
+  openaiRequestSchema,
   OPENAI_MODEL,
   OPENAI_ESTIMATE_GUARD_USD,
 } from "../src/lib/openai-schema.mjs";
 import { RECEIPT_INSTRUCTIONS } from "./extraction-instructions.mjs";
 import { createDocumentAllowance } from "./document-allowance.mjs";
-import { validatePreparedJpeg } from "./receipt-zip.mjs";
+import { validatePreparedJpeg } from "./prepared-jpeg.mjs";
 
 export const OPENAI_ENDPOINT = "https://api.openai.com/v1/responses";
 export class OpenAiError extends Error {
@@ -26,11 +26,29 @@ const invalid = () =>
     "OpenAI did not return a complete valid receipt draft. Your photos are still available; no automatic retry was made.",
   );
 
+function providerFailure(status) {
+  const message =
+    status === 401 || status === 403 || status === 404
+      ? "OpenAI denied access. Check the server's API key and model access."
+      : status === 429
+        ? "OpenAI is rate-limited or out of quota. Check usage before trying again."
+        : status >= 500
+          ? "OpenAI is temporarily unavailable. Try again later."
+          : "OpenAI rejected the receipt request. Try a smaller crop.";
+  return new OpenAiError(
+    status === 429 ? 429 : 502,
+    message + " Your photos are still available for manual entry.",
+  );
+}
+
 export function prepareOpenAiRequest(input) {
-  const panels = requestPanelsSchema.parse(input),
+  const panels = openaiRequestSchema.shape.panels.parse(input),
     dimensions = [];
   const content = panels.flatMap((panel) => {
-    dimensions.push(validatePreparedJpeg(Buffer.from(panel.data, "base64")));
+    const bytes = Buffer.from(panel.data, "base64");
+    if (bytes.toString("base64") !== panel.data)
+      throw new Error("Invalid prepared JPEG encoding");
+    dimensions.push(validatePreparedJpeg(bytes));
     return [
       {
         type: "input_text",
@@ -82,7 +100,7 @@ export function prepareOpenAiRequest(input) {
     if (width > 65535 || height > 65535 || patches > 30000)
       throw new OpenAiError(
         400,
-        "A receipt section is too large for this OpenAI setting. Crop it or choose another reader.",
+        "A receipt section is too large for this OpenAI setting. Crop it before scanning.",
       );
     return sum + Math.ceil(patches * 1.2);
   }, 0);
@@ -95,13 +113,13 @@ export function prepareOpenAiRequest(input) {
   if (estimateUsd > OPENAI_ESTIMATE_GUARD_USD)
     throw new OpenAiError(
       413,
-      "These sections exceed this reader's $0.60 estimate guard. Choose fewer sections or another reader. No OpenAI request was sent.",
+      "These sections exceed the US$0.60 scan estimate limit. Crop the photos or choose fewer sections.",
     );
   const serialized = JSON.stringify(body);
   if (Buffer.byteLength(serialized) > MAX_AI_BODY_BYTES)
     throw new OpenAiError(
       413,
-      "These receipt sections are too large together. Choose fewer sections or another reader.",
+      "These receipt sections are too large together. Crop the photos or choose fewer sections.",
     );
   return {
     serialized,
@@ -264,22 +282,30 @@ export function createOpenAiReader({
           );
         }
         abort.throwIfAborted();
-        const response = await fetcher(OPENAI_ENDPOINT, {
-          method: "POST",
-          redirect: "error",
-          signal: abort,
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: prepared.serialized,
-        });
-        const raw = await limitedText(response, abort);
-        if (!response.ok)
+        let response;
+        try {
+          response = await fetcher(OPENAI_ENDPOINT, {
+            method: "POST",
+            redirect: "error",
+            signal: abort,
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: prepared.serialized,
+          });
+        } catch {
+          abort.throwIfAborted();
           throw new OpenAiError(
-            response.status === 429 ? 429 : 502,
-            "OpenAI could not read this receipt. The attempt remains used and may have used API credits. Your photos are still available; no automatic retry was made.",
+            502,
+            "Could not connect to OpenAI. Your photos are still available for manual entry.",
           );
+        }
+        if (!response.ok) {
+          void response.body?.cancel().catch(() => {});
+          throw providerFailure(response.status);
+        }
+        const raw = await limitedText(response, abort);
         const receipt = decode(
           JSON.parse(raw.replaceAll(apiKey, "[REDACTED]")),
           prepared.photos,

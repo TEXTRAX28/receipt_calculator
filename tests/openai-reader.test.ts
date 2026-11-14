@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createServer, type Server } from "node:http";
+import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
+import { once } from "node:events";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import {
@@ -15,8 +17,9 @@ import {
   openaiRequestSchema,
   openaiStatusSchema,
 } from "../src/lib/openai-schema.mjs";
-import { receiptFromAi } from "../src/lib/gemini";
+import { receiptFromOpenAi } from "../src/lib/openai-draft";
 import { aiCostcoDraft } from "./fixtures/ai-receipt";
+import { MAX_AI_BODY_BYTES } from "../src/lib/scan-limits.mjs";
 
 // Protocol fixtures only. These are not credentials or real model readings.
 const fakeKey = "sk-offline_openai_protocol_test_not_a_real_key";
@@ -78,7 +81,7 @@ afterEach(async () => {
   }
 });
 
-describe("OpenAI explicit last-resort reader; offline transports only", () => {
+describe("OpenAI receipt reader; offline transports only", () => {
   it("needs both upload and credit consent in the HTTP contract", () => {
     expect(
       openaiRequestSchema.safeParse({ consent: true, panels }).success,
@@ -163,7 +166,7 @@ describe("OpenAI explicit last-resort reader; offline transports only", () => {
       method: "POST",
       headers: { Authorization: `Bearer ${fakeKey}` },
     });
-    const converted = receiptFromAi(output.receipt, "OpenAI");
+    const converted = receiptFromOpenAi(output.receipt);
     expect(
       converted.items.map((item) => [
         item.quantity,
@@ -252,6 +255,19 @@ describe("OpenAI explicit last-resort reader; offline transports only", () => {
       expect((await client.model.getStatus()).remaining).toBe(0);
     },
   );
+  it("reports a failed connection once and keeps the attempt charged to the allowance", async () => {
+    const upstream = vi.fn(async () => {
+      throw new TypeError(fakeKey);
+    });
+    const client = await reader({ fetcher: upstream });
+    await expect(client.model.extract(panels)).rejects.toMatchObject({
+      status: 502,
+      message:
+        "Could not connect to OpenAI. Your photos are still available for manual entry.",
+    });
+    expect(upstream).toHaveBeenCalledTimes(1);
+    expect((await client.model.getStatus()).remaining).toBe(0);
+  });
   it.each([
     "incomplete",
     "refusal",
@@ -349,20 +365,27 @@ describe("OpenAI explicit last-resort reader; offline transports only", () => {
   });
   it("keeps an unknown currency unresolved until explicit user context", () => {
     const raw = aiCostcoDraft();
+    expect(receiptFromOpenAi({ ...raw, currency: "" }).currencyUnresolved).toBe(
+      true,
+    );
     expect(
-      receiptFromAi({ ...raw, currency: "" }, "OpenAI").currencyUnresolved,
-    ).toBe(true);
-    expect(
-      receiptFromAi({ ...raw, currency: "" }, "OpenAI", { currency: "GBP" })
+      receiptFromOpenAi({ ...raw, currency: "" }, { currency: "GBP" })
         .currencyUnresolved,
     ).toBe(false);
   });
 });
 
 describe("OpenAI actual loopback API; upstream mocked", () => {
-  async function api() {
-    const client = await reader();
-    const handler = createReceiptApi({ openaiReader: client.model });
+  const authorized = { consent: true, useCredits: true, panels };
+  async function api(
+    options: Parameters<typeof createReceiptApi>[0] = {},
+    clientOptions: Parameters<typeof createOpenAiReader>[0] = {},
+  ) {
+    const client = await reader(clientOptions);
+    const handler = createReceiptApi({
+      ...options,
+      openaiReader: client.model,
+    });
     const server = createServer((req, res) => {
       void handler(req, res, () => {
         res.writeHead(404);
@@ -378,12 +401,104 @@ describe("OpenAI actual loopback API; upstream mocked", () => {
         headers: {
           "content-type": "application/json",
           "x-gather-request": "receipt-scan",
+          origin: base,
           ...headers,
         },
         body: JSON.stringify(body),
       });
     return { ...client, base, post };
   }
+  it("requires a local Origin and the expected content type", async () => {
+    const client = await api();
+    expect((await client.post(authorized, { origin: "null" })).status).toBe(
+      403,
+    );
+    expect(
+      (await client.post(authorized, { "content-type": "image/jpeg" })).status,
+    ).toBe(415);
+    expect(
+      (await client.post(authorized, { "content-encoding": "gzip" })).status,
+    ).toBe(415);
+    expect(client.upstream).not.toHaveBeenCalled();
+  });
+  it.each(["declared", "chunked"])(
+    "rejects an oversized %s upload before reserving an attempt",
+    async (mode) => {
+      const client = await api();
+      const status = await new Promise<number | undefined>(
+        (resolve, reject) => {
+          const upload = request(
+            client.base + "/api/receipts/openai",
+            {
+              method: "POST",
+              headers: {
+                origin: client.base,
+                "content-type": "application/json",
+                "x-gather-request": "receipt-scan",
+                ...(mode === "declared"
+                  ? { "content-length": MAX_AI_BODY_BYTES + 1 }
+                  : { "transfer-encoding": "chunked" }),
+              },
+            },
+            (response) => {
+              response.resume();
+              resolve(response.statusCode);
+            },
+          );
+          upload.once("error", reject);
+          upload.end(
+            mode === "chunked"
+              ? Buffer.alloc(MAX_AI_BODY_BYTES + 1, 32)
+              : undefined,
+          );
+        },
+      );
+      expect(status).toBe(413);
+      expect(client.upstream).not.toHaveBeenCalled();
+      expect((await client.model.getStatus()).remaining).toBe(1);
+    },
+  );
+  it("times out a stalled upload, rejects its concurrent duplicate, and releases the slot", async () => {
+    const client = await api({ uploadTimeoutMs: 800 });
+    const url = new URL(client.base);
+    const socket = connect({ port: Number(url.port), host: url.hostname });
+    try {
+      const chunks: Buffer[] = [];
+      socket.on("data", (chunk) => chunks.push(chunk));
+      const ended = once(socket, "end");
+      await once(socket, "connect");
+      socket.write(
+        [
+          "POST /api/receipts/openai HTTP/1.1",
+          "Host: " + url.host,
+          "Origin: " + client.base,
+          "Content-Type: application/json",
+          "Content-Length: 1000",
+          "x-gather-request: receipt-scan",
+          "",
+          "{",
+        ].join("\r\n"),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      expect((await client.post(authorized)).status).toBe(429);
+      expect(client.upstream).not.toHaveBeenCalled();
+      await ended;
+      expect(Buffer.concat(chunks).toString()).toMatch(/^HTTP\/1\.1 408/);
+    } finally {
+      socket.destroy();
+    }
+    expect((await client.post(authorized)).status).toBe(200);
+  });
+  it("bounds valid submissions over a rolling minute", async () => {
+    let time = 0;
+    const client = await api({ now: () => time }, { limit: 5 });
+    expect((await client.post(authorized)).status).toBe(200);
+    expect((await client.post(authorized)).status).toBe(200);
+    expect((await client.post(authorized)).status).toBe(429);
+    time += 60000;
+    expect((await client.post(authorized)).status).toBe(200);
+    expect(client.upstream).toHaveBeenCalledTimes(3);
+  });
   it("requires both consent flags before spending, then uses the dedicated key and ledger", async () => {
     const client = await api();
     expect((await client.post({ consent: true, panels })).status).toBe(400);
@@ -417,5 +532,30 @@ describe("OpenAI actual loopback API; upstream mocked", () => {
     ).toBe(403);
     expect(client.upstream).not.toHaveBeenCalled();
     expect((await client.model.getStatus()).remaining).toBe(1);
+  });
+  it("has no other receipt endpoints", async () => {
+    const client = await api();
+    const denied = [
+      "providers",
+      "config",
+      "extract",
+      "recognize",
+      "vision",
+      "vision-batches",
+      "azure",
+      "veryfi",
+    ];
+    for (const route of denied) {
+      expect((await fetch(`${client.base}/api/receipts/${route}`)).status).toBe(
+        404,
+      );
+    }
+    const result = await client.post({
+      consent: true,
+      useCredits: true,
+      panels,
+    });
+    expect(result.status).toBe(200);
+    expect(client.upstream).toHaveBeenCalledTimes(1);
   });
 });

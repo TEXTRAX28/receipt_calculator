@@ -439,9 +439,9 @@ describe("net goods with an explicitly tax-inclusive fee", () => {
             confirmedValue: "",
           },
         ],
-        onConfirm: () => {},
       }),
     );
     expect(markup).toContain("includes tax at 20%");
+    expect(markup).not.toContain('type="checkbox"');
   });
 });

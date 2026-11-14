@@ -54,7 +54,12 @@ function mixedTaxParts(costs: bigint[], rate: bigint): bigint[] {
   return parts;
 }
 
-export function calculateReceipt(receipt: Receipt): ReceiptResult {
+export type CalculationOptions = { readingNotes?: "blocking" | "advisory" };
+
+export function calculateReceipt(
+  receipt: Receipt,
+  options: CalculationOptions = {},
+): ReceiptResult {
   if (receipt.currencyUnresolved)
     return {
       hasRefunds: false,
@@ -84,7 +89,8 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       discrepancy: null,
       equalCharges: [],
     };
-  const issues: Issue[] = pendingReviewIssues(receipt);
+  const issues: Issue[] =
+    options.readingNotes === "advisory" ? [] : pendingReviewIssues(receipt);
   const issue = (path: string, message: string) =>
     issues.push({ path, message });
   const read = (value: string, path: string, signed = false) => {
@@ -188,7 +194,10 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
     .filter((a) => a.kind === "discount")
     .map((a) => {
       if (!a.label.trim())
-        issue(`adjustments.${a.id}`, "Give every adjustment a clear label.");
+        issue(
+          `adjustments.${a.id}.label`,
+          "Give every adjustment a clear label.",
+        );
       return read(a.amount, `adjustments.${a.id}`, hasRefunds);
     });
   const purchaseDiscount = sum(discounts.filter((amount) => amount > 0n));
@@ -216,9 +225,12 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
   const afterDiscount = items.map((i) => i.net - i.receiptDiscount);
   if (!receipt.pricesIncludeTax && receipt.taxMode === "codes") {
     const groups = new Map<string, { rate: bigint; indexes: number[] }>();
-    for (const entry of receipt.taxCodes) {
+    for (const [index, entry] of receipt.taxCodes.entries()) {
       if (!entry.code.trim() || groups.has(entry.code)) {
-        issue("taxCodes", "Tax codes must be non-empty and unique.");
+        issue(
+          `taxCodes.${index}.code`,
+          "Tax codes must be non-empty and unique.",
+        );
         continue;
       }
       try {
@@ -227,7 +239,10 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
           throw new Error("Tax rates must be between 0 and 100%.");
         groups.set(entry.code, { rate, indexes: [] });
       } catch (e) {
-        issue("taxCodes", `Code ${entry.code}: ${(e as Error).message}`);
+        issue(
+          `taxCodes.${index}.rate`,
+          `Code ${entry.code}: ${(e as Error).message}`,
+        );
       }
     }
     receipt.items.forEach((item, index) => {
@@ -308,7 +323,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
   )) {
     if (!adjustment.label.trim())
       issue(
-        `adjustments.${adjustment.id}`,
+        `adjustments.${adjustment.id}.label`,
         "Give every adjustment a clear label (including the reason for rounding).",
       );
     let amount = read(
@@ -350,7 +365,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       allocationWeights.some((weight) => weight < 0n)
     )
       issue(
-        `adjustments.${adjustment.id}`,
+        `adjustments.${adjustment.id}.allocation`,
         "This receipt mixes purchases and returns. Choose equal per person for this shared charge, use the printed tax codes, or enter separate signed item charges; proportional ownership is unclear.",
       );
     else if (sum(allocationWeights.map(absolute)) > 0n) {
@@ -361,7 +376,7 @@ export function calculateReceipt(receipt: Receipt): ReceiptResult {
       });
     } else if (amount)
       issue(
-        `adjustments.${adjustment.id}`,
+        `adjustments.${adjustment.id}.allocation`,
         "A proportional adjustment needs nonzero item amounts. Choose equal per person or add priced items.",
       );
   }
@@ -536,8 +551,11 @@ export interface PersonTotal {
   total: bigint;
   lines: PersonLine[];
 }
-export function calculateSplit(state: AppState) {
-  const receipt = calculateReceipt(state.receipt);
+export function calculateSplit(
+  state: AppState,
+  options: CalculationOptions = {},
+) {
+  const receipt = calculateReceipt(state.receipt, options);
   const issues = [...receipt.issues];
   if (state.reviewedStamp !== receiptStamp(state.receipt))
     issues.push({

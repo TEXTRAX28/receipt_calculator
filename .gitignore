@@ -2,12 +2,23 @@ node_modules/
 dist/
 .vite/
 .cache/
+.receipt-assets/
 public/ocr/
 public/ocr-enhanced/
 public/pdf-assets/
 .env
 .env.*
 !.env.example
+.npmrc
+.yarnrc.yml
+*.key
+*.pem
+*.pfx
+*.p12
+*.cer
+*.crt
+*.der
+.venv/
 *.log
 *.tsbuildinfo
 uploads/
@@ -29,17 +40,8 @@ Desktop.ini
 *.swp
 *.tmp
 
-# Receipt pilot: keep originals, downloaded images, raw labels and OCR private.
-receipt_training/costco/**
-receipt_training/non_costco/**
-receipt_training/unclassified/**
-receipt_training/synthetic/**
-receipt_training/annotations/raw/**
-receipt_training/annotations/private/**
-receipt_training/evaluation/runs/**
-receipt_training/evaluation/contact-sheets/**
-receipt_training/.cache/**
-receipt_training/scripts/__pycache__/
+# Prior reader research and local receipt data.
+/receipt_training/
 **/__pycache__/
 
 # Generated local Graphify graph, caches and scratch files

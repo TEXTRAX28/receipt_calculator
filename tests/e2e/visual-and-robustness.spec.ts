@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./editor-fixture";
 import { mkdir } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -93,7 +93,7 @@ test("separate browser contexts do not see each other’s receipt data", async (
   const isolated = await browser.newContext();
   try {
     const other = await isolated.newPage();
-    await other.goto("http://127.0.0.1:4173/");
+    await other.goto(String(test.info().project.use.baseURL));
     await expect(
       other.getByRole("heading", { name: "Big shop. Little maths." }),
     ).toBeVisible();
@@ -123,9 +123,9 @@ test("corrupted browser storage shows a recoverable state", async ({
     );
   });
   await page.goto("/");
-  await expect(page.getByRole("status")).toContainText(
-    "could not be read safely",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "could not be read safely" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Enter manually" }),
   ).toBeEnabled();
@@ -140,7 +140,9 @@ test("unavailable browser storage preserves the in-memory workflow with a warnin
     };
   });
   await page.goto("/");
-  await expect(page.getByRole("status")).toContainText("could not be saved");
+  await expect(
+    page.getByRole("status").filter({ hasText: "could not be saved" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Enter manually" }).click();
   await expect(
     page.getByRole("textbox", { name: "Merchant", exact: true }),
@@ -154,7 +156,11 @@ test("a second tab cannot silently overwrite an open draft", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Try the Costco demo" }).click();
   const other = await context.newPage();
-  await other.goto("http://127.0.0.1:4173/");
+  await other.goto(String(test.info().project.use.baseURL));
+  const otherEditor = other.locator("#receipt-editor");
+  await expect(otherEditor).toBeAttached();
+  if ((await otherEditor.getAttribute("open")) === null)
+    await otherEditor.locator(":scope > summary").click();
   await other
     .getByRole("textbox", { name: "Merchant", exact: true })
     .fill("Other tab shop");

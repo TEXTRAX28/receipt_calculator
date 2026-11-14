@@ -47,7 +47,9 @@ export function saveDraft(
   const safe = appSchema.parse(state);
   const persisted = { ...safe, receipt: { ...safe.receipt, rawText: "" } };
   // Review fingerprints ignore OCR text, so refreshing never undoes a valid financial review.
-  if (safe.reviewedStamp === receiptStamp(safe.receipt))
+  // Check the accepted in-memory value before schema parsing reorders optional
+  // properties, then remap that valid acceptance onto the persisted shape.
+  if (state.reviewedStamp === receiptStamp(state.receipt))
     persisted.reviewedStamp = receiptStamp(persisted.receipt);
   persisted.finalizedStamp = ""; // A refreshed draft is rechecked before it can be finalized again.
   const text = JSON.stringify(persisted);

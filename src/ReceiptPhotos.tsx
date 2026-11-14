@@ -3,15 +3,15 @@ import type { ReceiptImage } from "./lib/images";
 
 /** The copy URL belongs to this view; the original URL belongs to capture. */
 export default function ReceiptPhotos({ image }: { image: ReceiptImage }) {
-  const corrected = !!image.geometry && !!image.ocrBlob;
+  const corrected = !!image.geometry && !!image.scanBlob;
   const [showCopy, setShowCopy] = useState(corrected);
   const [copyUrl, setCopyUrl] = useState("");
   useEffect(() => {
     if (!corrected) return;
-    const url = URL.createObjectURL(image.ocrBlob!);
+    const url = URL.createObjectURL(image.scanBlob!);
     setCopyUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [corrected, image.ocrBlob]);
+  }, [corrected, image.scanBlob]);
   return (
     <div className="image-dialog">
       <h2>{showCopy ? "Corrected receipt" : "Original receipt"}</h2>

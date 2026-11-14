@@ -4,7 +4,10 @@ import path from "node:path";
 
 const require = createRequire(import.meta.url);
 const source = path.dirname(require.resolve("pdfjs-dist/package.json"));
-const target = path.resolve(import.meta.dirname, "../public/pdf-assets");
+const target = path.resolve(
+  import.meta.dirname,
+  "../.receipt-assets/pdf-assets",
+);
 await mkdir(target, { recursive: true });
 for (const directory of ["cmaps", "standard_fonts", "wasm", "iccs"])
   await cp(path.join(source, directory), path.join(target, directory), {

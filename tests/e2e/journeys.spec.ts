@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expectReviewAttention, expectReviewReady } from "./review-assertions";
+import { expect, test, type Page } from "./editor-fixture";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdir } from "node:fs/promises";
 
@@ -56,12 +57,15 @@ test("unknown currency stays unpriced until explicitly selected, including the e
   });
   await expect(currency).toHaveValue("");
   await expect(currency).toHaveAttribute("aria-invalid", "true");
-  await expect(confirm).toBeDisabled();
+  await expectReviewAttention(page, confirm);
   await expect(page.locator(".item-cost")).toHaveText("—");
-  await expect(page.locator(".grand-total strong")).toHaveText("—");
+  await expect(page.locator(".receipt-grand-total button")).toHaveText("2.00");
+  await expect(
+    page.getByRole("region", { name: "Digital receipt", exact: true }),
+  ).not.toContainText("£");
   await page.reload();
   await expect(currency).toHaveValue("");
-  await expect(confirm).toBeDisabled();
+  await expectReviewAttention(page, confirm);
   await expect(
     page.getByRole("textbox", { name: "Item 1 line price", exact: true }),
   ).toHaveValue("2.00");
@@ -90,7 +94,7 @@ test("unknown currency stays unpriced until explicitly selected, including the e
   await currency.selectOption("GBP");
   await expect(currency).not.toHaveAttribute("aria-invalid", "true");
   await expect(page.locator(".item-cost")).toHaveText("£2.00");
-  await expect(confirm).toBeEnabled();
+  await expectReviewReady(page, confirm);
   await confirm.click();
   await page.reload();
   await expect(
@@ -127,6 +131,13 @@ test("manual entry → review → people → equal sharing → export and refres
   await expect(
     page.getByRole("button", { name: "Finalize checked split" }),
   ).toBeEnabled();
+  await page.getByRole("button", { name: "Finalize checked split" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "All balanced. All accounted for.",
+      exact: true,
+    }),
+  ).toBeVisible();
 });
 test("quantity 1/3/5 is rejected and corrected to valid 1/3/4", async ({
   page,
@@ -149,9 +160,10 @@ test("quantity 1/3/5 is rejected and corrected to valid 1/3/4", async ({
       .getByRole("textbox", { name: `Units for ${name}`, exact: false })
       .fill(value);
   await expect(card).toContainText("1 units too many");
-  await expect(
+  await expectReviewAttention(
+    page,
     page.getByRole("button", { name: "Finalize split", exact: true }),
-  ).toBeDisabled();
+  );
   await expect(
     card.getByRole("textbox", { name: "Units for Charlie", exact: false }),
   ).toHaveValue("5");
@@ -185,9 +197,10 @@ test("ratio and percentage share methods have distinct validation", async ({
       .fill(value);
   for (const [i, value] of ["£2.00", "£6.00", "£10.00"].entries())
     await expect(page.getByTestId(`live-total-${i}`)).toHaveText(value);
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Finalize split", exact: true }),
-  ).toBeEnabled();
+  );
   await card
     .getByLabel("Split method", { exact: true })
     .selectOption("percent");
@@ -203,9 +216,10 @@ test("ratio and percentage share methods have distinct validation", async ({
   await card
     .getByRole("textbox", { name: "Percent for Charlie", exact: false })
     .fill("50");
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Finalize split", exact: true }),
-  ).toBeEnabled();
+  );
 });
 test("whole-receipt sharing ignores previous item shares", async ({ page }) => {
   await manual(page);
@@ -235,10 +249,11 @@ test("Costco demo retains repeated chickens, discounts and correct tax total", a
   ).toBeVisible();
   await expect(page.locator('[data-testid^="review-item-"]')).toHaveCount(18);
   await expect(page.getByTestId("review-item-3")).toContainText("£7.49");
-  await expect(page.locator(".grand-total")).toContainText("£176.78");
-  await expect(
+  await expect(page.locator(".receipt-grand-total")).toContainText("£176.78");
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeEnabled();
+  );
   await page
     .getByRole("button", { name: "Confirm receipt & add people" })
     .click();
@@ -262,9 +277,10 @@ test("edits after assignment invalidate review; removing people recalculates saf
   await page
     .getByRole("textbox", { name: "Item 1 line price", exact: true })
     .fill("12.00");
-  await expect(
+  await expectReviewAttention(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   await page
     .getByRole("textbox", { name: "Printed total", exact: true })
     .fill("12.00");
@@ -276,9 +292,10 @@ test("edits after assignment invalidate review; removing people recalculates saf
   await page.getByRole("button", { name: "Let’s share it" }).click();
   await expect(page.getByTestId("live-total-0")).toHaveText("£6.00");
   await expect(page.getByTestId("live-total-1")).toHaveText("£6.00");
-  await expect(
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Finalize split", exact: true }),
-  ).toBeEnabled();
+  );
 });
 test("duplicate names and hostile markup remain separate inert text", async ({
   page,
@@ -308,17 +325,25 @@ test("pasted text with missing quantity stays reviewable and blocks confirmation
     .getByRole("textbox", { name: "Receipt text", exact: true })
     .fill("Neighbourhood Market\nMilk £2.50\nApples £3.00\nTOTAL £5.50");
   await page.getByRole("button", { name: "Review this text" }).click();
-  await expect(
+  await expectReviewAttention(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeDisabled();
+  );
   await page
     .getByRole("button", {
       name: "Confirm all missing purchased quantities as 1",
     })
     .click();
-  await expect(
+  await expect(page.getByTestId("review-item-0")).toContainText(
+    "2.50 GBP each",
+  );
+  await expect(page.getByTestId("review-item-1")).toContainText(
+    "3.00 GBP each",
+  );
+  await expectReviewReady(
+    page,
     page.getByRole("button", { name: "Confirm receipt & add people" }),
-  ).toBeEnabled();
+  );
 });
 test("rejects malformed, spoofed and excessive uploads without a scan", async ({
   page,
@@ -331,7 +356,7 @@ test("rejects malformed, spoofed and excessive uploads without a scan", async ({
   });
   await expect(page.getByRole("alert")).toContainText("file signature");
   await expect(
-    page.getByRole("button", { name: "Read receipt on this device" }),
+    page.getByRole("button", { name: "Read receipt with OpenAI credits" }),
   ).toHaveCount(0);
   await page.getByLabel("Upload receipt images").setInputFiles(
     Array.from({ length: 13 }, (_, i) => ({
@@ -350,7 +375,7 @@ test("privacy dialog, keyboard escape, reset and responsive layout", async ({
     .getByRole("button", { name: "Privacy first", exact: false })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
-    "The on-device reader uses English OCR",
+    "Gather sends the selected photos or rendered PDF pages to OpenAI",
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
@@ -401,7 +426,9 @@ test("no external service requests or receipt uploads during ordinary sharing", 
   const uploads: string[] = [];
   page.on("request", (request) => {
     if (
-      !request.url().startsWith("http://127.0.0.1:4173") &&
+      !request
+        .url()
+        .startsWith(new URL(test.info().project.use.baseURL!).origin) &&
       !request.url().startsWith("data:")
     )
       requests.push(request.url());

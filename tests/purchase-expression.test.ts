@@ -288,17 +288,21 @@ describe("separate literal purchase expressions", () => {
     expect(result.rows.size).toBe(0);
     expect(result.unmatched).toEqual([3]);
   });
-  it("does not treat a pack name as the purchased count or calculate a missing total", () => {
+  it("keeps the purchased count and charged line independently of the pack name or inconsistent unit observation", () => {
     const { receipt } = parseReceiptWithSources(
       "Currency GBP\nCanned peas 6x340g\n2x 10.00 25.00\nTOTAL 25.00",
     );
     expect(receipt.items[0]).toMatchObject({
       description: "Canned peas 6x340g",
       quantity: "2",
-      unitPrice: "10.00",
+      unitPrice: "12.50",
+      observedUnitPrice: "10.00",
+      unitPriceDerived: true,
       lineTotal: "25.00",
     });
-    expect(calculateReceipt(receipt).issues.length).toBeGreaterThan(0);
+    expect(
+      calculateReceipt(receipt, { readingNotes: "advisory" }).issues,
+    ).toEqual([]);
   });
   it("preserves unresolved number formats and valid three-decimal currencies", () => {
     const text = "Milk\n2x3.995 7.990\nTOTAL 7.990";

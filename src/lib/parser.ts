@@ -9,15 +9,15 @@ import {
 import { printedAmount } from "./printed-amount";
 import { normalizeReceiptDate } from "./receipt-date";
 import { matchCostcoRow } from "./costco-row";
-import { readCostcoWordRows, type ObservedCostcoRow } from "./costco-word-rows";
-import {
-  readFinalTotalFragments,
-  type FinalTotalFragment,
-} from "./final-total-fragments";
 import { isItemCountLine, separatePurchaseRows } from "./purchase-expression";
 import { matchFinancialSummaryRow } from "./financial-basis";
 import { columnPurchaseRows } from "./column-purchases";
-import { readOcrInvoice } from "./ocr-invoice";
+import { reconcileObservedUnits } from "./receipt-reconciliation";
+import {
+  countedPurchaseRows,
+  findTaxRegistrations,
+  printedTaxRate,
+} from "./receipt-roles";
 import { z } from "zod";
 import {
   readingContextSchema,
@@ -39,10 +39,12 @@ const valuesIn = (line: string) =>
 // OCR sometimes reads the opening parenthesis as C. Accept only the complete
 // tax-total heading with its closing parenthesis; never repair amount tokens.
 const totalHeading = (line: string) =>
-  line.replace(
-    /^([^\p{L}\p{N}]*TOTAL)C(?=(?:INCL|EXCL)\s+(?:VAT|TAX)\s*[)）])/iu,
-    "$1(",
-  );
+  line
+    .replace(/^([^\p{L}\p{N}]*TOTAL)\s+TO\s+PAY\b/iu, "$1")
+    .replace(
+      /^([^\p{L}\p{N}]*TOTAL)C(?=(?:INCL|EXCL)\s+(?:VAT|TAX)\s*[)）])/iu,
+      "$1(",
+    );
 export const isFinalTotal = (line: string) =>
   /\b(?:total\s*\(?\s*(?:incl(?:uding)?\.?\s*(?:vat|tax))|grand total|amount due|balance due|(?:total(?:\s+refund)?|refund total|amount refunded)\s*[:£$€]?\s*(?:(?:GBP|USD|EUR|CAD|AUD|NZD|JPY|KWD|BHD|CHF|SEK|KRW|IDR|TWD|Rp\.?)\s*)?[-−]?\s*[£$€]?\s*[-−]?\s*\d)/i.test(
     totalHeading(line),
@@ -70,16 +72,39 @@ export function parseReceiptWithSources(
   sources: Record<string, number[]>;
   columnSources: Record<string, ColumnSource>;
   fieldSources: Partial<Record<ReceiptReviewField, number[]>>;
-  observedCostcoRows?: Partial<Record<number, ObservedCostcoRow>>;
-  finalTotalFragments?: FinalTotalFragment[];
 } {
   const selected = readingContextSchema.optional().parse(context);
   const { text } = extractionOutputSchema.parse(
     typeof output === "string" ? { text: output } : output,
   );
-  const invoice = readOcrInvoice(output, text, selected);
-  if (invoice) return invoice;
+  const metadataLines = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const registrations = findTaxRegistrations(
+    metadataLines,
+    selected?.currency as Currency | undefined,
+  );
+  const rates = [
+    ...new Set(
+      metadataLines
+        .filter((_, index) => !registrations.indices.has(index))
+        .map(printedTaxRate)
+        .filter((value): value is string => value !== null),
+    ),
+  ];
+  const taxMetadata = {
+    taxRegistrationNumber:
+      registrations.values.length === 1 ? registrations.values[0] : "",
+    printedTaxRate: rates.length === 1 ? rates[0] : "",
+  };
   const receipt = newReceipt();
+  Object.assign(receipt, taxMetadata);
+  if (registrations.values.length > 1)
+    receipt.warnings.push(
+      "Different tax registration identifiers were read. Check whether these photos belong to the same bill.",
+    );
   const sources: Record<string, number[]> = {};
   const columnSources: Record<string, ColumnSource> = {};
   const fieldSources: Partial<Record<ReceiptReviewField, number[]>> = {};
@@ -203,7 +228,6 @@ export function parseReceiptWithSources(
       );
   }
   let taxAmount = "";
-  const finalTotals = readFinalTotalFragments(output, lines);
   const extraCharges: {
     label: string;
     kind: "fee" | "tip" | "deposit" | "discount" | "rounding";
@@ -216,8 +240,12 @@ export function parseReceiptWithSources(
   >();
   let inSummary = false;
   for (const [lineIndex, line] of lines.entries()) {
+    if (registrations.indices.has(lineIndex)) continue;
     if (line === PHOTO_SEPARATOR) inSummary = false;
-    let financial = matchFinancialSummaryRow(line);
+    let financial = matchFinancialSummaryRow(
+      line,
+      currencyIdentified ? receipt.currency : undefined,
+    );
     // A purchased service can be named simply "Service" or "Fee". Only the
     // subtotal section establishes those otherwise ambiguous words as charges.
     if (
@@ -304,45 +332,7 @@ export function parseReceiptWithSources(
         });
     }
   }
-  const fragmentValues = new Set(
-    finalTotals.map((row) => normalize(row.literal)).filter(Boolean),
-  );
-  if (finalTotals.length) {
-    const candidate = fragmentValues.size === 1 ? [...fragmentValues][0] : "";
-    const different =
-      fragmentValues.size > 1 ||
-      Boolean(
-        candidate && receipt.printedTotal && candidate !== receipt.printedTotal,
-      );
-    if (candidate && !receipt.printedTotal) receipt.printedTotal = candidate;
-    fieldSources.printedTotal = [
-      ...new Set([
-        ...(fieldSources.printedTotal || []),
-        ...finalTotals.flatMap((row) => row.sourceIndices),
-      ]),
-    ].sort((a, b) => a - b);
-    receipt.reviewChecks.push({
-      scope: "receipt",
-      field: "printedTotal",
-      reason: different ? "different" : candidate ? "source" : "unclear",
-      other: different
-        ? "Different printed final-total candidates were observed. Check every highlighted region against the original."
-        : "Check the final-total label and amount across the original source fragments; the amount shares another OCR row.",
-      ...(different && candidate
-        ? {
-            details: [
-              {
-                label: "Existing total candidate",
-                value: receipt.printedTotal,
-              },
-              { label: "Fragmented footer candidate", value: candidate },
-            ],
-          }
-        : {}),
-      confirmedValue: "",
-    });
-  }
-  // Repeated photographs can repeat a VAT legend; keep one definition, never remove purchased items.
+  // Overlapping receipts can repeat a VAT legend. Keep one definition.
   receipt.taxCodes = receipt.taxCodes.filter(
     (entry, index, all) =>
       all.findIndex((e) => e.code === entry.code && e.rate === entry.rate) ===
@@ -390,13 +380,17 @@ export function parseReceiptWithSources(
   let pendingDescription = "";
   let pendingSource: number | undefined;
   let itemSectionEnded = false;
-  const observed = readCostcoWordRows(output, lines, isCostco, finalTotals);
   const separate = separatePurchaseRows(lines, PHOTO_SEPARATOR, isFinalTotal);
   const columns = columnPurchaseRows(
     lines,
     currencyIdentified ? receipt.currency : undefined,
     PHOTO_SEPARATOR,
     (line, index) => isFinalTotal(line) || financialRows.has(index),
+  );
+  const counted = countedPurchaseRows(
+    lines,
+    currencyIdentified ? receipt.currency : undefined,
+    PHOTO_SEPARATOR,
   );
   const separateTitles = new Set(
     [...separate.rows.values()].map((row) => row.titleIndex),
@@ -412,14 +406,16 @@ export function parseReceiptWithSources(
       confirmedValue: "",
     });
   for (const [lineIndex, line] of lines.entries()) {
-    const observedRow = observed.rows[lineIndex];
-    if (observed.titles.has(lineIndex)) {
+    if (line === PHOTO_SEPARATOR) {
+      itemSectionEnded = false;
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
-    if (line === PHOTO_SEPARATOR) {
-      itemSectionEnded = false;
+    if (
+      registrations.indices.has(lineIndex) ||
+      counted.headings.has(lineIndex)
+    ) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
@@ -439,14 +435,50 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    if (
-      isFinalTotal(line) ||
-      finalTotals.some((row) => row.headingIndex === lineIndex)
-    )
-      itemSectionEnded = true;
+    if (isFinalTotal(line)) itemSectionEnded = true;
     if (itemSectionEnded) continue;
-    if (!observedRow && columns.titles.has(lineIndex)) continue;
-    const column = !observedRow && columns.rows.get(lineIndex);
+    const countedRow = counted.rows.get(lineIndex);
+    if (countedRow) {
+      const item = newItem();
+      item.description = countedRow.description.slice(0, 180);
+      item.quantity = countedRow.quantity;
+      item.unitPrice = countedRow.unitPrice
+        ? normalize(countedRow.unitPrice)
+        : "";
+      item.unitPriceDerived = countedRow.calculatedUnitPrice;
+      item.lineTotal = normalize(countedRow.lineTotal);
+      item.taxCode =
+        receipt.taxCodes.length || isCostco ? countedRow.taxCode : "";
+      if (countedRow.taxCode && !item.taxCode)
+        item.observedPriceSuffix = countedRow.taxCode;
+      if (countedRow.repairedQuantity)
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field: "quantity",
+          reason: "recovered",
+          other:
+            "The quantity column and neighbouring numeric counts suggest 1 where OCR read I, l or |. Check that character against the receipt.",
+          confirmedValue: "",
+        });
+      if (countedRow.inconsistentUnitPrice)
+        receipt.reviewChecks.push({
+          scope: "item",
+          itemId: item.id,
+          field: "unitPrice",
+          reason: "source",
+          other:
+            "The printed quantity, unit price and total disagree. The original values were kept; check the row.",
+          confirmedValue: "",
+        });
+      receipt.items.push(item);
+      sources[item.id] = [lineIndex];
+      pendingDescription = "";
+      pendingSource = undefined;
+      continue;
+    }
+    if (columns.titles.has(lineIndex)) continue;
+    const column = columns.rows.get(lineIndex);
     if (column) {
       const item = newItem();
       item.description = column.description.slice(0, 180);
@@ -485,21 +517,20 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    if (!observedRow && separateTitles.has(lineIndex)) {
+    if (separateTitles.has(lineIndex)) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
     if (
-      !observedRow &&
-      (unmatchedSeparateRows.has(lineIndex) ||
-        columns.unmatched.includes(lineIndex))
+      unmatchedSeparateRows.has(lineIndex) ||
+      columns.unmatched.includes(lineIndex)
     ) {
       pendingDescription = "";
       pendingSource = undefined;
       continue;
     }
-    const separated = !observedRow && separate.rows.get(lineIndex);
+    const separated = separate.rows.get(lineIndex);
     if (separated) {
       const item = newItem();
       item.description = lines[separated.titleIndex].slice(0, 180);
@@ -609,9 +640,9 @@ export function parseReceiptWithSources(
       pendingSource = undefined;
       continue;
     }
-    const costco = observedRow || matchCostcoRow(line);
+    const costco = matchCostcoRow(line);
     if (costco) {
-      const description = observedRow?.description || pendingDescription || "";
+      const description = pendingDescription;
       const negative = costco.deduction;
       const value = normalize(costco.lineTotal);
       if (negative) {
@@ -644,21 +675,9 @@ export function parseReceiptWithSources(
             previous.discount = value;
             sources[previous.id] = [
               ...(sources[previous.id] || []),
-              ...(observedRow?.sourceIndices || [
-                ...(pendingSource === undefined ? [] : [pendingSource]),
-                lineIndex,
-              ]),
+              ...(pendingSource === undefined ? [] : [pendingSource]),
+              lineIndex,
             ];
-            if (observedRow)
-              receipt.reviewChecks.push({
-                scope: "item",
-                itemId: previous.id,
-                field: "discount",
-                reason: "source",
-                other:
-                  "Confirm the coupon ownership and negative-code role across the original source fragments.",
-                confirmedValue: "",
-              });
             previous.note =
               "Separate discount matched to this preceding purchase. Confirm the match.";
             if (costco.taxCode && previous.taxCode !== costco.taxCode)
@@ -693,29 +712,10 @@ export function parseReceiptWithSources(
           item.note =
             "Purchased quantity looked like I or l rather than a number. Confirm it against the original.";
         receipt.items.push(item);
-        sources[item.id] = observedRow?.sourceIndices || [
+        sources[item.id] = [
           ...(pendingSource === undefined ? [] : [pendingSource]),
           lineIndex,
         ];
-        if (observedRow) {
-          item.note =
-            "Quantity and price roles interpreted from adjacent source fragments. Check every role against the original.";
-          for (const field of [
-            "quantity",
-            "unitPrice",
-            "lineTotal",
-            "taxCode",
-          ] as const)
-            receipt.reviewChecks.push({
-              scope: "item",
-              itemId: item.id,
-              field,
-              reason: "source",
-              other:
-                "Check the roles of the actual words across these source fragments.",
-              confirmedValue: "",
-            });
-        }
       }
       pendingDescription = "";
       pendingSource = undefined;
@@ -868,7 +868,9 @@ export function parseReceiptWithSources(
             ? normalize(explicitTerms[2])
             : "";
         item.lineTotal = amount;
-        item.taxCode = generic[3] || "";
+        item.taxCode =
+          isCostco || receipt.taxCodes.length ? generic[3] || "" : "";
+        if (generic[3] && !item.taxCode) item.observedPriceSuffix = generic[3];
         if (leadingQuantity)
           receipt.reviewChecks.push({
             scope: "item",
@@ -948,7 +950,7 @@ export function parseReceiptWithSources(
   }
   if (!receipt.items.length)
     receipt.warnings.push(
-      "No reliable item rows found. Add the missing items manually, or correct the recognized text and parse again.",
+      "No reliable item rows found. Add the missing items manually or correct the pasted text.",
     );
   if (!receipt.printedTotal)
     receipt.warnings.push(
@@ -997,13 +999,9 @@ export function parseReceiptWithSources(
         ]),
       ];
   return {
-    receipt: receiptSchema.parse(receipt),
+    receipt: receiptSchema.parse(reconcileObservedUnits(receipt)),
     sources,
     columnSources,
     fieldSources,
-    ...(finalTotals.length ? { finalTotalFragments: finalTotals } : {}),
-    ...(Object.keys(observed.rows).length
-      ? { observedCostcoRows: observed.rows }
-      : {}),
   };
 }

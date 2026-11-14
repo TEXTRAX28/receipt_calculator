@@ -10,6 +10,7 @@ export function aiCostcoDraft() {
     subtotal: original.subtotal,
     printedTotal: original.printedTotal,
     printedTax: original.printedTax,
+    taxRegistrationNumber: "",
     pricesIncludeTax: false,
     printedItemCount: 18,
     taxCodes: original.taxCodes,
